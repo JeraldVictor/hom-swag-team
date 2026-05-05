@@ -1,2 +1,195 @@
 /* For information on how to create your own theme, please refer to:
-http://ionicframework.com/docs/theming/ */
+   http://ionicframework.com/docs/theming/ */
+
+/* ==========================================================================
+   Design Tokens — CSS Custom Properties
+   Mirrors src/theme/index.ts for use in CSS/SCSS without JS imports.
+   ========================================================================== */
+
+:root {
+  /* --- Brand colors --- */
+  --color-brand: #7c3aed;
+  --color-brand-mid: #9d5cf6;
+  --color-brand-light: #c4b5fd;
+  --color-brand-pale: #ede9fe;
+
+  /* --- Hero colors --- */
+  --color-hero-deep: #1e3a8a;
+  --color-hero-dark: #1e40af;
+
+  /* --- Neutral colors --- */
+  --color-background: #f9fafb;
+  --color-surface: #ffffff;
+  --color-text: #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted: #9ca3af;
+  --color-border: #e5e7eb;
+
+  /* --- Semantic status colors --- */
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-info: #2563eb;
+
+  /* --- Status color groups --- */
+  --color-success-bg: #dcfce7;
+  --color-success-text: #15803d;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #b45309;
+  --color-error-bg: #fee2e2;
+  --color-error-text: #b91c1c;
+  --color-info-bg: #dbeafe;
+  --color-info-text: #1d4ed8;
+
+  /* --- Spacing --- */
+  --spacing-0: 0px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-20: 80px;
+  --spacing-24: 96px;
+
+  /* --- Border radius --- */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* --- Font sizes --- */
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-4xl: 36px;
+
+  /* --- Font weights --- */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ==========================================================================
+     Ionic CSS Variable Overrides
+     Maps design tokens onto Ionic's theming system.
+     ========================================================================== */
+
+  /* Primary — brand purple */
+  --ion-color-primary: #7c3aed;
+  --ion-color-primary-rgb: 124, 58, 237;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #6d33d1;
+  --ion-color-primary-tint: #8a4eef;
+
+  /* Secondary — hero deep blue */
+  --ion-color-secondary: #1e3a8a;
+  --ion-color-secondary-rgb: 30, 58, 138;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #1a337a;
+  --ion-color-secondary-tint: #354e96;
+
+  /* Tertiary — brand mid */
+  --ion-color-tertiary: #9d5cf6;
+  --ion-color-tertiary-rgb: 157, 92, 246;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #8a51d8;
+  --ion-color-tertiary-tint: #a76cf7;
+
+  /* Success */
+  --ion-color-success: #16a34a;
+  --ion-color-success-rgb: 22, 163, 74;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #138f41;
+  --ion-color-success-tint: #2dac5c;
+
+  /* Warning */
+  --ion-color-warning: #d97706;
+  --ion-color-warning-rgb: 217, 119, 6;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #bf6905;
+  --ion-color-warning-tint: #dd851f;
+
+  /* Danger / Error */
+  --ion-color-danger: #dc2626;
+  --ion-color-danger-rgb: 220, 38, 38;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #c22121;
+  --ion-color-danger-tint: #e03c3c;
+
+  /* Dark */
+  --ion-color-dark: #111827;
+  --ion-color-dark-rgb: 17, 24, 39;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #0f1522;
+  --ion-color-dark-tint: #292f3d;
+
+  /* Medium */
+  --ion-color-medium: #9ca3af;
+  --ion-color-medium-rgb: 156, 163, 175;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #898f9a;
+  --ion-color-medium-tint: #a6acb7;
+
+  /* Light */
+  --ion-color-light: #f9fafb;
+  --ion-color-light-rgb: 249, 250, 251;
+  --ion-color-light-contrast: #111827;
+  --ion-color-light-contrast-rgb: 17, 24, 39;
+  --ion-color-light-shade: #dbdcdd;
+  --ion-color-light-tint: #fafbfb;
+
+  /* App-level background and font */
+  --ion-background-color: #f9fafb;
+  --ion-background-color-rgb: 249, 250, 251;
+  --ion-text-color: #111827;
+  --ion-text-color-rgb: 17, 24, 39;
+  --ion-border-color: #e5e7eb;
+  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Dark mode overrides (follows system preference) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0f172a;
+    --color-surface: #1e293b;
+    --color-text: #f1f5f9;
+    --color-text-secondary: #cbd5e1;
+    --color-text-muted: #64748b;
+    --color-border: #334155;
+
+    --ion-background-color: #0f172a;
+    --ion-background-color-rgb: 15, 23, 42;
+    --ion-text-color: #f1f5f9;
+    --ion-text-color-rgb: 241, 245, 249;
+    --ion-border-color: #334155;
+
+    --ion-color-light: #1e293b;
+    --ion-color-light-rgb: 30, 41, 59;
+    --ion-color-light-contrast: #f1f5f9;
+    --ion-color-light-contrast-rgb: 241, 245, 249;
+    --ion-color-light-shade: #1a2535;
+    --ion-color-light-tint: #354a63;
+  }
+}
