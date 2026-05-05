@@ -1,0 +1,7 @@
+{
+  "name": "HomSwagTeam",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
