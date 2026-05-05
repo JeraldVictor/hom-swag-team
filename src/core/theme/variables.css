@@ -169,27 +169,7 @@
   --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Dark mode overrides (follows system preference) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #0f172a;
-    --color-surface: #1e293b;
-    --color-text: #f1f5f9;
-    --color-text-secondary: #cbd5e1;
-    --color-text-muted: #64748b;
-    --color-border: #334155;
-
-    --ion-background-color: #0f172a;
-    --ion-background-color-rgb: 15, 23, 42;
-    --ion-text-color: #f1f5f9;
-    --ion-text-color-rgb: 241, 245, 249;
-    --ion-border-color: #334155;
-
-    --ion-color-light: #1e293b;
-    --ion-color-light-rgb: 30, 41, 59;
-    --ion-color-light-contrast: #f1f5f9;
-    --ion-color-light-contrast-rgb: 241, 245, 249;
-    --ion-color-light-shade: #1a2535;
-    --ion-color-light-tint: #354a63;
-  }
-}
+/*
+ * Dark mode overrides are intentionally removed.
+ * The app is locked to light mode only.
+ */

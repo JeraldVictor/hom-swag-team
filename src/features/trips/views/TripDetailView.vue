@@ -3,7 +3,7 @@
     <ion-header :translucent="true">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/trips" />
+          <ion-back-button default-href="/tabs/trips" />
         </ion-buttons>
         <ion-title>Trip Detail</ion-title>
       </ion-toolbar>
