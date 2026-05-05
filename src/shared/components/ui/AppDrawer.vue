@@ -73,7 +73,8 @@
         <!-- Divider -->
         <div class="drawer-divider" />
 
-        <!-- Secondary items -->
+        <!-- Account section -->
+        <p class="drawer-section-label">Account</p>
         <ul class="drawer-nav" role="list">
           <li v-for="item in secondaryItems" :key="item.route">
             <button
@@ -158,20 +159,23 @@ const navItems = computed<NavItem[]>(() => {
   }
 
   items.push({ label: 'Leave', icon: 'lucide:calendar', route: '/leave' })
-  items.push({ label: 'Profile', icon: 'lucide:user', route: '/profile' })
 
   return items
 })
 
 const secondaryItems: NavItem[] = [
-  { label: 'Help & Support', icon: 'lucide:circle-help', route: '/help' },
-  { label: 'Settings', icon: 'lucide:settings', route: '/settings' },
+  { label: 'Profile', icon: 'lucide:user', route: '/profile' },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * A nav item is active when the current path equals it exactly,
+ * or starts with it followed by a slash (covers nested detail routes
+ * like /trips/123 highlighting the Trips item).
+ */
 function isActive(targetRoute: string): boolean {
-  return route.path === targetRoute
+  return route.path === targetRoute || route.path.startsWith(targetRoute + '/')
 }
 
 function navigate(targetRoute: string): void {
@@ -380,6 +384,15 @@ async function handleLogout(): Promise<void> {
   height: 1px;
   background: var(--color-border);
   margin: 8px 24px;
+}
+
+.drawer-section-label {
+  margin: 4px 26px 2px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
 /* ── Footer / logout ─────────────────────────────────────────────────────── */

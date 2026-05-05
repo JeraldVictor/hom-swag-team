@@ -15,3 +15,29 @@ export interface LocationPayload extends Coordinates {
   /** GPS accuracy in metres — optional, device-dependent */
   accuracy?: number
 }
+
+/**
+ * A resolved place from Google Places Autocomplete.
+ */
+export interface PlaceResult {
+  placeId: string
+  address: string
+  coordinates: Coordinates
+}
+
+/**
+ * WebSocket message types received from the server.
+ */
+export type WsMessageType = 'location' | 'location_update' | 'ping' | 'pong'
+
+/**
+ * Inbound WebSocket message shape.
+ */
+export interface WsMessage {
+  type: WsMessageType
+  userId?: string | number
+  latitude?: number
+  longitude?: number
+  timestamp?: number
+  [key: string]: unknown
+}

@@ -9,13 +9,18 @@
  *   - Initial delay: 1 second
  *   - Doubles on each attempt
  *   - Maximum delay: 30 seconds
+ *
+ * Supports inbound message listeners so components can react to server-pushed
+ * events (e.g. admin tracking updates, ping/pong).
  */
 
-import type { Coordinates } from '@/shared/models/location.model'
+import type { Coordinates, WsMessage } from '@/shared/models/location.model'
 
 /** Exponential backoff configuration. */
 const BACKOFF_INITIAL_MS = 1_000
 const BACKOFF_MAX_MS = 30_000
+
+type MessageListener = (message: WsMessage) => void
 
 class WebSocketService {
   private socket: WebSocket | null = null
@@ -23,6 +28,7 @@ class WebSocketService {
   private reconnectAttempt = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private intentionalDisconnect = false
+  private listeners: Set<MessageListener> = new Set()
 
   /** WebSocket server URL — falls back to ws://localhost:3000 if not set. */
   private get wsUrl(): string {
@@ -56,6 +62,13 @@ class WebSocketService {
   }
 
   /**
+   * Returns true if the socket is currently open.
+   */
+  get isConnected(): boolean {
+    return this.socket?.readyState === WebSocket.OPEN
+  }
+
+  /**
    * Emit a location update message over the WebSocket connection.
    * The message format is: `{ type: 'location', latitude, longitude }`.
    *
@@ -66,6 +79,27 @@ class WebSocketService {
 
     const message = JSON.stringify({ type: 'location', ...coords })
     this.socket.send(message)
+  }
+
+  /**
+   * Send any arbitrary JSON message over the WebSocket connection.
+   *
+   * @param payload  The message object to send.
+   */
+  send(payload: Record<string, unknown>): void {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
+    this.socket.send(JSON.stringify(payload))
+  }
+
+  /**
+   * Register a listener for inbound WebSocket messages.
+   * Returns an unsubscribe function.
+   *
+   * @param listener  Called with the parsed message object on each inbound message.
+   */
+  onMessage(listener: MessageListener): () => void {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
   }
 
   // ─── Private helpers ────────────────────────────────────────────────────────
@@ -79,6 +113,15 @@ class WebSocketService {
     this.socket.addEventListener('open', () => {
       // Reset backoff on successful connection.
       this.reconnectAttempt = 0
+    })
+
+    this.socket.addEventListener('message', (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string) as WsMessage
+        this.listeners.forEach((listener) => listener(data))
+      } catch {
+        // Ignore non-JSON messages
+      }
     })
 
     this.socket.addEventListener('close', () => {

@@ -11,6 +11,8 @@ interface ImportMetaEnv {
   readonly VITE_BFF_API_URL: string
   /** Google Maps JavaScript API key */
   readonly VITE_GOOGLE_MAPS_API_KEY: string
+  /** WebSocket server URL */
+  readonly VITE_WS_URL: string
 }
 
 interface ImportMeta {

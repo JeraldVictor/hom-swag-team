@@ -8,3 +8,6 @@
 export { default as apiClient, ApiError } from './api'
 export { Storage_Service, STORAGE_KEYS } from './storage'
 export * from './datetime'
+export { loadGoogleMaps, isGoogleMapsLoaded } from './google-maps'
+export { webSocketService } from './websocket.service'
+export { locationService } from './location.service'

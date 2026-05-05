@@ -22,7 +22,7 @@ export type { UserProfile, UserType } from './user.model'
 export type { Order, OrderStatus, OrderAddress, OrderCustomer } from './order.model'
 
 // Trip models
-export type { Trip, TripKanbanState } from './trip.model'
+export type { Trip, TripKanbanState, RawTrip, GeoJsonPoint } from './trip.model'
 
 // Leave request models
 export type {
@@ -33,7 +33,7 @@ export type {
 } from './leave-request.model'
 
 // Location models
-export type { LocationPayload, Coordinates } from './location.model'
+export type { LocationPayload, Coordinates, PlaceResult, WsMessage, WsMessageType } from './location.model'
 
 // Product models
 export type { Product } from './product.model'

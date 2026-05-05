@@ -2,9 +2,10 @@ import type { Coordinates } from './location.model'
 
 /**
  * Kanban progression states for a rider's trip.
- * Maps to the Timeline_Component steps for the rider flow.
+ * Covers both the API-returned states and the internal progression states.
  */
 export type TripKanbanState =
+  | 'requests'
   | 'Assigned'
   | 'Viewed'
   | 'Trip Started'
@@ -13,27 +14,73 @@ export type TripKanbanState =
   | 'Completed'
 
 /**
- * A logistics entity representing a rider's journey from pickup to drop location.
- * The `kanban_state` field drives the Timeline_Component progression.
+ * Raw GeoJSON Point as returned by the API.
+ * coordinates: [longitude, latitude]
+ */
+export interface GeoJsonPoint {
+  type: 'Point'
+  coordinates: [number, number]
+}
+
+/**
+ * Raw trip shape as returned by the BFF API.
+ * Use this only in the service layer for normalization.
+ */
+export interface RawTrip {
+  _id: string
+  office_id: string
+  rider_id: string
+  order_id: {
+    _id: string
+    order_number: string
+    status: string
+    customer?: {
+      full_name: string
+      email?: string
+      phone?: string
+    }
+    booking_info?: {
+      timing?: string
+      date?: string
+      surge_amount?: number
+    }
+  } | string
+  pickup_location: GeoJsonPoint
+  drop_location: GeoJsonPoint
+  status: string
+  trip_number: string
+  kanban_state: TripKanbanState
+  is_two_way: boolean
+  is_self_drive: boolean
+  created_at: string
+  updated_at: string
+  zone_id?: string
+  auto_distance_km?: number
+  fare?: number
+  notes?: string
+}
+
+/**
+ * Normalized trip entity used throughout the app.
+ * Produced by normalizing a RawTrip in the service layer.
  */
 export interface Trip {
-  id: string | number
+  id: string
+  trip_number: string
   kanban_state: TripKanbanState
-  /** ISO 8601 date-time string for the trip start time */
+  /** ISO 8601 — derived from created_at since API has no start_time */
   start_time: string
-  pickup_location: Coordinates & {
-    address?: string
-  }
-  drop_location: Coordinates & {
-    address?: string
-  }
-  /** ISO 8601 date-time string */
+  pickup_location: Coordinates & { address?: string }
+  drop_location: Coordinates & { address?: string }
+  /** Customer name from the nested order */
+  customer_name?: string
+  /** Order number from the nested order */
+  order_number?: string
   end_time?: string
-  /** Calculated fare amount */
   fare?: number
-  /** ISO 8601 date-time string */
   created_at?: string
-  /** ISO 8601 date-time string */
   updated_at?: string
   notes?: string
+  is_two_way?: boolean
+  auto_distance_km?: number
 }
