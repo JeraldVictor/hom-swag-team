@@ -17,6 +17,10 @@ $RECYCLE.BIN/
 log.txt
 npm-debug.log*
 
+# Environment variable files with secrets
+.env.local
+.env.prod
+
 /.idea
 /.ionic
 /.sass-cache
