@@ -8,8 +8,8 @@
  * - Hold accessToken, refreshToken, and user profile in reactive state
  * - Persist tokens and user data to Storage_Service on login
  * - Validate user_type on login — reject if not 'rider' | 'beautician'
- * - Clear all auth state and storage on logout
- * - Refresh tokens via POST /auth/refresh
+ * - Restore session from storage on app boot (restoreSession)
+ * - Clear all auth state and storage on logout (also revokes server-side token)
  */
 
 import { ref, computed } from 'vue'
@@ -41,42 +41,91 @@ export const useAuthStore = defineStore('auth', () => {
   // ---------------------------------------------------------------------------
 
   /**
+   * Hydrate auth state from persistent storage.
+   * Call this once on app boot (App.vue onMounted) before the router resolves.
+   *
+   * Returns `true` if a valid session was restored, `false` otherwise.
+   */
+  async function restoreSession(): Promise<boolean> {
+    const [storedAccessToken, storedRefreshToken, storedProfile] = await Promise.all([
+      Storage_Service.getString(STORAGE_KEYS.accessToken),
+      Storage_Service.getString(STORAGE_KEYS.refreshToken),
+      Storage_Service.getJSON<UserProfile>(STORAGE_KEYS.userProfile),
+    ])
+
+    if (storedAccessToken && storedRefreshToken && storedProfile) {
+      accessToken.value = storedAccessToken
+      refreshToken.value = storedRefreshToken
+      user.value = storedProfile
+      return true
+    }
+
+    return false
+  }
+
+  /**
    * Persist an auth response to state and storage.
    *
    * Validates that `user.user_type` is `'rider' | 'beautician'`.
    * Throws an error and clears any stored tokens if the type is invalid.
    */
   async function login(authResponse: AuthResponse): Promise<void> {
-    const { access_token, refresh_token, user: userProfile } = authResponse
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken, user: authUser } = authResponse
 
     // Validate user_type before persisting anything
-    if (!VALID_USER_TYPES.includes(userProfile.user_type)) {
-      // Clear any previously stored tokens to leave a clean state
+    if (!VALID_USER_TYPES.includes(authUser.user_type)) {
       await Storage_Service.clearAuth()
       throw new Error(
-        `Invalid user_type "${userProfile.user_type}". Expected "rider" or "beautician".`
+        `Invalid user_type "${authUser.user_type}". Expected "rider" or "beautician".`
       )
+    }
+
+    // Build a full UserProfile from the auth response user object
+    const userProfile: UserProfile = {
+      id: authUser.id,
+      name: authUser.name,
+      phone: authUser.phone,
+      user_type: authUser.user_type,
     }
 
     // Persist to storage
     await Promise.all([
-      Storage_Service.setString(STORAGE_KEYS.accessToken, access_token),
-      Storage_Service.setString(STORAGE_KEYS.refreshToken, refresh_token),
-      Storage_Service.setString(STORAGE_KEYS.userType, userProfile.user_type),
+      Storage_Service.setString(STORAGE_KEYS.accessToken, newAccessToken),
+      Storage_Service.setString(STORAGE_KEYS.refreshToken, newRefreshToken),
+      Storage_Service.setString(STORAGE_KEYS.userType, authUser.user_type),
       Storage_Service.setJSON<UserProfile>(STORAGE_KEYS.userProfile, userProfile),
     ])
 
     // Update reactive state
-    accessToken.value = access_token
-    refreshToken.value = refresh_token
+    accessToken.value = newAccessToken
+    refreshToken.value = newRefreshToken
     user.value = userProfile
   }
 
   /**
+   * Update the stored user profile (e.g. after fetching full profile from GET /profile).
+   */
+  async function setUserProfile(profile: UserProfile): Promise<void> {
+    user.value = profile
+    await Storage_Service.setJSON<UserProfile>(STORAGE_KEYS.userProfile, profile)
+  }
+
+  /**
    * Clear all auth state from memory and storage.
+   * Attempts to revoke the refresh token on the server first (best-effort).
    * Called on explicit sign-out or after an unrecoverable 401.
    */
   async function logout(): Promise<void> {
+    // Best-effort server-side token revocation — don't block logout on failure
+    if (refreshToken.value) {
+      try {
+        const { logoutApi } = await import('@/shared/api/auth.service')
+        await logoutApi({ refresh_token: refreshToken.value })
+      } catch {
+        // Silently ignore — local session must always be cleared
+      }
+    }
+
     await Storage_Service.clearAuth()
 
     accessToken.value = null
@@ -97,19 +146,19 @@ export const useAuthStore = defineStore('auth', () => {
       throw new Error('No refresh token available')
     }
 
-    const response = await apiClient.post<{ access_token: string; refresh_token: string }>(
+    const response = await apiClient.post<{ data: { accessToken: string; refreshToken: string } }>(
       '/auth/refresh',
       { refresh_token: currentRefreshToken }
     )
 
-    const { access_token, refresh_token: newRefreshToken } = response.data
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data
 
     await Promise.all([
-      Storage_Service.setString(STORAGE_KEYS.accessToken, access_token),
+      Storage_Service.setString(STORAGE_KEYS.accessToken, newAccessToken),
       Storage_Service.setString(STORAGE_KEYS.refreshToken, newRefreshToken),
     ])
 
-    accessToken.value = access_token
+    accessToken.value = newAccessToken
     refreshToken.value = newRefreshToken
   }
 
@@ -121,7 +170,9 @@ export const useAuthStore = defineStore('auth', () => {
     // Getters
     isAuthenticated,
     // Actions
+    restoreSession,
     login,
+    setUserProfile,
     logout,
     refreshTokens,
   }

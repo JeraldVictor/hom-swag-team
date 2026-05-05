@@ -102,21 +102,22 @@ function rejectQueue(error: unknown): void {
 // ---------------------------------------------------------------------------
 
 async function performRefresh(instance: AxiosInstance): Promise<string> {
-  const refreshToken = await Storage_Service.getString(STORAGE_KEYS.refreshToken)
-  if (!refreshToken) {
+  const storedRefreshToken = await Storage_Service.getString(STORAGE_KEYS.refreshToken)
+  if (!storedRefreshToken) {
     throw new ApiError(401, 'No refresh token available')
   }
 
-  const response = await instance.post<{ access_token: string; refresh_token: string }>(
+  // The BFF wraps the token pair in a `data` envelope: { success, message, data: { accessToken, refreshToken } }
+  const response = await instance.post<{ data: { accessToken: string; refreshToken: string } }>(
     '/auth/refresh',
-    { refresh_token: refreshToken },
+    { refresh_token: storedRefreshToken },
   )
 
-  const { access_token, refresh_token } = response.data
-  await Storage_Service.setString(STORAGE_KEYS.accessToken, access_token)
-  await Storage_Service.setString(STORAGE_KEYS.refreshToken, refresh_token)
+  const { accessToken, refreshToken } = response.data.data
+  await Storage_Service.setString(STORAGE_KEYS.accessToken, accessToken)
+  await Storage_Service.setString(STORAGE_KEYS.refreshToken, refreshToken)
 
-  return access_token
+  return accessToken
 }
 
 // ---------------------------------------------------------------------------
@@ -124,7 +125,7 @@ async function performRefresh(instance: AxiosInstance): Promise<string> {
 // ---------------------------------------------------------------------------
 
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL as string,
+  baseURL: import.meta.env.VITE_BFF_API_URL as string,
   timeout: 15_000,
   headers: {
     'X-Client-Type': 'field',

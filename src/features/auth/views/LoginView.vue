@@ -23,7 +23,7 @@ const {
   isOtpValid,
   maskedPhone,
   submitPhone,
-  verifyOtp,
+  verifyOtpAndLogin,
   goBackToPhone,
   onOtpChange,
 } = useLogin()
@@ -140,7 +140,7 @@ function onPhoneInput(event: Event): void {
                   :has-error="!!otpError"
                   :disabled="isLoading"
                   @update:model-value="onOtpChange"
-                  @complete="verifyOtp"
+                  @complete="verifyOtpAndLogin"
                 />
                 <Transition name="fade-down">
                   <p v-if="otpError" class="login-field__error login-field__error--center" role="alert">
@@ -156,7 +156,7 @@ function onPhoneInput(event: Event): void {
                 class="login-btn login-btn--primary"
                 :class="{ 'login-btn--disabled': !isOtpValid || isLoading }"
                 :disabled="!isOtpValid || isLoading"
-                @click="verifyOtp"
+                @click="verifyOtpAndLogin"
               >
                 <AppLoadingSpinner v-if="isLoading" size="sm" />
                 <span v-else>Verify &amp; Continue</span>

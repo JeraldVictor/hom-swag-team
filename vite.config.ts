@@ -16,6 +16,17 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      // Proxy /api/* → http://localhost:3000/bff/field/*
+      // The browser hits the same origin (Vite dev server), so no CORS.
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/bff/field'),
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom'

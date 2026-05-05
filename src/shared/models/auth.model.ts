@@ -9,6 +9,15 @@ export interface OtpRequestBody {
 }
 
 /**
+ * Response from POST /auth/otp/request
+ * `otp` is only present in non-production environments.
+ */
+export interface OtpRequestResponse {
+  new_user: boolean
+  otp?: string | null
+}
+
+/**
  * Request body for verifying an OTP code.
  * Sent to POST /auth/otp/verify
  */
@@ -18,20 +27,20 @@ export interface OtpVerifyBody {
 }
 
 /**
- * Access/refresh token pair returned after successful authentication.
- */
-export interface TokenPair {
-  access_token: string
-  refresh_token: string
-}
-
-/**
  * Full authentication response returned by the BFF API after OTP verification.
+ * Field names match the OpenAPI spec: camelCase `accessToken` / `refreshToken`.
  * `get_profile` signals that the client should immediately fetch the full profile.
  */
-export interface AuthResponse extends TokenPair {
-  user: UserProfile
-  get_profile?: boolean
+export interface AuthResponse {
+  accessToken: string
+  refreshToken: string
+  get_profile: boolean
+  user: {
+    id: string
+    name: string
+    phone: string
+    user_type: UserProfile['user_type']
+  }
 }
 
 /**
@@ -40,6 +49,15 @@ export interface AuthResponse extends TokenPair {
  */
 export interface RefreshTokenBody {
   refresh_token: string
+}
+
+/**
+ * Token pair returned by POST /auth/refresh.
+ * Field names match the OpenAPI spec.
+ */
+export interface TokenPair {
+  accessToken: string
+  refreshToken: string
 }
 
 /**

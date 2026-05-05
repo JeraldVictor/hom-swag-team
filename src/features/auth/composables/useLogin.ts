@@ -1,16 +1,23 @@
 /**
  * useLogin composable
  *
- * Manages the two-step login flow:
- *   Step 1 — phone number entry (10 or 14 digits)
- *   Step 2 — 6-digit OTP verification
+ * Manages the two-step OTP login flow:
+ *   Step 1 — phone number entry (10 or 14 digits) → POST /auth/otp/request
+ *   Step 2 — 6-digit OTP verification → POST /auth/otp/verify
  *
- * For now, navigation to home is triggered on button click without API calls.
- * Replace the `submitPhone` and `verifyOtp` stubs with real API calls later.
+ * On successful verification:
+ *   - Persists tokens and user profile via the auth store
+ *   - If `get_profile` is true, fetches the full profile from GET /profile
+ *   - Navigates to /tabs/home
  */
 
 import { ref, computed } from 'vue'
+import type { Ref, ComputedRef } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/shared/stores/auth'
+import { requestOtp, verifyOtp } from '@/shared/api/auth.service'
+import { getProfile } from '@/shared/api/profile.service'
+import { useToast } from '@/shared/composables/useToast'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -20,19 +27,19 @@ export type LoginStep = 'phone' | 'otp'
 
 export interface UseLoginReturn {
   // State
-  step: ReturnType<typeof ref<LoginStep>>
-  phone: ReturnType<typeof ref<string>>
-  otp: ReturnType<typeof ref<string>>
-  isLoading: ReturnType<typeof ref<boolean>>
-  phoneError: ReturnType<typeof ref<string>>
-  otpError: ReturnType<typeof ref<string>>
+  step: Ref<LoginStep>
+  phone: Ref<string>
+  otp: Ref<string>
+  isLoading: Ref<boolean>
+  phoneError: Ref<string>
+  otpError: Ref<string>
   // Computed
-  isPhoneValid: ReturnType<typeof computed<boolean>>
-  isOtpValid: ReturnType<typeof computed<boolean>>
-  maskedPhone: ReturnType<typeof computed<string>>
+  isPhoneValid: ComputedRef<boolean>
+  isOtpValid: ComputedRef<boolean>
+  maskedPhone: ComputedRef<string>
   // Actions
   submitPhone: () => Promise<void>
-  verifyOtp: () => Promise<void>
+  verifyOtpAndLogin: () => Promise<void>
   goBackToPhone: () => void
   onOtpChange: (value: string) => void
 }
@@ -43,6 +50,8 @@ export interface UseLoginReturn {
 
 export function useLogin(): UseLoginReturn {
   const router = useRouter()
+  const authStore = useAuthStore()
+  const { showError } = useToast()
 
   // ---- State ----------------------------------------------------------------
 
@@ -79,8 +88,7 @@ export function useLogin(): UseLoginReturn {
 
   /**
    * Step 1 — submit phone number.
-   * Validates locally, then (stub) moves to OTP step.
-   * Replace the stub block with a real API call: POST /auth/send-otp
+   * Calls POST /auth/otp/request and advances to the OTP step on success.
    */
   async function submitPhone(): Promise<void> {
     phoneError.value = ''
@@ -92,23 +100,24 @@ export function useLogin(): UseLoginReturn {
 
     isLoading.value = true
     try {
-      // --- STUB: replace with real API call ---
-      await new Promise<void>((resolve) => setTimeout(resolve, 600))
-      // ----------------------------------------
+      await requestOtp({ phone: phone.value })
       step.value = 'otp'
-    } catch {
-      phoneError.value = 'Failed to send OTP. Please try again.'
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to send OTP. Please try again.'
+      phoneError.value = message
+      showError(message)
     } finally {
       isLoading.value = false
     }
   }
 
   /**
-   * Step 2 — verify OTP.
-   * Validates locally, then (stub) navigates to home.
-   * Replace the stub block with a real API call: POST /auth/verify-otp
+   * Step 2 — verify OTP and complete login.
+   * Calls POST /auth/otp/verify, persists auth state, optionally fetches
+   * the full profile, then navigates to the home tab.
    */
-  async function verifyOtp(): Promise<void> {
+  async function verifyOtpAndLogin(): Promise<void> {
     otpError.value = ''
 
     if (!isOtpValid.value) {
@@ -118,12 +127,27 @@ export function useLogin(): UseLoginReturn {
 
     isLoading.value = true
     try {
-      // --- STUB: replace with real API call ---
-      await new Promise<void>((resolve) => setTimeout(resolve, 600))
-      // ----------------------------------------
-      await router.replace('/tabs/home')
-    } catch {
-      otpError.value = 'Invalid OTP. Please try again.'
+      const authResponse = await verifyOtp({ phone: phone.value, otp: otp.value })
+
+      // Persist tokens + basic user info to store and storage
+      await authStore.login(authResponse)
+
+      // If the server signals a profile fetch is needed, get the full profile
+      if (authResponse.get_profile) {
+        try {
+          const fullProfile = await getProfile()
+          await authStore.setUserProfile(fullProfile)
+        } catch {
+          // Non-fatal — basic profile from auth response is already stored
+        }
+      }
+
+      await router.replace('/home')
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Invalid OTP. Please try again.'
+      otpError.value = message
+      showError(message)
     } finally {
       isLoading.value = false
     }
@@ -153,7 +177,7 @@ export function useLogin(): UseLoginReturn {
     isOtpValid,
     maskedPhone,
     submitPhone,
-    verifyOtp,
+    verifyOtpAndLogin,
     goBackToPhone,
     onOtpChange,
   }

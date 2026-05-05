@@ -31,6 +31,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     component: () => import('@/features/home/views/TabsLayout.vue'),
+    meta: { requiresAuth: true },
     children: [
       {
         path: 'home',
@@ -84,6 +85,35 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+})
+
+// ---------------------------------------------------------------------------
+// Navigation guard — protect authenticated routes
+// ---------------------------------------------------------------------------
+
+/**
+ * Before each navigation:
+ * - If the route requires auth and no token is in storage → redirect to /login
+ * - If the user is already authenticated and navigates to /login → redirect to /home
+ *
+ * We read directly from storage here (not the Pinia store) because the guard
+ * runs before App.vue's onMounted restoreSession() completes on a hard reload.
+ */
+router.beforeEach(async (to) => {
+  // Lazy import to avoid circular dependency at module load time
+  const { Storage_Service, STORAGE_KEYS } = await import('@/shared/lib/storage')
+  const accessToken = await Storage_Service.getString(STORAGE_KEYS.accessToken)
+  const isAuthenticated = !!accessToken
+
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+
+  if (requiresAuth && !isAuthenticated) {
+    return { name: 'Login' }
+  }
+
+  if (to.name === 'Login' && isAuthenticated) {
+    return { name: 'Home' }
+  }
 })
 
 export default router

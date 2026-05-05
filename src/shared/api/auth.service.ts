@@ -2,11 +2,13 @@
  * Auth Service
  *
  * Typed wrappers around the BFF authentication endpoints.
+ * Field names match the OpenAPI spec (camelCase accessToken / refreshToken).
  */
 
 import apiClient from '@/shared/lib/api'
 import type {
   OtpRequestBody,
+  OtpRequestResponse,
   OtpVerifyBody,
   AuthResponse,
   RefreshTokenBody,
@@ -18,8 +20,9 @@ import type {
  * Request an OTP to be sent to the provided phone number.
  * POST /auth/otp/request
  */
-export async function requestOtp(body: OtpRequestBody): Promise<void> {
-  await apiClient.post('/auth/otp/request', body)
+export async function requestOtp(body: OtpRequestBody): Promise<OtpRequestResponse> {
+  const response = await apiClient.post<{ data: OtpRequestResponse }>('/auth/otp/request', body)
+  return response.data.data
 }
 
 /**
@@ -41,9 +44,9 @@ export async function refreshToken(body: RefreshTokenBody): Promise<TokenPair> {
 }
 
 /**
- * Invalidate the refresh token and log the user out.
+ * Invalidate the refresh token and log the user out on the server.
  * POST /auth/logout
  */
-export async function logout(body: LogoutBody): Promise<void> {
+export async function logoutApi(body: LogoutBody): Promise<void> {
   await apiClient.post('/auth/logout', body)
 }
