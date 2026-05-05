@@ -66,6 +66,9 @@ importers:
       '@capacitor/cli':
         specifier: 8.3.1
         version: 8.3.1
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
       '@vitejs/plugin-legacy':
         specifier: ^5.4.3
         version: 5.4.3(terser@5.46.2)(vite@5.4.21(@types/node@25.6.0)(terser@5.46.2))
@@ -78,6 +81,9 @@ importers:
       '@vue/test-utils':
         specifier: ^2.4.10
         version: 2.4.10(@vue/compiler-dom@3.5.33)(@vue/server-renderer@3.5.33(vue@3.5.33(typescript@5.9.3)))(vue@3.5.33(typescript@5.9.3))
+      '@vue/typescript-plugin':
+        specifier: ^3.2.8
+        version: 3.2.8(typescript@5.9.3)
       cypress:
         specifier: ^13.17.0
         version: 13.17.0
@@ -1306,11 +1312,20 @@ packages:
   '@volar/language-core@2.4.15':
     resolution: {integrity: sha512-3VHw+QZU0ZG9IuQmzT68IyN4hZNd9GchGPhbD9+pa8CVv7rnoOZwo7T8weIbrRmihqy3ATpdfXFnqRrfPVK6CA==}
 
+  '@volar/language-core@2.4.28':
+    resolution: {integrity: sha512-w4qhIJ8ZSitgLAkVay6AbcnC7gP3glYM3fYwKV3srj8m494E3xtrCv6E+bWviiK/8hs6e6t1ij1s2Endql7vzQ==}
+
   '@volar/source-map@2.4.15':
     resolution: {integrity: sha512-CPbMWlUN6hVZJYGcU/GSoHu4EnCHiLaXI9n8c9la6RaI9W5JHX+NqG+GSQcB0JdC2FIBLdZJwGsfKyBB71VlTg==}
 
+  '@volar/source-map@2.4.28':
+    resolution: {integrity: sha512-yX2BDBqJkRXfKw8my8VarTyjv48QwxdJtvRgUpNE5erCsgEUdI2DsLbpa+rOQVAJYshY99szEcRDmyHbF10ggQ==}
+
   '@volar/typescript@2.4.15':
     resolution: {integrity: sha512-2aZ8i0cqPGjXb4BhkMsPYDkkuc2ZQ6yOpqwAuNwUoncELqoy5fRgOQtLR9gB0g902iS0NAkvpIzs27geVyVdPg==}
+
+  '@volar/typescript@2.4.28':
+    resolution: {integrity: sha512-Ja6yvWrbis2QtN4ClAKreeUZPVYMARDYZl9LMEv1iQ1QdepB6wn0jTRxA9MftYmYa4DQ4k/DaSZpFPUfxl8giw==}
 
   '@vue/compiler-core@3.5.33':
     resolution: {integrity: sha512-3PZLQwFw4Za3TC8t0FvTy3wI16Kt+pmwcgNZca4Pj9iWL2E72a/gZlpBtAJvEdDMdCxdG/qq0C7PN0bsJuv0Rw==}
@@ -1358,6 +1373,9 @@ packages:
       typescript:
         optional: true
 
+  '@vue/language-core@3.2.8':
+    resolution: {integrity: sha512-9OiSPQFiAAWNVnXb0d2dcTmcKnFQamhuNES6ayyISrb/mwPWVgoGdAqSfCWqKhQpa3D5gDTcYD+w7ObiheZ81g==}
+
   '@vue/reactivity@3.5.33':
     resolution: {integrity: sha512-p8UfIqyIhb0rYGlSgSBV+lPhF2iUSBcRy7enhTmPqKWadHy9kcOFYF1AejYBP9P+avnd3OBbD49DU4pLWX/94A==}
 
@@ -1384,6 +1402,9 @@ packages:
     peerDependenciesMeta:
       '@vue/server-renderer':
         optional: true
+
+  '@vue/typescript-plugin@3.2.8':
+    resolution: {integrity: sha512-djn/lftbQ0ZXQFYk7HNVNG9lz6V/Lo/wv9t5MADPvQZoH2wC01Cdcs7kJuPVuk40KJXtOFBdpPPl4TcLMWmJww==}
 
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
@@ -1424,6 +1445,9 @@ packages:
 
   alien-signals@1.0.13:
     resolution: {integrity: sha512-OGj9yyTnJEttvzhTUWuscOvtqxq5vrhF7vL9oS0xJ2mK0ItPYP1/y+vCFebfxoEyAz0++1AIwJ5CMr+Fk3nDmg==}
+
+  alien-signals@3.1.2:
+    resolution: {integrity: sha512-d9dYqZTS90WLiU0I5c6DHj/HcKkF8ZyGN3G5x8wSbslulz70KOxaqCT0hQCo9KOyhVqzqGojvNdJXoTumZOtcw==}
 
   ansi-colors@4.1.3:
     resolution: {integrity: sha512-/6w/C21Pm1A7aZitlI5Ni/2J6FFQN8i1Cvz3kHABAAbw93v/NlvKdVOqz7CCWz/3iv/JplRSEEZ83XION15ovw==}
@@ -2575,6 +2599,10 @@ packages:
     resolution: {integrity: sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==}
     engines: {node: '>=8.6'}
 
+  picomatch@4.0.4:
+    resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
+    engines: {node: '>=12'}
+
   pify@2.3.0:
     resolution: {integrity: sha512-udgsAY+fTnvv7kI7aaxbqwWNb0AHiB0qBO89PZKPkoTmGOgdbrHDKD+0B2X4uTfJ/FT1R09r9gTsjUjNJotuog==}
     engines: {node: '>=0.10.0'}
@@ -3114,6 +3142,14 @@ packages:
 
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
+
+  vue-component-meta@3.2.8:
+    resolution: {integrity: sha512-0yPG0/R/IFgM7JHui45uGY0oqognbhXiV13+dWTj8sCDHG8XXHTd/RaIRbDqEG8TDaUkl2qCNLokgjOMZXHeOQ==}
+    peerDependencies:
+      typescript: '*'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   vue-component-type-helpers@3.2.8:
     resolution: {integrity: sha512-9689efAXhN/EV86plgkL/XFiJSXhGtWPG6JDboZ+QnjlUWUUQrQ0ILKQtw4iQsuwIwu5k6Aw+JnehDe7161e7A==}
@@ -4601,11 +4637,23 @@ snapshots:
     dependencies:
       '@volar/source-map': 2.4.15
 
+  '@volar/language-core@2.4.28':
+    dependencies:
+      '@volar/source-map': 2.4.28
+
   '@volar/source-map@2.4.15': {}
+
+  '@volar/source-map@2.4.28': {}
 
   '@volar/typescript@2.4.15':
     dependencies:
       '@volar/language-core': 2.4.15
+      path-browserify: 1.0.1
+      vscode-uri: 3.1.0
+
+  '@volar/typescript@2.4.28':
+    dependencies:
+      '@volar/language-core': 2.4.28
       path-browserify: 1.0.1
       vscode-uri: 3.1.0
 
@@ -4689,6 +4737,16 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
+  '@vue/language-core@3.2.8':
+    dependencies:
+      '@volar/language-core': 2.4.28
+      '@vue/compiler-dom': 3.5.33
+      '@vue/shared': 3.5.33
+      alien-signals: 3.1.2
+      muggle-string: 0.4.1
+      path-browserify: 1.0.1
+      picomatch: 4.0.4
+
   '@vue/reactivity@3.5.33':
     dependencies:
       '@vue/shared': 3.5.33
@@ -4721,6 +4779,16 @@ snapshots:
       vue-component-type-helpers: 3.2.8
     optionalDependencies:
       '@vue/server-renderer': 3.5.33(vue@3.5.33(typescript@5.9.3))
+
+  '@vue/typescript-plugin@3.2.8(typescript@5.9.3)':
+    dependencies:
+      '@volar/typescript': 2.4.28
+      '@vue/language-core': 3.2.8
+      '@vue/shared': 3.5.33
+      path-browserify: 1.0.1
+      vue-component-meta: 3.2.8(typescript@5.9.3)
+    transitivePeerDependencies:
+      - typescript
 
   '@xmldom/xmldom@0.9.10': {}
 
@@ -4757,6 +4825,8 @@ snapshots:
       uri-js: 4.4.1
 
   alien-signals@1.0.13: {}
+
+  alien-signals@3.1.2: {}
 
   ansi-colors@4.1.3: {}
 
@@ -5953,6 +6023,8 @@ snapshots:
 
   picomatch@2.3.2: {}
 
+  picomatch@4.0.4: {}
+
   pify@2.3.0: {}
 
   pinia@3.0.4(typescript@5.9.3)(vue@3.5.33(typescript@5.9.3)):
@@ -6481,6 +6553,14 @@ snapshots:
       - terser
 
   vscode-uri@3.1.0: {}
+
+  vue-component-meta@3.2.8(typescript@5.9.3):
+    dependencies:
+      '@volar/typescript': 2.4.28
+      '@vue/language-core': 3.2.8
+      path-browserify: 1.0.1
+    optionalDependencies:
+      typescript: 5.9.3
 
   vue-component-type-helpers@3.2.8: {}
 
