@@ -6,6 +6,7 @@
  */
 
 export { useApi } from './useApi'
+export { useDrawer } from './useDrawer'
 export { useCamera } from './useCamera'
 export { useDateTime } from './useDateTime'
 export { useDialog } from './useDialog'

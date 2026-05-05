@@ -37,7 +37,7 @@ function onPhoneInput(event: Event): void {
 
 <template>
   <ion-page class="login-page">
-    <ion-content :fullscreen="true" class="login-content">
+    <ion-content :fullscreen="true" class="login-content" :scroll-y="true">
       <!-- Background decoration -->
       <div class="login-bg">
         <div class="login-bg__circle login-bg__circle--1" />
@@ -48,14 +48,12 @@ function onPhoneInput(event: Event): void {
       <div class="login-container">
         <!-- ── Brand header ─────────────────────────────────────── -->
         <div class="login-brand">
-          <div class="login-brand__icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect width="32" height="32" rx="10" fill="#7C3AED" />
-              <path d="M8 22L13 10L16 17L19 13L24 22H8Z" fill="white" opacity="0.9" />
-              <circle cx="22" cy="10" r="3" fill="white" opacity="0.7" />
-            </svg>
-          </div>
-          <span class="login-brand__name">HomSwag</span>
+          <img
+            src="@/shared/images/HomSwagLogo.png"
+            alt="HomSwag"
+            class="login-brand__logo"
+          />
+          <p class="login-brand__tagline">Your team, on the move.</p>
         </div>
 
         <!-- ── Card ─────────────────────────────────────────────── -->
@@ -202,6 +200,14 @@ function onPhoneInput(event: Event): void {
   --color: #111827;
 }
 
+/* Key fix: make ion-content's inner scroll container a flex column
+   so .login-container can stretch to full height and center its children */
+.login-content::part(scroll) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
 /* ── Background decoration ───────────────────────────────────────────────── */
 
 .login-bg {
@@ -248,38 +254,39 @@ function onPhoneInput(event: Event): void {
 .login-container {
   position: relative;
   z-index: 1;
+  flex: 1;                      /* fills the flex scroll container */
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100%;
-  padding: 56px 20px 32px;
+  justify-content: center;      /* vertical centering */
+  padding: 48px 20px 40px;
   box-sizing: border-box;
+  gap: 0;
 }
 
 /* ── Brand ───────────────────────────────────────────────────────────────── */
 
 .login-brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 40px;
+  gap: 8px;
+  margin-bottom: 36px;
 }
 
-.login-brand__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  filter: drop-shadow(0 4px 12px rgba(124, 58, 237, 0.35));
+.login-brand__logo {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 16px rgba(124, 58, 237, 0.3));
 }
 
-.login-brand__name {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #7c3aed 0%, #1e3a8a 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.login-brand__tagline {
+  margin: 0;
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 /* ── Card ────────────────────────────────────────────────────────────────── */
@@ -288,8 +295,8 @@ function onPhoneInput(event: Event): void {
   width: 100%;
   max-width: 400px;
   background: #ffffff;
-  border-radius: 24px;
-  padding: 32px 28px;
+  border-radius: 28px;
+  padding: 36px 28px;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.06),
     0 8px 32px rgba(124, 58, 237, 0.1),
@@ -503,7 +510,7 @@ function onPhoneInput(event: Event): void {
 /* ── Legal ───────────────────────────────────────────────────────────────── */
 
 .login-legal {
-  margin-top: 24px;
+  margin-top: 28px;
   font-size: 12px;
   color: #9ca3af;
   text-align: center;

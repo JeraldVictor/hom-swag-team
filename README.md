@@ -25,7 +25,7 @@ src/
 ├── core/router/        # Route definitions
 ├── features/           # Feature modules
 │   ├── auth/           # Login (outside tabs)
-│   ├── home/           # Home tab + TabsLayout shell
+│   ├── home/           # Home tab + TabsLayout shell + 404 page
 │   ├── orders/         # Beautician orders
 │   ├── trips/          # Rider trips
 │   ├── leave/          # Leave requests
@@ -38,6 +38,41 @@ src/
     ├── models/         # TypeScript domain types
     └── stores/         # Pinia stores (auth, ui, userType)
 ```
+
+## Shared Composables
+
+| Composable | Location | Description |
+|------------|----------|-------------|
+| `useDrawer` | `src/shared/composables/useDrawer.ts` | Global drawer open/close state. Exposes `isDrawerOpen`, `openDrawer()`, `closeDrawer()`, and `toggleDrawer()`. Shared between `TabsLayout` (opener) and `AppDrawer` (consumer) via a module-level ref — no prop drilling required. |
+
+## Shared UI Components
+
+| Component | Location | Description |
+|-----------|----------|-------------|
+| `AppDrawer` | `src/shared/components/ui/AppDrawer.vue` | Slide-in navigation drawer. Reads open/close state from `useDrawer`. Displays a user avatar (photo or initials), role label, role-conditional nav items (Home, Orders/Trips, Leave, Profile), secondary items (Help, Settings), and a logout button. Controlled entirely via `useDrawer` — no props required. |
+
+## App Shell
+
+The main app shell (`TabsLayout`) wraps all authenticated routes and provides:
+
+- **Header** — app title ("HomSwag"), a menu button (top-left), and a notification bell with an unread badge (top-right).
+- **Bottom tab bar** — tabs are shown conditionally based on user role (`isBeautician` / `isRider` from the `userTypeStore`).
+
+## Routing
+
+| Path | View | Notes |
+|------|------|-------|
+| `/` | — | Redirects to `/login` |
+| `/login` | `LoginView` | Auth entry point |
+| `/home` | `HomeView` | Main home tab |
+| `/orders` | `OrdersView` | Beautician orders list |
+| `/orders/:id` | `OrderDetailView` | Order detail |
+| `/trips` | `TripsView` | Rider trips list |
+| `/trips/:id` | `TripDetailView` | Trip detail |
+| `/leave` | `LeaveView` | Leave requests |
+| `/profile` | `ProfileView` | User profile |
+| `/error` | `ErrorView` | Error page |
+| `/:pathMatch(.*)` | `PageNotFoundView` | 404 catch-all |
 
 ## Native
 

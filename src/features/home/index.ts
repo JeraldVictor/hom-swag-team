@@ -7,3 +7,6 @@
 
 // Views
 export { default as HomeView } from './views/HomeView.vue'
+export { default as TabsLayout } from './views/TabsLayout.vue'
+export { default as PageNotFoundView } from './views/PageNotFoundView.vue'
+export { default as ErrorView } from './views/ErrorView.vue'
