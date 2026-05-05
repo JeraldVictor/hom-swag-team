@@ -22,10 +22,11 @@
     "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/status-bar": "8.0.2",
+    "@iconify-json/lucide": "^1.2.105",
+    "@iconify/vue": "^5.0.0",
     "@ionic/vue": "^8.8.5",
     "@ionic/vue-router": "^8.8.5",
     "axios": "^1.16.0",
-    "ionicons": "^7.4.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.33",
     "vue-router": "^4.6.4"

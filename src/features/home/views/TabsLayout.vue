@@ -5,29 +5,29 @@
 
       <ion-tab-bar slot="bottom">
         <ion-tab-button tab="home" href="/tabs/home">
-          <ion-icon :icon="homeOutline" />
+          <Icon icon="lucide:house" class="tab-icon" />
           <ion-label>Home</ion-label>
         </ion-tab-button>
 
         <!-- Beautician: Orders tab -->
         <ion-tab-button v-if="isBeautician" tab="orders" href="/tabs/orders">
-          <ion-icon :icon="briefcaseOutline" />
+          <Icon icon="lucide:briefcase" class="tab-icon" />
           <ion-label>Orders</ion-label>
         </ion-tab-button>
 
         <!-- Rider: Trips tab -->
         <ion-tab-button v-if="isRider" tab="trips" href="/tabs/trips">
-          <ion-icon :icon="carOutline" />
+          <Icon icon="lucide:car" class="tab-icon" />
           <ion-label>Trips</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="leave" href="/tabs/leave">
-          <ion-icon :icon="calendarOutline" />
+          <Icon icon="lucide:calendar" class="tab-icon" />
           <ion-label>Leave</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="profile" href="/tabs/profile">
-          <ion-icon :icon="personOutline" />
+          <Icon icon="lucide:user" class="tab-icon" />
           <ion-label>Profile</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
@@ -41,20 +41,20 @@ import {
   IonTabs,
   IonTabBar,
   IonTabButton,
-  IonIcon,
   IonLabel,
   IonRouterOutlet,
 } from '@ionic/vue'
-import {
-  homeOutline,
-  briefcaseOutline,
-  carOutline,
-  calendarOutline,
-  personOutline,
-} from 'ionicons/icons'
+import { Icon } from '@iconify/vue'
 import { useUserTypeStore } from '@/shared/stores'
 import { storeToRefs } from 'pinia'
 
 const userTypeStore = useUserTypeStore()
 const { isBeautician, isRider } = storeToRefs(userTypeStore)
 </script>
+
+<style scoped>
+.tab-icon {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+</style>
