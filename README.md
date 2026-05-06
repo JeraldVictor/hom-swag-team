@@ -72,6 +72,28 @@ src/
     └── stores/         # Pinia stores (auth, ui, userType)
 ```
 
+## App Store
+
+The app store (`src/shared/stores/app.ts`) manages the app's boot lifecycle state via Pinia.
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `isOnline` | `Ref<boolean>` | Whether the device currently has an internet connection. Kept in sync with `useNetwork` via a watcher in `App.vue`. |
+| `permissionsGranted` | `Ref<boolean>` | Whether all required runtime permissions have been granted. |
+| `bootPhase` | `Ref<BootPhase>` | Current boot phase — `'booting'`, `'needs-permissions'`, or `'ready'`. |
+| `isReady` | `ComputedRef<boolean>` | `true` when `bootPhase === 'ready'`. |
+| `setOnline(online)` | `(boolean) => void` | Updates `isOnline`. |
+| `setPermissionsGranted(granted)` | `(boolean) => void` | Updates `permissionsGranted`. |
+| `setBootPhase(phase)` | `(BootPhase) => void` | Advances the boot phase. |
+
+**`BootPhase`** — `'booting' | 'needs-permissions' | 'ready'`
+
+`App.vue` drives the boot sequence using this store:
+
+1. **`booting`** (initial) — a full-screen boot splash (HomSwag logo + spinning loader) is shown while network and permissions are checked silently. If the device is offline, `NoInternetView` is rendered instead until the user taps "Try Again" and connectivity is restored.
+2. **`needs-permissions`** — network is confirmed but one or more required permissions are missing; `PermissionSplashView` is rendered.
+3. **`ready`** — all checks passed; `restoreSession()` has run and the normal `<ion-router-outlet>` is rendered.
+
 ## Auth Store
 
 The auth store (`src/shared/stores/auth.ts`) manages authentication state, tokens, and user identity via Pinia.
@@ -84,7 +106,7 @@ The auth store (`src/shared/stores/auth.ts`) manages authentication state, token
 | `refreshToken` | `Ref<string \| null>` | Current refresh token (reactive). |
 | `user` | `Ref<UserProfile \| null>` | Authenticated user profile (reactive). |
 | `isAuthenticated` | `ComputedRef<boolean>` | `true` when an access token is present. |
-| `restoreSession()` | `() => Promise<boolean>` | Hydrates auth state from persistent storage. Call once on app boot (e.g. `App.vue` `onMounted`) before the router resolves. Returns `true` if a valid session was found. |
+| `restoreSession()` | `() => Promise<boolean>` | Hydrates auth state from persistent storage. Called during the app boot sequence (inside `finishBoot()` in `App.vue`) after network and permissions are confirmed. Returns `true` if a valid session was found. |
 | `login(authResponse)` | `(AuthResponse) => Promise<void>` | Persists tokens and user profile from a verify-OTP response. Validates `user_type` — throws and clears storage if the type is not `'rider'` or `'beautician'`. |
 | `setUserProfile(profile)` | `(UserProfile) => Promise<void>` | Updates the stored user profile in both state and storage. Use after fetching the full profile from `GET /profile`. |
 | `logout()` | `() => Promise<void>` | Clears all auth state from memory and storage. Attempts best-effort server-side token revocation via `POST /auth/logout` first — local session is always cleared regardless of server response. |
@@ -160,6 +182,8 @@ TypeScript interfaces for the authentication flow live in `src/shared/models/aut
 | `useDrawer` | `src/shared/composables/useDrawer.ts` | Global drawer open/close state. Exposes `isDrawerOpen`, `openDrawer()`, `closeDrawer()`, and `toggleDrawer()`. Shared between `TabsLayout` (opener) and `AppDrawer` (consumer) via a module-level ref — no prop drilling required. |
 | `useGeolocation` | `src/shared/composables/useGeolocation.ts` | Reactive GPS wrapper around `@capacitor/geolocation`. Handles permission requests, one-shot position fetches, and continuous position watching. Each position update is automatically emitted over the WebSocket connection for real-time admin tracking. |
 | `useGoogleMaps` | `src/shared/composables/useGoogleMaps.ts` | Manages a Google Maps instance bound to a DOM element. Handles API loading, map initialization, named marker management, and route rendering via the Directions API. |
+| `useNetwork` | `src/shared/composables/useNetwork.ts` | Reactive network connectivity state. Tracks whether the device has an active internet connection via `navigator.onLine` and the `online`/`offline` window events. Works on iOS and Android without a native plugin. Also exports `getIsOnline()` for use outside components. |
+| `usePermissions` | `src/shared/composables/usePermissions.ts` | Manages the three required runtime permissions (Location, Camera, Notifications). Exposes reactive `statuses`, `allGranted`, and `isLoading` refs, plus `checkAll()` (silent check) and `requestAll()` (prompts the user). On web/PWA all permissions are treated as granted automatically. |
 | `useTracking` | `src/shared/composables/useTracking.ts` | High-level tracking orchestrator for riders and beauticians. Requests location permission, connects the WebSocket (using the stored access token), starts a GPS watch, and emits each position update over the socket. Call `startTracking()` when a trip/order begins and `stopTracking()` when it ends. Auto-cleans up on component unmount. |
 
 ### `useGeolocation`
@@ -254,6 +278,94 @@ const {
 
 The composable registers an `onUnmounted` hook that calls `stopTracking()` automatically, so there is no need to call it manually in most cases.
 
+### `useNetwork`
+
+Reactive network connectivity state backed by `navigator.onLine` and the browser's `online`/`offline` window events. Uses a module-level singleton so all callers share the same reactive state. Works correctly on iOS and Android — the Capacitor WebView fires the standard browser events without requiring a native plugin.
+
+```ts
+import { useNetwork, getIsOnline } from '@/shared/composables/useNetwork'
+
+// Inside a component
+const { isOnline } = useNetwork()
+
+// Outside a component (store, router guard, etc.)
+const online = getIsOnline()
+```
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `isOnline` | `Readonly<Ref<boolean>>` | `true` when the device has an active internet connection. Reactive — updates automatically when connectivity changes. |
+
+**`getIsOnline()`** — standalone function that reads the current online state without registering any lifecycle hooks. Safe to call in stores, router guards, or any non-component context.
+
+Event listeners are added on the first component mount and removed when the last consumer unmounts, so there is no listener leak regardless of how many components use the composable simultaneously.
+
+### `usePermissions`
+
+Manages the three required runtime permissions — Location, Camera, and Notifications — using the Capacitor plugin APIs. Uses a fresh instance per call (not a singleton), so it is typically called once in `App.vue` during boot and once in `PermissionSplashView`.
+
+```ts
+import { usePermissions } from '@/shared/composables/usePermissions'
+
+const {
+  statuses,              // Readonly<Ref<PermissionStatuses>>
+  allGranted,            // Readonly<Ref<boolean>>
+  isLoading,             // Readonly<Ref<boolean>>
+  checkAll,              // () => Promise<void>
+  requestAll,            // () => Promise<void>
+  requestLocation,       // () => Promise<PermissionState>
+  requestCamera,         // () => Promise<PermissionState>
+  requestNotifications,  // () => Promise<PermissionState>
+} = usePermissions()
+```
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `statuses` | `Readonly<Ref<PermissionStatuses>>` | Current state for each permission (`location`, `camera`, `notifications`). Each value is `'granted' \| 'denied' \| 'prompt' \| 'prompt-with-rationale' \| 'unknown'`. |
+| `allGranted` | `Readonly<Ref<boolean>>` | `true` when all three permissions are `'granted'`. |
+| `isLoading` | `Readonly<Ref<boolean>>` | `true` while a check or request is in progress. |
+| `checkAll()` | `() => Promise<void>` | Reads current permission states without prompting the user. Safe to call on every boot. |
+| `requestAll()` | `() => Promise<void>` | Requests each permission in sequence (location → camera → notifications). Used by `PermissionSplashView`. |
+| `requestLocation()` | `() => Promise<PermissionState>` | Requests only the location permission. |
+| `requestCamera()` | `() => Promise<PermissionState>` | Requests only the camera permission. |
+| `requestNotifications()` | `() => Promise<PermissionState>` | Requests only the notifications permission. |
+
+On web/PWA (`Capacitor.isNativePlatform() === false`) all permissions are immediately set to `'granted'` so the splash screen is never shown in a browser context.
+
+### `NoInternetView`
+
+Full-screen offline overlay (`src/features/home/views/NoInternetView.vue`). Renders a centered card with a `wifi-off` icon, a user-facing message, and a "Try Again" button. Pair it with `useNetwork` to gate the app shell behind connectivity.
+
+```vue
+<NoInternetView v-if="!isOnline" @retry="checkConnectivity" />
+```
+
+**Emits**
+
+| Event | Description |
+|-------|-------------|
+| `retry` | Fired after an 800 ms debounce when the user taps "Try Again". The parent should re-check `isOnline` and hide the overlay if connectivity has been restored. |
+
+The button shows a spinning `loader-circle` icon and is disabled while the debounce is in progress, preventing rapid repeated taps.
+
+### `PermissionSplashView`
+
+Full-screen permission onboarding screen (`src/features/home/views/PermissionSplashView.vue`). Shown during the app boot sequence when the device is online but one or more required runtime permissions have not yet been granted. Displays the HomSwag logo, a brief explanation, and a list of the three required permissions (Location, Camera, Notifications) with live status indicators.
+
+```vue
+<PermissionSplashView @granted="handlePermissionsGranted" />
+```
+
+**Emits**
+
+| Event | Description |
+|-------|-------------|
+| `granted` | Fired when the user taps "Continue" after the permission request flow completes. The parent (`App.vue`) calls `finishBoot()` to restore the session and advance to the `ready` phase. |
+
+Tapping "Grant Permissions" walks through each permission in sequence (with a brief per-item loading state), then switches the button to "Continue". If any permission is denied, a warning banner instructs the user to open device Settings. The "Continue" button is always available after the request flow so users who deny optional permissions are not permanently blocked.
+
+On web/PWA all permissions are treated as granted and the splash is skipped automatically.
+
 **`MapMarkerOptions`**
 
 | Field | Type | Description |
@@ -270,6 +382,7 @@ The composable registers an `onUnmounted` hook that calls `stopTracking()` autom
 |-----------|----------|-------------|
 | `AppDrawer` | `src/shared/components/ui/AppDrawer.vue` | Slide-in navigation drawer. Reads open/close state from `useDrawer`. Displays a user avatar (photo or initials), role label, role-conditional nav items (Home, Orders/Trips, Leave), a secondary Profile item, and a logout button. Active state highlights the current route and any nested child routes (e.g. `/trips/123` highlights the Trips item). Controlled entirely via `useDrawer` — no props required. |
 | `GoogleMapView` | `src/shared/components/ui/GoogleMapView.vue` | Reusable Google Maps component. Wraps `useGoogleMaps` and handles loading/error states internally. Supports pickup, drop, and live-position markers, optional driving route rendering, and automatic bounds fitting. Emits `map-ready` once the map is initialized and `map-error` on failure. Renders a static "Map unavailable" fallback when `FEATURES.maps` is `false`. |
+| `NoInternetView` | `src/features/home/views/NoInternetView.vue` | Full-screen offline overlay. Displays a `wifi-off` icon, a message prompting the user to check connectivity, and a "Try Again" button. The button emits a `retry` event after an 800 ms debounce so the parent can re-check connectivity. Intended to be conditionally rendered over the app shell when `useNetwork`'s `isOnline` is `false`. |
 | `PlacesSearchInput` | `src/shared/components/ui/PlacesSearchInput.vue` | Address search input backed by Google Places Autocomplete. Supports free-text address search, direct lat/lng coordinate entry, a loading spinner during API calls, and a clear button. Emits the selected `PlaceResult` on selection. Fully keyboard-accessible (Enter selects, Escape clears). |
 
 ### `GoogleMapView`
@@ -995,7 +1108,7 @@ A global `beforeEach` guard in `src/core/router/index.ts` enforces authenticatio
 - If a user navigates to a protected route without a stored access token, they are redirected to `/login`.
 - If an authenticated user navigates to `/login`, they are redirected to `/home`.
 
-The guard reads the access token directly from storage (via `Storage_Service`) rather than the Pinia auth store, so it works correctly on hard reloads before `App.vue`'s `restoreSession()` has run.
+The guard reads the access token directly from storage (via `Storage_Service`) rather than the Pinia auth store, so it works correctly on hard reloads before `App.vue`'s boot sequence has completed.
 
 ## Calendar Feature
 

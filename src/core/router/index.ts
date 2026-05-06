@@ -128,10 +128,25 @@ const router = createRouter({
 })
 
 // ---------------------------------------------------------------------------
-// Navigation guard — protect authenticated routes
+// Navigation guard — protect authenticated routes + block when offline
 // ---------------------------------------------------------------------------
 
 router.beforeEach(async (to) => {
+  // Allow navigation to the offline / error utility pages regardless of state
+  const alwaysAllowed = ['Error', 'PageNotFound']
+  if (to.name && alwaysAllowed.includes(to.name as string)) {
+    return
+  }
+
+  // Block all navigation when the device is offline.
+  // App.vue renders the NoInternetView overlay, so we simply cancel the
+  // navigation — the user will see the overlay and can retry.
+  const { getIsOnline } = await import('@/shared/composables/useNetwork')
+  if (!getIsOnline()) {
+    return false
+  }
+
+  // Auth guard
   const { Storage_Service, STORAGE_KEYS } = await import('@/shared/lib/storage')
   const accessToken = await Storage_Service.getString(STORAGE_KEYS.accessToken)
   const isAuthenticated = !!accessToken

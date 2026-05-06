@@ -6,5 +6,6 @@
  */
 
 export { useAuthStore } from './auth'
+export { useAppStore } from './app'
 export { useUiStore } from './ui'
 export { useUserTypeStore } from './userType'
