@@ -50,6 +50,7 @@
 
       <!-- ── Scrollable nav items ────────────────────────────────────── -->
       <div class="drawer-body">
+        <!-- Primary nav -->
         <ul class="drawer-nav" role="list">
           <li v-for="item in navItems" :key="item.route">
             <button
@@ -76,7 +77,7 @@
         <!-- Account section -->
         <p class="drawer-section-label">Account</p>
         <ul class="drawer-nav" role="list">
-          <li v-for="item in secondaryItems" :key="item.route">
+          <li v-for="item in accountItems" :key="item.route">
             <button
               class="drawer-nav__item"
               :class="{ 'drawer-nav__item--active': isActive(item.route) }"
@@ -152,28 +153,28 @@ const navItems = computed<NavItem[]>(() => {
 
   if (isBeautician.value) {
     items.push({ label: 'Orders', icon: 'lucide:briefcase', route: '/orders' })
+    items.push({ label: 'Complaints', icon: 'lucide:message-circle-warning', route: '/complaints' })
   }
 
   if (isRider.value) {
     items.push({ label: 'Trips', icon: 'lucide:car', route: '/trips' })
   }
 
+  items.push({ label: 'Calendar', icon: 'lucide:calendar-days', route: '/calendar' })
   items.push({ label: 'Leave', icon: 'lucide:calendar', route: '/leave' })
+  items.push({ label: 'Notifications', icon: 'lucide:bell', route: '/notifications' })
 
   return items
 })
 
-const secondaryItems: NavItem[] = [
+const accountItems: NavItem[] = [
   { label: 'Profile', icon: 'lucide:user', route: '/profile' },
+  { label: 'Active Sessions', icon: 'lucide:monitor-smartphone', route: '/sessions' },
+  { label: 'Support & Feedback', icon: 'lucide:life-buoy', route: '/support' },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/**
- * A nav item is active when the current path equals it exactly,
- * or starts with it followed by a slash (covers nested detail routes
- * like /trips/123 highlighting the Trips item).
- */
 function isActive(targetRoute: string): boolean {
   return route.path === targetRoute || route.path.startsWith(targetRoute + '/')
 }

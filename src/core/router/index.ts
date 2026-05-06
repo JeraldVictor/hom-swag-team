@@ -33,11 +33,13 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/features/home/views/TabsLayout.vue'),
     meta: { requiresAuth: true },
     children: [
+      // Home / Dashboard
       {
         path: 'home',
         name: 'Home',
         component: () => import('@/features/home/views/HomeView.vue'),
       },
+
       // Orders (beautician)
       {
         path: 'orders',
@@ -49,6 +51,7 @@ const routes: Array<RouteRecordRaw> = [
         name: 'OrderDetail',
         component: () => import('@/features/orders/views/OrderDetailView.vue'),
       },
+
       // Trips (rider)
       {
         path: 'trips',
@@ -60,17 +63,54 @@ const routes: Array<RouteRecordRaw> = [
         name: 'TripDetail',
         component: () => import('@/features/trips/views/TripDetailView.vue'),
       },
-      // Leave requests
+
+      // Leave requests (both roles)
       {
         path: 'leave',
         name: 'Leave',
         component: () => import('@/features/leave/views/LeaveView.vue'),
       },
-      // Profile
+
+      // Calendar (both roles)
+      {
+        path: 'calendar',
+        name: 'Calendar',
+        component: () => import('@/features/calendar/views/CalendarView.vue'),
+      },
+
+      // Profile (both roles)
       {
         path: 'profile',
         name: 'Profile',
         component: () => import('@/features/profile/views/ProfileView.vue'),
+      },
+
+      // Notifications (both roles)
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/features/notifications/views/NotificationsView.vue'),
+      },
+
+      // Complaints (beautician only — guarded in component)
+      {
+        path: 'complaints',
+        name: 'Complaints',
+        component: () => import('@/features/complaints/views/ComplaintsView.vue'),
+      },
+
+      // Sessions (both roles)
+      {
+        path: 'sessions',
+        name: 'Sessions',
+        component: () => import('@/features/sessions/views/SessionsView.vue'),
+      },
+
+      // Support & Feedback (both roles)
+      {
+        path: 'support',
+        name: 'Support',
+        component: () => import('@/features/support/views/SupportView.vue'),
       },
     ],
   },
@@ -91,16 +131,7 @@ const router = createRouter({
 // Navigation guard — protect authenticated routes
 // ---------------------------------------------------------------------------
 
-/**
- * Before each navigation:
- * - If the route requires auth and no token is in storage → redirect to /login
- * - If the user is already authenticated and navigates to /login → redirect to /home
- *
- * We read directly from storage here (not the Pinia store) because the guard
- * runs before App.vue's onMounted restoreSession() completes on a hard reload.
- */
 router.beforeEach(async (to) => {
-  // Lazy import to avoid circular dependency at module load time
   const { Storage_Service, STORAGE_KEYS } = await import('@/shared/lib/storage')
   const accessToken = await Storage_Service.getString(STORAGE_KEYS.accessToken)
   const isAuthenticated = !!accessToken

@@ -28,7 +28,6 @@
           >
             <div class="notif-wrap">
               <Icon icon="lucide:bell" class="header-icon" />
-              <!-- Unread badge — shown when there are notifications -->
               <span v-if="hasNotifications" class="notif-badge" aria-label="Unread notifications" />
             </div>
           </ion-button>
@@ -55,6 +54,11 @@
         <ion-tab-button v-if="isRider" tab="trips" href="/trips">
           <Icon icon="lucide:car" class="tab-icon" />
           <ion-label>Trips</ion-label>
+        </ion-tab-button>
+
+        <ion-tab-button tab="calendar" href="/calendar">
+          <Icon icon="lucide:calendar-days" class="tab-icon" />
+          <ion-label>Calendar</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="leave" href="/leave">
@@ -89,7 +93,7 @@ import { Icon } from '@iconify/vue'
 import { useUserTypeStore } from '@/shared/stores'
 import { storeToRefs } from 'pinia'
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables'
 import AppDrawer from '@/shared/components/ui/AppDrawer.vue'
 
@@ -97,6 +101,7 @@ const userTypeStore = useUserTypeStore()
 const { isBeautician, isRider } = storeToRefs(userTypeStore)
 
 const route = useRoute()
+const router = useRouter()
 
 // Map route names to display titles
 const routeTitles: Record<string, string> = {
@@ -106,7 +111,12 @@ const routeTitles: Record<string, string> = {
   Trips: 'Trips',
   TripDetail: 'Trip Details',
   Leave: 'Leave',
+  Calendar: 'Calendar',
   Profile: 'Profile',
+  Notifications: 'Notifications',
+  Complaints: 'Complaints',
+  Sessions: 'Active Sessions',
+  Support: 'Support & Feedback',
 }
 
 const pageTitle = computed(() => {
@@ -124,8 +134,7 @@ function openMenu(): void {
 }
 
 function openNotifications(): void {
-  // TODO: navigate to notifications screen or open sheet
-  console.log('open notifications')
+  router.push('/notifications')
 }
 </script>
 
