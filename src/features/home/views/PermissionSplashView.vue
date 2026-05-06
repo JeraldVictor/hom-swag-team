@@ -95,10 +95,10 @@
       <button
         v-else
         class="perm-splash__btn perm-splash__btn--primary"
-        :disabled="isLoading"
+        :disabled="isLoading || statuses.location !== 'granted'"
         @click="handleContinue"
       >
-        Continue
+        {{ statuses.location === 'granted' ? 'Continue' : 'Location required' }}
       </button>
     </div>
   </div>
@@ -189,6 +189,8 @@ async function handleRequest() {
 }
 
 function handleContinue() {
+  // Location is required — only proceed if it was granted
+  if (statuses.value.location !== 'granted') return
   emit('granted')
 }
 </script>
