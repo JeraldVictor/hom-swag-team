@@ -5,7 +5,7 @@
  */
 
 import apiClient from '@/shared/lib/api'
-import type { UserProfile } from '@/shared/models/user.model'
+import type { UserProfile, ProfileDocument } from '@/shared/models/user.model'
 
 /**
  * Fetch the authenticated field worker's profile.
@@ -17,10 +17,45 @@ export async function getProfile(): Promise<UserProfile> {
 }
 
 /**
- * Update the authenticated field worker's profile.
+ * Update the authenticated field worker's profile fields.
  * PATCH /profile
  */
 export async function updateProfile(data: Partial<UserProfile> & Record<string, unknown>): Promise<UserProfile> {
   const response = await apiClient.patch<{ data: UserProfile }>('/profile', data)
   return response.data.data
+}
+
+/**
+ * Upload or replace the profile photo.
+ * POST /profile/photo
+ */
+export async function uploadProfilePhoto(formData: FormData): Promise<UserProfile> {
+  const response = await apiClient.post<{ data: UserProfile }>('/profile/photo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data.data
+}
+
+/**
+ * Upload a KYC or role-specific document.
+ * POST /profile/documents/:type
+ */
+export async function uploadProfileDocument(
+  type: string,
+  formData: FormData,
+): Promise<ProfileDocument> {
+  const response = await apiClient.post<{ data: ProfileDocument }>(
+    `/profile/documents/${type}`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return response.data.data
+}
+
+/**
+ * Delete a previously uploaded document.
+ * DELETE /profile/documents/:type
+ */
+export async function deleteProfileDocument(type: string): Promise<void> {
+  await apiClient.delete(`/profile/documents/${type}`)
 }

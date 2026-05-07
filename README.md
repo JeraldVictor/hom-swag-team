@@ -59,10 +59,15 @@ src/
 │   ├── home/           # Home tab + TabsLayout shell + 404 page
 │   ├── orders/         # Beautician orders
 │   ├── trips/          # Rider trips (list + detail)
-│   ├── leave/          # Leave requests
+│   ├── leave/          # Leave requests, OT requests, and weekly off requests
 │   ├── profile/        # User profile
 │   ├── sessions/       # Active login sessions management
-│   └── calendar/       # Monthly calendar with events (leaves, orders, trips, holidays)
+│   ├── calendar/       # Monthly calendar with events (leave, OT, weekly off)
+│   ├── reimbursements/ # Travel reimbursement requests (both roles)
+│   ├── external-bookings/ # External bookings (beautician only)
+│   ├── leaderboard/    # Leaderboard (both roles, visibility controlled by BFF)
+│   ├── trip-fees/      # Trip fees report (rider only)
+│   └── sos/            # SOS emergency alert (both roles)
 └── shared/
     ├── api/            # BFF API service functions
     ├── components/ui/  # Shared UI primitives
@@ -174,6 +179,47 @@ TypeScript interfaces for the authentication flow live in `src/shared/models/aut
 | `LogoutBody` | Request body for `POST /auth/logout` — `{ refresh_token: string }` |
 
 > Token fields use camelCase (`accessToken`, `refreshToken`) to match the OpenAPI spec.
+
+## User Models
+
+TypeScript interfaces for field worker identity live in `src/shared/models/user.model.ts`.
+
+**`UserType`** — `'rider' | 'beautician'`
+
+Discriminates between the two field worker roles. Derived from the `user_type` field in the auth response.
+
+**`UserProfile`**
+
+Full profile for an authenticated field worker. Returned by `GET /profile` and embedded in `AuthResponse`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string \| number` | Unique user identifier. |
+| `name` | `string` | Display name. |
+| `phone` | `string` | Phone number used for OTP login. |
+| `user_type` | `UserType` | Role — `'rider'` or `'beautician'`. |
+| `photo?` | `{ url: string }` | Profile photo URL. |
+| `email?` | `string` | Optional email address. |
+| `date_of_birth?` | `string` | Date of birth — ISO 8601 date string (`YYYY-MM-DD`). |
+| `address?` | `string` | Residential address. |
+| `emergency_contact_name?` | `string` | Emergency contact name. |
+| `emergency_contact_phone?` | `string` | Emergency contact phone number. |
+| `documents?` | `ProfileDocument[]` | Uploaded KYC and role-specific documents. |
+| `created_at?` | `string` | ISO 8601 creation timestamp. |
+| `updated_at?` | `string` | ISO 8601 last-updated timestamp. |
+
+**`ProfileDocument`**
+
+A single uploaded document attached to a user profile (KYC, role-specific credentials, etc.).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `string` | Document type key (e.g. `'aadhaar'`, `'driving_license'`). |
+| `label` | `string` | Human-readable display label. |
+| `url?` | `string` | URL of the uploaded file (image or PDF). |
+| `mime_type?` | `string` | MIME type of the uploaded file (e.g. `'image/jpeg'`, `'application/pdf'`). |
+| `uploaded_at?` | `string` | ISO 8601 date-time string of when the document was uploaded. |
+| `verified?` | `boolean` | Verification status set by office staff. |
 
 ## Shared Composables
 
@@ -611,6 +657,36 @@ Normalized trip entity used throughout the app. Produced by normalizing a `RawTr
 | `is_two_way?` | `boolean` | Whether the trip is a return journey. |
 | `auto_distance_km?` | `number` | Auto-calculated distance in kilometres. |
 
+**`TripFeeEntry`** and **`TripFeesReport`**
+
+TypeScript interfaces for the trip fees report live in `src/shared/models/trip-fees.model.ts`. Riders use this data to view a breakdown of their earnings and deductions for a given period.
+
+**`TripFeeEntry`** — a single trip's fee breakdown:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `trip_id` | `string` | Trip identifier. |
+| `trip_number` | `string` | Human-readable trip reference number. |
+| `date` | `string` | ISO 8601 date string for the trip. |
+| `distance_km?` | `number` | Trip distance in kilometres (optional). |
+| `fare` | `number` | Gross fare for the trip. |
+| `deduction?` | `number` | Platform fee or other deduction (optional). |
+| `net_amount` | `number` | Net payout after deductions. |
+| `status?` | `'pending' \| 'paid'` | Payment status (optional). |
+
+**`TripFeesReport`** — aggregated report for a period:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `period_label` | `string` | Human-readable label for the period (e.g. "May 2026"). |
+| `from_date` | `string` | ISO 8601 start date of the period. |
+| `to_date` | `string` | ISO 8601 end date of the period. |
+| `total_trips` | `number` | Total number of trips in the period. |
+| `total_fare` | `number` | Sum of all gross fares. |
+| `total_deductions` | `number` | Sum of all deductions. |
+| `total_net` | `number` | Sum of all net payouts. |
+| `entries` | `TripFeeEntry[]` | Per-trip fee breakdown entries. |
+
 ### `TripStatusBadge`
 
 Presentational badge component (`src/features/trips/components/TripStatusBadge.vue`) that renders a coloured pill for a trip's kanban state.
@@ -654,6 +730,20 @@ const {
 | `advanceStatus()` | `() => Promise<void>` | Advances the trip to the next kanban state via `PATCH /trips/:id/status`. Updates `trip` in place on success. |
 
 **Kanban state progression**: `requests` → `Assigned` → `Viewed` → `Trip Started` → `Trip Completed` → `Fare Calculated` → `Completed`. The `requests` state is API-returned and precedes rider assignment; `advanceStatus()` begins from `Assigned`.
+
+### Trips Service API
+
+Typed wrappers around the BFF trips endpoints (`src/shared/api/trips.service.ts`). All functions normalize the raw API response into the app's `Trip` model.
+
+| Function | Method & Path | Description |
+|----------|--------------|-------------|
+| `getTrips(page?, limit?)` | `GET /trips` | Fetches the list of trips assigned to the authenticated rider. Handles both plain-array and paginated-envelope responses. |
+| `getTrip(id)` | `GET /trips/:id` | Fetches a single trip by ID. |
+| `updateTripStatus(id, kanbanState)` | `PATCH /trips/:id/kanban-state` | Advances the trip to the given kanban state. |
+| `confirmCustomerLocation(id, body)` | `PATCH /trips/:id/confirm-location` | Confirms the customer's pickup location. `body` accepts `latitude`, `longitude`, and an optional `address` string. |
+| `updateRiderSelfRideStatus(id, isSelfRide)` | `PATCH /trips/:id/self-ride` | Sets whether the rider is travelling independently (`is_self_ride`). |
+
+All functions return a `Promise<Trip>` (or `Promise<Trip[]>` for `getTrips`) and throw an `ApiError` on failure.
 
 ## Orders Feature (Beautician)
 
@@ -853,31 +943,72 @@ Returned by `GET /leave-balance`. All fields are optional numbers representing r
 | `total_taken?` | `number` | Total leave days taken. |
 | `total_available?` | `number` | Total leave days available. |
 
+## OT Request Models
+
+TypeScript interfaces for overtime requests live in `src/shared/models/ot-request.model.ts`. Submitted by beauticians and riders when they work beyond their scheduled hours.
+
+| Type | Kind | Description |
+|------|------|-------------|
+| `OtRequestStatus` | `type` | Approval lifecycle states: `'requested' \| 'approved' \| 'rejected'`. |
+| `OtRequest` | `interface` | An OT request entity as returned by the BFF API. |
+| `OtRequestBody` | `interface` | Request body for creating a new OT request. |
+
+**`OtRequest`**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string \| number` | OT request ID. |
+| `_id?` | `string` | MongoDB document ID (optional, API-returned). |
+| `date` | `string` | ISO 8601 date string (YYYY-MM-DD) — the date overtime was worked. |
+| `hours` | `number` | Number of overtime hours claimed. |
+| `reason?` | `string` | Optional reason for the overtime. |
+| `status` | `OtRequestStatus` | Current approval state. |
+| `requester_type?` | `'beautician' \| 'rider'` | Role of the requester. |
+| `created_at?` | `string` | ISO 8601 creation timestamp. |
+| `updated_at?` | `string` | ISO 8601 last-updated timestamp. |
+
+**`OtRequestBody`**
+
+Sent when creating a new OT request.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `requester_id` | `string` | ID of the user submitting the request. |
+| `requester_type` | `'beautician' \| 'rider'` | Role of the requester. |
+| `date` | `string` | ISO 8601 date string (YYYY-MM-DD). |
+| `hours` | `number` | Number of overtime hours claimed. |
+| `reason?` | `string` | Optional reason. |
+
 ## Leave Feature
 
 ### `LeaveView`
 
-The main leave requests view (`/leave`). On mount it fetches the user's leave requests and leave balance, and renders one of four states:
+The main leave requests view (`/leave`). On mount it fetches the user's leave requests and renders one of three states:
 
 - **Loading skeleton** — shown while the initial fetch is in progress (4 animated shimmer cards).
-- **Error state** — shown when the fetch fails with no cached data; includes a Retry button.
-- **Empty state** — shown when the user has no leave requests.
-- **Request list** — a scrollable list of leave cards, each showing the date, leave type, duration, status badge, optional reason, and a Cancel button for requests still in `requested` state.
+- **Empty state** — shown when the user has no requests of any kind.
+- **Request list** — a unified, scrollable list of all request types (leave, OT, weekly off), each card showing a type icon, title, date, optional detail (e.g. duration or hours), status badge, optional reason, and a Cancel button for requests still in `requested` state.
 
-A leave balance card is displayed at the top of the screen (when balance data is available), showing remaining days per leave type in a responsive grid.
+A leave balance card is always displayed at the top of the screen, showing remaining days for Paid Leave, Sick Leave, and Loss of Pay in a responsive grid.
+
+A "My Requests" section label separates the balance card from the list.
 
 Pull-to-refresh is supported via `<ion-refresher>`.
 
-Tapping the **+** button in the header opens a modal form for submitting a new leave request. The form collects:
+A fixed **+** FAB in the bottom-right corner opens a two-step bottom sheet for submitting a new request:
 
-| Field | Input | Notes |
-|-------|-------|-------|
-| Date | `<input type="date">` | Defaults to today; past dates are disabled. |
-| Leave Type | `<select>` | Paid Leave, Sick Leave, Loss of Pay, Block Time. |
-| Duration | `<select>` | Full Day, First Half, Second Half. |
-| Reason | `<textarea>` | Optional free-text field. |
+**Step 1 — pick request type.** A grid of type cards lets the user choose from the available request types (Paid Leave, Sick Leave, Loss of Pay, OT, Weekly Off). Selecting a type advances to step 2.
 
-On successful submission the modal closes, the new request is prepended to the list, and a success toast is shown. Cancellation of a `requested`-state leave request removes it from the list immediately.
+**Step 2 — fill the form.** A back button returns to step 1. Fields vary by type:
+
+| Field | Shown for | Input | Notes |
+|-------|-----------|-------|-------|
+| Date | All types | `<input type="date">` | Past dates disabled for leave types; OT allows past dates. |
+| Duration | Paid Leave, Sick Leave | Segmented button tabs | Full Day, First Half, Second Half. |
+| Overtime Hours | OT | +/− stepper | 0.5 hr increments, range 0.5–12 hrs. |
+| Reason | All types | `<textarea>` | Optional. |
+
+On successful submission the sheet closes and a success toast is shown. Cancelling a `requested`-state request removes it from the list immediately.
 
 ### `useLeave`
 
@@ -953,6 +1084,39 @@ API service functions for the authenticated user's profile live in `src/shared/a
 |----------|-----------|-------------|
 | `getProfile()` | `() => Promise<UserProfile>` | Fetches the authenticated field worker's profile via `GET /profile`. |
 | `updateProfile(data)` | `(Partial<UserProfile> & Record<string, unknown>) => Promise<UserProfile>` | Updates the authenticated field worker's profile via `PATCH /profile`. Accepts any subset of `UserProfile` fields plus arbitrary extra keys for API-specific fields. Returns the updated profile. |
+
+## Profile View
+
+`src/features/profile/views/ProfileView.vue` — the authenticated user's profile screen, accessible via the `/profile` route.
+
+### Layout
+
+The view is split into a read-only display page and a full-screen edit bottom sheet (`ion-modal`).
+
+**Read-only page sections:**
+
+| Section | Description |
+|---------|-------------|
+| Hero | Avatar (photo or initials), display name, role badge, and email. Tapping the avatar opens the edit sheet. |
+| Personal Info | Phone, email, date of birth, address, and emergency contact displayed as icon rows. An "Add email, address & more" nudge row appears when both email and address are empty. |
+| Documents & KYC | A grid of document cards showing upload/verified status for each document slot. Tapping any card opens the edit sheet. |
+| Account | Links to Active Sessions (`/sessions`) and Support & Feedback (`/support`). |
+
+**Edit bottom sheet** (opened via the pencil header button, avatar tap, or any document card):
+
+| Section | Description |
+|---------|-------------|
+| Profile Photo | Preview with upload (file input, JPG/PNG, max 5 MB) and remove actions. |
+| Personal Details | Full name, email, date of birth, address (textarea). |
+| Emergency Contact | Contact name and phone number. |
+| Documents & KYC | Per-document upload rows (image or PDF, max 10 MB). Each row shows upload/verified status and supports Replace and View actions. |
+
+### Behaviour
+
+- Profile is fetched on `onMounted` and re-fetched on `onIonViewWillEnter` if not yet loaded.
+- Pull-to-refresh triggers a fresh `getProfile()` call.
+- Saving calls `updateProfile()` via `PATCH /profile` and syncs the result into the auth store via `authStore.setUserProfile()`.
+- The edit sheet is controlled by a `showEdit` ref; it closes on `didDismiss` or the × button.
 
 ## Notifications Service
 
@@ -1091,12 +1255,19 @@ The main app shell (`TabsLayout`) wraps all authenticated routes and provides:
 | `/trips` | `TripsView` | Rider trips list |
 | `/trips/:id` | `TripDetailView` | Trip detail |
 | `/leave` | `LeaveView` | Leave requests |
+| `/ot-requests` | `OtRequestsView` | OT requests (both roles) |
+| `/weekly-off` | `WeeklyOffView` | Weekly off requests (both roles) |
 | `/calendar` | `CalendarView` | Monthly calendar with events |
 | `/profile` | `ProfileView` | User profile |
 | `/notifications` | `NotificationsView` | In-app notification centre |
 | `/complaints` | `ComplaintsView` | Complaints (beautician only) |
 | `/sessions` | `SessionsView` | Active login sessions |
 | `/support` | `SupportView` | Support & feedback |
+| `/external-bookings` | `ExternalBookingsView` | External bookings (beautician only) |
+| `/reimbursements` | `ReimbursementsView` | Travel reimbursement requests (both roles) |
+| `/leaderboard` | `LeaderboardView` | Leaderboard (both roles, visibility controlled by BFF) |
+| `/sos` | `SosView` | SOS emergency alert (both roles) |
+| `/trip-fees` | `TripFeesView` | Trip fees report (rider only) |
 | `/error` | `ErrorView` | Error page |
 | `/:pathMatch(.*)` | `PageNotFoundView` | 404 catch-all |
 
@@ -1112,24 +1283,33 @@ The guard reads the access token directly from storage (via `Storage_Service`) r
 
 ## Calendar Feature
 
-The Calendar feature (`src/features/calendar/`) gives field workers a monthly view of their scheduled events — leaves, orders, trips, and public holidays.
+The Calendar feature (`src/features/calendar/`) gives field workers a monthly view of their leave, OT, and weekly-off requests.
 
 ### `CalendarView`
 
-The main calendar view (`/calendar`). Displays a full-month grid with colour-coded event dots and a selected-date event panel below.
+The main calendar view (`/calendar`). Displays a full-month grid with colour-coded event dots, a selected-date event panel, and an upcoming events panel.
 
 **Month navigation** — chevron buttons step backward and forward one month at a time. A "Today" button in the header resets the view to the current month and selects today's date.
 
 **Calendar grid** — a 7-column grid (Sun–Sat) where each day cell shows:
-- The day number, highlighted with a brand-coloured circle when it is today.
-- Up to three coloured dots representing events on that day (one dot per event, capped at 3).
+- The day number, highlighted with a brand-coloured circle when it is today, or a brand-outlined circle when selected.
+- Up to three coloured dots, one per distinct event *type* present on that day (deduplicated — multiple paid-leave requests on the same day still show a single amber dot).
 - A pale brand background when the cell is selected but not today.
 
-**Legend** — a row of colour-coded labels below the grid: Leave (amber), Order (brand purple), Trip (info blue), Holiday (success green).
+**Legend** — a row of colour-coded labels below the grid:
 
-**Event panel** — tapping any day cell opens a panel below the grid showing the full list of events for that date. Each event displays a coloured dot, a title (or a formatted type label as fallback), and an optional status line. A spinner is shown while data is loading; "No events on this day." is shown when the selected date has no events.
+| Dot colour | Event type |
+|------------|------------|
+| Amber | Paid Leave |
+| Red | Sick Leave |
+| Violet | OT (Overtime) |
+| Emerald | Weekly Off |
 
-**Data fetching** — calls `getCalendar(startDate, endDate)` with the first and last day of the visible month. Refetches automatically when the month changes. Pull-to-refresh is supported via `<ion-refresher>`. On error the calendar renders empty (non-critical failure).
+**Event cards** — tapping any day cell shows event cards for that date below the grid. Each card has a left accent bar, a type icon, a title, a detail line (e.g. "Full Day", "2 hrs"), and a status badge (Pending / Approved / Rejected). A shimmer skeleton is shown while data loads; an empty-state illustration is shown when the selected date has no events.
+
+**Upcoming events** — when the selected date has no events, or in addition to the selected-date cards, up to 10 events from the next 30 days are shown in a separate "Upcoming" section.
+
+**Data fetching** — on mount (and on pull-to-refresh) the view calls `getLeaveRequests()`, `getOtRequests()`, and `getWeeklyOffRequests()` in parallel via `Promise.allSettled`. Each API is independent — a failure in one does not block the others. The view re-fetches when the displayed month changes. On error the calendar renders empty (non-critical failure).
 
 ### Calendar Models
 
@@ -1137,17 +1317,9 @@ TypeScript interfaces for the calendar feature live in `src/shared/models/calend
 
 | Type | Kind | Description |
 |------|------|-------------|
-| `CalendarEventType` | `type` | Union of event category strings: `'leave' \| 'order' \| 'trip' \| 'holiday'`. |
-| `CalendarEvent` | `interface` | A single calendar event with a `date` (YYYY-MM-DD), `type`, optional `title`, and optional `status`. |
-| `CalendarData` | `interface` | Response shape from `GET /calendar` — contains `leaves`, `orders`, `trips`, and `holidays` arrays of `CalendarEvent`. |
-
-### Calendar Service
-
-API service function for the calendar lives in `src/shared/api/calendar.service.ts`.
-
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `getCalendar(startDate, endDate)` | `(string, string) => Promise<CalendarData>` | Fetches calendar events for the given date range (YYYY-MM-DD) via `GET /calendar?start_date=&end_date=`. |
+| `CalendarEventType` | `type` | Union of displayable event category strings: `'paid_leave' \| 'sick_leave' \| 'ot' \| 'weekly_off'`. |
+| `CalendarEvent` | `interface` | A single calendar event. Required fields: `date` (YYYY-MM-DD), `type` (`CalendarEventType`), `title`, and `status` (`'requested' \| 'approved' \| 'rejected'`). Optional fields: `id` and `detail` (extra display text, e.g. `"Full Day"`, `"2 hrs"`). |
+| `CalendarData` | `interface` | Legacy BFF response shape from `GET /calendar` — kept for compatibility. Contains optional `leaves`, `orders`, `trips`, and `holidays` arrays of `CalendarEvent`, plus an index signature for additional server-defined keys. |
 
 ## Sessions Feature
 
@@ -1191,6 +1363,90 @@ API service functions for sessions live in `src/shared/api/sessions.service.ts`.
 | `getSessions()` | `() => Promise<Session[]>` | Fetches all active sessions for the authenticated field worker via `GET /sessions`. |
 | `revokeSession(id)` | `(string \| number) => Promise<void>` | Revokes a specific session via `DELETE /sessions/:id`. |
 
+## External Bookings Service
+
+API service functions for external bookings live in `src/shared/api/external-bookings.service.ts`. Beauticians use this to log bookings sourced outside the platform (e.g. walk-ins or direct customer calls).
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `getExternalBookings(params?)` | `({ page?, limit?, status? }?) => Promise<ExternalBooking[]>` | Fetches all external booking requests for the authenticated beautician via `GET /external-bookings`. Supports optional pagination and status filtering. |
+| `createExternalBooking(body)` | `(ExternalBookingBody) => Promise<ExternalBooking>` | Submits a new external booking request via `POST /external-bookings`. |
+| `uploadExternalBookingProof(id, formData)` | `(string \| number, FormData) => Promise<ExternalBooking>` | Uploads proof (e.g. a photo) for an existing external booking via `POST /external-bookings/:id/proof`. Sends a `multipart/form-data` request. |
+
+Types (`ExternalBooking`, `ExternalBookingBody`) are defined in `src/shared/models/external-booking.model.ts`.
+
+## Reimbursements Feature
+
+The Reimbursements feature (`src/features/reimbursements/`) lets both riders and beauticians submit travel reimbursement requests, track their status, and upload proof receipts.
+
+### `ReimbursementsView`
+
+The reimbursements list view (`/reimbursements`). On mount it fetches all reimbursement requests for the authenticated field worker and renders one of four states:
+
+- **Loading skeleton** — shown while the initial fetch is in progress (3 animated shimmer cards).
+- **Error state** — shown when the fetch fails with no cached data; includes a Retry button.
+- **Empty state** — shown when the worker has no reimbursement requests.
+- **Reimbursement list** — a scrollable list of cards, each showing the travel date, travel type, amount, status badge, optional description, and a receipt-upload button for pending requests without proof.
+
+Pull-to-refresh is supported via `<ion-refresher>`. A `+` button in the header opens the new-reimbursement modal.
+
+**New reimbursement modal** — an inline `<ion-modal>` with a form for travel date, travel type (auto/bus/train/cab/other), amount, and optional description. Submitting prepends the new record to the list and resets the form.
+
+**Proof upload** — the "Upload Receipt" button on a `requested` card without a `proof_url` is wired to `openProofUpload()`. Camera/file-picker integration is stubbed and marked TODO.
+
+### Reimbursement Models
+
+TypeScript interfaces for the reimbursements feature live in `src/shared/models/reimbursement.model.ts`.
+
+| Type | Kind | Description |
+|------|------|-------------|
+| `ReimbursementStatus` | `type` | Union of status strings: `'requested' \| 'approved' \| 'rejected' \| 'paid'`. |
+| `ReimbursementType` | `type` | Union of travel mode strings: `'auto' \| 'bus' \| 'train' \| 'cab' \| 'other'`. |
+| `Reimbursement` | `interface` | Full reimbursement record returned by the API (see fields below). |
+| `ReimbursementBody` | `interface` | Request body for creating a new reimbursement (see fields below). |
+
+**`Reimbursement`**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string \| number` | Reimbursement ID. |
+| `_id?` | `string` | MongoDB document ID (optional). |
+| `travel_date` | `string` | ISO 8601 date (YYYY-MM-DD) of the travel. |
+| `travel_type` | `ReimbursementType` | Mode of transport. |
+| `amount` | `number` | Claimed amount in INR. |
+| `description?` | `string` | Optional free-text description. |
+| `proof_url?` | `string` | URL of the uploaded receipt/photo, present after proof upload. |
+| `status` | `ReimbursementStatus` | Current approval status. |
+| `reference_id?` | `string` | Related order or trip ID, if applicable. |
+| `reference_type?` | `'order' \| 'trip'` | Type of the referenced entity. |
+| `requester_type?` | `'beautician' \| 'rider'` | Role of the field worker who submitted the request. |
+| `created_at?` | `string` | ISO 8601 creation timestamp. |
+| `updated_at?` | `string` | ISO 8601 last-updated timestamp. |
+
+**`ReimbursementBody`**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `requester_id` | `string` | ID of the authenticated field worker. |
+| `requester_type` | `'beautician' \| 'rider'` | Role of the requester. |
+| `travel_date` | `string` | ISO 8601 date (YYYY-MM-DD). |
+| `travel_type` | `ReimbursementType` | Mode of transport. |
+| `amount` | `number` | Claimed amount in INR. |
+| `description?` | `string` | Optional description. |
+| `reference_id?` | `string` | Optional related order/trip ID. |
+| `reference_type?` | `'order' \| 'trip'` | Type of the referenced entity. |
+
+### Reimbursements Service
+
+API service functions for reimbursements live in `src/shared/api/reimbursements.service.ts`.
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `getReimbursements(params?)` | `({ page?, limit?, status? }?) => Promise<Reimbursement[]>` | Fetches all reimbursement requests for the authenticated field worker via `GET /reimbursements`. Supports optional pagination and status filtering. |
+| `createReimbursement(body)` | `(ReimbursementBody) => Promise<Reimbursement>` | Submits a new reimbursement request via `POST /reimbursements`. |
+| `uploadReimbursementProof(id, formData)` | `(string \| number, FormData) => Promise<Reimbursement>` | Uploads a receipt or photo for an existing request via `POST /reimbursements/:id/proof`. Sends a `multipart/form-data` request. |
+| `cancelReimbursement(id)` | `(string \| number) => Promise<Reimbursement>` | Cancels a pending reimbursement request via `DELETE /reimbursements/:id`. |
+
 ## Native
 
 ```bash
@@ -1198,3 +1454,46 @@ ionic cap run ios -l --external
 ionic cap run android -l --external
 npx cap open android
 ```
+
+## SOS Feature
+
+The SOS feature (`src/features/sos/`) lets any authenticated field worker (beautician or rider) trigger an emergency alert that immediately notifies office staff.
+
+### `SosView`
+
+The SOS screen (`/sos`). On mount it checks for an active SOS from a previous session via `getLatestSos()` — any alert with status `resolved` or `acknowledged` is treated as inactive.
+
+The view renders three sections:
+
+- **Active SOS banner** — shown when an alert is currently active. Displays a pulsing red indicator, a message confirming office staff have been alerted, and a "Cancel SOS" button that calls `resolveSos()`.
+- **SOS button** — a large circular red button in the centre of the screen. Disabled while an alert is active or a trigger request is in flight. Tapping calls `triggerSos()`, which first attempts to capture the device's current GPS coordinates (5-second timeout) before sending the alert. Location failure is non-fatal — the alert is sent without coordinates.
+- **Instructions panel** — a four-step card explaining how the SOS flow works.
+- **Optional message field** — a free-text textarea (hidden when an alert is active) that lets the worker briefly describe the situation before triggering.
+
+**API calls used**
+
+| Function | Description |
+|----------|-------------|
+| `triggerSos(body)` | `POST /sos` — creates a new SOS alert. Returns a `SosAlert`. |
+| `getLatestSos()` | `GET /sos/latest` — fetches the most recent SOS for the authenticated user. Returns `null` when none exists. |
+| `resolveSos(id)` | `PATCH /sos/:id/resolve` — marks the alert as resolved. |
+
+All three functions are imported from `@/shared/api`.
+
+### SOS Models
+
+The `SosAlert` interface lives in `@/shared/models`.
+
+**`SosAlert`**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string \| number` | Alert ID. |
+| `requester_id` | `string` | ID of the field worker who triggered the alert. |
+| `requester_type` | `'beautician' \| 'rider'` | Role of the requester. |
+| `status` | `'active' \| 'acknowledged' \| 'resolved'` | Current alert status. |
+| `latitude?` | `number` | GPS latitude at the time of trigger (optional). |
+| `longitude?` | `number` | GPS longitude at the time of trigger (optional). |
+| `message?` | `string` | Optional free-text description provided by the worker. |
+| `created_at?` | `string` | ISO 8601 creation timestamp. |
+| `updated_at?` | `string` | ISO 8601 last-updated timestamp. |

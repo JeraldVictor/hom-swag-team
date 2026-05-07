@@ -112,6 +112,55 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Support',
         component: () => import('@/features/support/views/SupportView.vue'),
       },
+
+      // OT Requests (both roles) — accessed from Leave section
+      {
+        path: 'ot-requests',
+        name: 'OtRequests',
+        component: () => import('@/features/leave/views/OtRequestsView.vue'),
+      },
+
+      // Weekly Off Requests (both roles) — accessed from Leave section
+      {
+        path: 'weekly-off',
+        name: 'WeeklyOff',
+        component: () => import('@/features/leave/views/WeeklyOffView.vue'),
+      },
+
+      // External Bookings (beautician only)
+      {
+        path: 'external-bookings',
+        name: 'ExternalBookings',
+        component: () => import('@/features/external-bookings/views/ExternalBookingsView.vue'),
+      },
+
+      // Travel Reimbursements (both roles)
+      {
+        path: 'reimbursements',
+        name: 'Reimbursements',
+        component: () => import('@/features/reimbursements/views/ReimbursementsView.vue'),
+      },
+
+      // Leaderboard (both roles — visibility controlled by BFF)
+      {
+        path: 'leaderboard',
+        name: 'Leaderboard',
+        component: () => import('@/features/leaderboard/views/LeaderboardView.vue'),
+      },
+
+      // SOS (both roles)
+      {
+        path: 'sos',
+        name: 'Sos',
+        component: () => import('@/features/sos/views/SosView.vue'),
+      },
+
+      // Trip Fees Report (rider only)
+      {
+        path: 'trip-fees',
+        name: 'TripFees',
+        component: () => import('@/features/trip-fees/views/TripFeesView.vue'),
+      },
     ],
   },
 

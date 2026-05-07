@@ -117,6 +117,13 @@ const routeTitles: Record<string, string> = {
   Complaints: 'Complaints',
   Sessions: 'Active Sessions',
   Support: 'Support & Feedback',
+  OtRequests: 'OT Requests',
+  WeeklyOff: 'Weekly Off',
+  ExternalBookings: 'External Bookings',
+  Reimbursements: 'Reimbursements',
+  Leaderboard: 'Leaderboard',
+  Sos: 'SOS',
+  TripFees: 'Trip Fees',
 }
 
 const pageTitle = computed(() => {

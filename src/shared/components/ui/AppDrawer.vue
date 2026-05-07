@@ -94,6 +94,10 @@
 
       <!-- ── Logout button ───────────────────────────────────────────── -->
       <div class="drawer-footer">
+        <button class="drawer-sos-btn" @click="navigate('/sos')">
+          <Icon icon="lucide:siren" class="drawer-sos-btn__icon" />
+          <span>SOS — Get Help Now</span>
+        </button>
         <button class="drawer-logout-btn" @click="handleLogout">
           <Icon icon="lucide:log-out" class="drawer-logout-btn__icon" />
           <span>Log out</span>
@@ -153,15 +157,21 @@ const navItems = computed<NavItem[]>(() => {
 
   if (isBeautician.value) {
     items.push({ label: 'Orders', icon: 'lucide:briefcase', route: '/orders' })
+    items.push({ label: 'External Bookings', icon: 'lucide:calendar-plus', route: '/external-bookings' })
     items.push({ label: 'Complaints', icon: 'lucide:message-circle-warning', route: '/complaints' })
   }
 
   if (isRider.value) {
     items.push({ label: 'Trips', icon: 'lucide:car', route: '/trips' })
+    items.push({ label: 'Trip Fees', icon: 'lucide:receipt', route: '/trip-fees' })
   }
 
   items.push({ label: 'Calendar', icon: 'lucide:calendar-days', route: '/calendar' })
   items.push({ label: 'Leave', icon: 'lucide:calendar', route: '/leave' })
+  items.push({ label: 'OT Requests', icon: 'lucide:clock-plus', route: '/ot-requests' })
+  items.push({ label: 'Weekly Off', icon: 'lucide:calendar-x-2', route: '/weekly-off' })
+  items.push({ label: 'Reimbursements', icon: 'lucide:receipt-text', route: '/reimbursements' })
+  items.push({ label: 'Leaderboard', icon: 'lucide:trophy', route: '/leaderboard' })
   items.push({ label: 'Notifications', icon: 'lucide:bell', route: '/notifications' })
 
   return items
@@ -402,7 +412,32 @@ async function handleLogout(): Promise<void> {
   padding: 12px 24px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
+
+.drawer-sos-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  border: 1.5px solid #fca5a5;
+}
+
+.drawer-sos-btn:active { opacity: 0.75; }
+
+.drawer-sos-btn__icon { font-size: 20px; }
 
 .drawer-logout-btn {
   display: flex;

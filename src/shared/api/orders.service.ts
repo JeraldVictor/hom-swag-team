@@ -72,3 +72,58 @@ export async function updateOrder(
   const response = await apiClient.patch<{ data: Order }>(`/orders/${id}`, body)
   return response.data.data
 }
+
+/**
+ * Upload a selfie taken on arrival at the customer's location.
+ * POST /orders/:id/arrival-selfie
+ */
+export async function uploadArrivalSelfie(
+  id: string | number,
+  formData: FormData,
+): Promise<Order> {
+  const response = await apiClient.post<{ data: Order }>(
+    `/orders/${id}/arrival-selfie`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return response.data.data
+}
+
+/**
+ * Upload proof that the service has been completed (photo evidence).
+ * POST /orders/:id/completion-proof
+ */
+export async function uploadCompletionProof(
+  id: string | number,
+  formData: FormData,
+): Promise<Order> {
+  const response = await apiClient.post<{ data: Order }>(
+    `/orders/${id}/completion-proof`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return response.data.data
+}
+
+/**
+ * Get or generate a payment link for the order.
+ * POST /orders/:id/payment-link
+ */
+export async function getPaymentLink(id: string | number): Promise<{ url: string }> {
+  const response = await apiClient.post<{ data: { url: string } }>(`/orders/${id}/payment-link`)
+  return response.data.data
+}
+
+/**
+ * Update the self-ride status for an order (beautician travelling independently).
+ * PATCH /orders/:id/self-ride
+ */
+export async function updateSelfRideStatus(
+  id: string | number,
+  isSelfRide: boolean,
+): Promise<Order> {
+  const response = await apiClient.patch<{ data: Order }>(`/orders/${id}/self-ride`, {
+    is_self_ride: isSelfRide,
+  })
+  return response.data.data
+}

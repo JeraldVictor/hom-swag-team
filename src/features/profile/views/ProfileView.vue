@@ -4,11 +4,8 @@
       <ion-toolbar>
         <ion-title>Profile</ion-title>
         <ion-buttons slot="end">
-          <ion-button v-if="!isEditing" @click="startEdit">
+          <ion-button aria-label="Edit profile" @click="openEdit">
             <Icon icon="lucide:pencil" class="header-icon" />
-          </ion-button>
-          <ion-button v-else @click="cancelEdit">
-            <Icon icon="lucide:x" class="header-icon" />
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -19,102 +16,313 @@
         <ion-refresher-content />
       </ion-refresher>
 
-      <!-- Loading -->
-      <div v-if="isLoading && !profile" class="profile-loading">
-        <div class="profile-loading__spinner" />
-        <p>Loading profile…</p>
+      <!-- ── Hero ──────────────────────────────────────────────────────── -->
+      <div class="profile-hero">
+        <div class="profile-avatar" @click="openEdit">
+          <img
+            v-if="profile.photo?.url"
+            :src="profile.photo.url"
+            :alt="profile.name"
+            class="profile-avatar__img"
+          />
+          <span v-else class="profile-avatar__initials">{{ initials }}</span>
+          <div class="profile-avatar__edit-badge" aria-hidden="true">
+            <Icon icon="lucide:camera" />
+          </div>
+        </div>
+        <p class="profile-hero__name">{{ profile.name }}</p>
+        <span class="profile-hero__role-badge">{{ roleLabel }}</span>
+        <p v-if="profile.email" class="profile-hero__email">{{ profile.email }}</p>
       </div>
 
-      <template v-else-if="profile">
-        <!-- Avatar + name header -->
-        <div class="profile-hero">
-          <div class="profile-avatar">
-            <img
-              v-if="profile.photo?.url"
-              :src="profile.photo.url"
-              :alt="profile.name"
-              class="profile-avatar__img"
-            />
-            <span v-else class="profile-avatar__initials">{{ initials }}</span>
+      <!-- ── Personal Info ──────────────────────────────────────────────── -->
+      <div class="section">
+        <p class="section-title">Personal Info</p>
+        <div class="info-card">
+          <div class="info-row">
+            <span class="info-row__icon-wrap info-row__icon-wrap--brand">
+              <Icon icon="lucide:phone" aria-hidden="true" />
+            </span>
+            <div class="info-row__body">
+              <p class="info-row__label">Phone</p>
+              <p class="info-row__value">{{ profile.phone }}</p>
+            </div>
           </div>
-          <p class="profile-hero__name">{{ profile.name }}</p>
-          <AppBadge :text="roleLabel" variant="info" size="sm" />
+          <div v-if="profile.email" class="info-row">
+            <span class="info-row__icon-wrap info-row__icon-wrap--brand">
+              <Icon icon="lucide:mail" aria-hidden="true" />
+            </span>
+            <div class="info-row__body">
+              <p class="info-row__label">Email</p>
+              <p class="info-row__value">{{ profile.email }}</p>
+            </div>
+          </div>
+          <div v-if="profile.date_of_birth" class="info-row">
+            <span class="info-row__icon-wrap info-row__icon-wrap--brand">
+              <Icon icon="lucide:cake" aria-hidden="true" />
+            </span>
+            <div class="info-row__body">
+              <p class="info-row__label">Date of Birth</p>
+              <p class="info-row__value">{{ formatDate(profile.date_of_birth) }}</p>
+            </div>
+          </div>
+          <div v-if="profile.address" class="info-row">
+            <span class="info-row__icon-wrap info-row__icon-wrap--brand">
+              <Icon icon="lucide:map-pin" aria-hidden="true" />
+            </span>
+            <div class="info-row__body">
+              <p class="info-row__label">Address</p>
+              <p class="info-row__value">{{ profile.address }}</p>
+            </div>
+          </div>
+          <div v-if="profile.emergency_contact_name" class="info-row">
+            <span class="info-row__icon-wrap info-row__icon-wrap--warning">
+              <Icon icon="lucide:heart-pulse" aria-hidden="true" />
+            </span>
+            <div class="info-row__body">
+              <p class="info-row__label">Emergency Contact</p>
+              <p class="info-row__value">{{ profile.emergency_contact_name }}</p>
+              <p v-if="profile.emergency_contact_phone" class="info-row__sub">
+                {{ profile.emergency_contact_phone }}
+              </p>
+            </div>
+          </div>
+          <!-- Edit nudge if fields are empty -->
+          <button v-if="!profile.email && !profile.address" class="info-row info-row--nudge" @click="openEdit">
+            <Icon icon="lucide:plus-circle" class="info-row__nudge-icon" aria-hidden="true" />
+            <span class="info-row__nudge-text">Add email, address & more</span>
+            <Icon icon="lucide:chevron-right" class="info-row__nudge-chevron" aria-hidden="true" />
+          </button>
         </div>
+      </div>
 
-        <!-- View mode -->
-        <template v-if="!isEditing">
-          <div class="profile-section">
-            <p class="profile-section__title">Personal Info</p>
-            <div class="profile-card">
-              <div class="profile-field">
-                <Icon icon="lucide:phone" class="profile-field__icon" aria-hidden="true" />
-                <div>
-                  <p class="profile-field__label">Phone</p>
-                  <p class="profile-field__value">{{ profile.phone }}</p>
-                </div>
+      <!-- ── Documents ──────────────────────────────────────────────────── -->
+      <div class="section">
+        <div class="section-header">
+          <p class="section-title">Documents & KYC</p>
+          <button class="section-edit-btn" @click="openEdit">
+            <Icon icon="lucide:pencil" aria-hidden="true" />
+            Manage
+          </button>
+        </div>
+        <div class="docs-grid">
+          <div
+            v-for="doc in documentSlots"
+            :key="doc.type"
+            class="doc-card"
+            :class="{ 'doc-card--uploaded': !!doc.uploaded }"
+            @click="openEdit"
+          >
+            <div class="doc-card__icon-wrap" :class="doc.uploaded ? 'doc-card__icon-wrap--done' : 'doc-card__icon-wrap--empty'">
+              <Icon :icon="doc.icon" aria-hidden="true" />
+            </div>
+            <p class="doc-card__label">{{ doc.label }}</p>
+            <div class="doc-card__status">
+              <template v-if="doc.uploaded">
+                <Icon icon="lucide:check-circle-2" class="doc-card__status-icon doc-card__status-icon--done" />
+                <span class="doc-card__status-text doc-card__status-text--done">
+                  {{ doc.verified ? 'Verified' : 'Uploaded' }}
+                </span>
+              </template>
+              <template v-else>
+                <Icon icon="lucide:upload" class="doc-card__status-icon doc-card__status-icon--empty" />
+                <span class="doc-card__status-text doc-card__status-text--empty">Upload</span>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Account links ──────────────────────────────────────────────── -->
+      <div class="section">
+        <p class="section-title">Account</p>
+        <div class="links-card">
+          <button class="link-row" @click="goTo('/sessions')">
+            <span class="link-row__icon-wrap">
+              <Icon icon="lucide:monitor-smartphone" aria-hidden="true" />
+            </span>
+            <span class="link-row__label">Active Sessions</span>
+            <Icon icon="lucide:chevron-right" class="link-row__chevron" aria-hidden="true" />
+          </button>
+          <button class="link-row" @click="goTo('/support')">
+            <span class="link-row__icon-wrap">
+              <Icon icon="lucide:life-buoy" aria-hidden="true" />
+            </span>
+            <span class="link-row__label">Support & Feedback</span>
+            <Icon icon="lucide:chevron-right" class="link-row__chevron" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <div class="bottom-spacer" />
+    </ion-content>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- Edit sheet                                                         -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <ion-modal
+      :is-open="showEdit"
+      :initial-breakpoint="1"
+      :breakpoints="[0, 1]"
+      @didDismiss="showEdit = false"
+    >
+      <ion-header>
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-button @click="showEdit = false">
+              <Icon icon="lucide:x" />
+            </ion-button>
+          </ion-buttons>
+          <ion-title>Edit Profile</ion-title>
+          <ion-buttons slot="end">
+            <ion-button :disabled="isSaving" @click="handleSave">
+              <ion-spinner v-if="isSaving" name="crescent" style="width:18px;height:18px" />
+              <span v-else style="font-weight:700;color:var(--color-brand)">Save</span>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="edit-content">
+        <div class="edit-body">
+
+          <!-- ── Photo ──────────────────────────────────────────────────── -->
+          <div class="edit-section">
+            <p class="edit-section__title">Profile Photo</p>
+            <div class="photo-picker">
+              <div class="photo-picker__preview">
+                <img
+                  v-if="photoPreview || profile.photo?.url"
+                  :src="photoPreview || profile.photo?.url"
+                  alt="Profile photo"
+                  class="photo-picker__img"
+                />
+                <span v-else class="photo-picker__initials">{{ initials }}</span>
               </div>
-              <div v-if="profile.email" class="profile-field">
-                <Icon icon="lucide:mail" class="profile-field__icon" aria-hidden="true" />
-                <div>
-                  <p class="profile-field__label">Email</p>
-                  <p class="profile-field__value">{{ profile.email }}</p>
-                </div>
+              <div class="photo-picker__actions">
+                <label class="photo-btn photo-btn--primary">
+                  <Icon icon="lucide:camera" aria-hidden="true" />
+                  {{ photoPreview ? 'Change Photo' : 'Upload Photo' }}
+                  <input
+                    ref="photoInputRef"
+                    type="file"
+                    accept="image/*"
+                    class="photo-btn__input"
+                    @change="onPhotoSelected"
+                  />
+                </label>
+                <button
+                  v-if="photoPreview || profile.photo?.url"
+                  class="photo-btn photo-btn--danger"
+                  @click="removePhoto"
+                >
+                  <Icon icon="lucide:trash-2" aria-hidden="true" />
+                  Remove
+                </button>
               </div>
-              <div class="profile-field">
-                <Icon icon="lucide:user-check" class="profile-field__icon" aria-hidden="true" />
-                <div>
-                  <p class="profile-field__label">Role</p>
-                  <p class="profile-field__value">{{ roleLabel }}</p>
-                </div>
-              </div>
+              <p class="photo-picker__hint">JPG or PNG, max 5 MB</p>
             </div>
           </div>
 
-          <!-- Quick links -->
-          <div class="profile-section">
-            <p class="profile-section__title">Account</p>
-            <div class="profile-card profile-card--links">
-              <button class="profile-link" @click="goTo('/sessions')">
-                <Icon icon="lucide:monitor-smartphone" class="profile-link__icon" aria-hidden="true" />
-                <span class="profile-link__label">Active Sessions</span>
-                <Icon icon="lucide:chevron-right" class="profile-link__chevron" aria-hidden="true" />
-              </button>
-              <button class="profile-link" @click="goTo('/support')">
-                <Icon icon="lucide:life-buoy" class="profile-link__icon" aria-hidden="true" />
-                <span class="profile-link__label">Support & Feedback</span>
-                <Icon icon="lucide:chevron-right" class="profile-link__chevron" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-        </template>
+          <!-- ── Personal details ───────────────────────────────────────── -->
+          <div class="edit-section">
+            <p class="edit-section__title">Personal Details</p>
 
-        <!-- Edit mode -->
-        <template v-else>
-          <div class="edit-form">
             <div class="form-field">
-              <label class="form-label">Name</label>
-              <input v-model="editForm.name" type="text" class="form-input" placeholder="Your name" />
+              <label class="form-label">Full Name</label>
+              <input v-model="editForm.name" type="text" class="form-input" placeholder="Your full name" />
             </div>
             <div class="form-field">
               <label class="form-label">Email</label>
               <input v-model="editForm.email" type="email" class="form-input" placeholder="your@email.com" />
             </div>
-
-            <p v-if="saveError" class="form-error">{{ saveError }}</p>
-
-            <ion-button
-              expand="block"
-              :disabled="isSaving"
-              class="save-btn"
-              @click="handleSave"
-            >
-              <ion-spinner v-if="isSaving" name="crescent" slot="start" />
-              Save Changes
-            </ion-button>
+            <div class="form-field">
+              <label class="form-label">Date of Birth</label>
+              <input v-model="editForm.date_of_birth" type="date" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label class="form-label">Address</label>
+              <textarea v-model="editForm.address" class="form-textarea" placeholder="Your residential address" rows="2" />
+            </div>
           </div>
-        </template>
-      </template>
-    </ion-content>
+
+          <!-- ── Emergency contact ──────────────────────────────────────── -->
+          <div class="edit-section">
+            <p class="edit-section__title">Emergency Contact</p>
+            <div class="form-field">
+              <label class="form-label">Contact Name</label>
+              <input v-model="editForm.emergency_contact_name" type="text" class="form-input" placeholder="Name of emergency contact" />
+            </div>
+            <div class="form-field">
+              <label class="form-label">Contact Phone</label>
+              <input v-model="editForm.emergency_contact_phone" type="tel" class="form-input" placeholder="+91 XXXXX XXXXX" />
+            </div>
+          </div>
+
+          <!-- ── Documents ──────────────────────────────────────────────── -->
+          <div class="edit-section">
+            <p class="edit-section__title">Documents & KYC</p>
+            <p class="edit-section__hint">Upload images or PDFs. Max 10 MB per file.</p>
+
+            <div
+              v-for="doc in documentSlots"
+              :key="doc.type"
+              class="doc-upload-row"
+            >
+              <div class="doc-upload-row__left">
+                <span class="doc-upload-row__icon-wrap" :class="doc.uploaded ? 'doc-upload-row__icon-wrap--done' : 'doc-upload-row__icon-wrap--empty'">
+                  <Icon :icon="doc.icon" aria-hidden="true" />
+                </span>
+                <div class="doc-upload-row__info">
+                  <p class="doc-upload-row__label">{{ doc.label }}</p>
+                  <p class="doc-upload-row__status">
+                    <template v-if="doc.uploaded">
+                      <Icon icon="lucide:check-circle-2" style="color:var(--color-success)" />
+                      {{ doc.verified ? 'Verified' : 'Uploaded' }}
+                    </template>
+                    <template v-else>Not uploaded</template>
+                  </p>
+                </div>
+              </div>
+              <div class="doc-upload-row__actions">
+                <label class="doc-action-btn doc-action-btn--upload">
+                  <Icon :icon="doc.uploaded ? 'lucide:refresh-cw' : 'lucide:upload'" aria-hidden="true" />
+                  {{ doc.uploaded ? 'Replace' : 'Upload' }}
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    class="doc-action-btn__input"
+                    @change="(e) => onDocSelected(e, doc.type)"
+                  />
+                </label>
+                <button
+                  v-if="doc.uploaded"
+                  class="doc-action-btn doc-action-btn--view"
+                  @click="viewDoc(doc)"
+                >
+                  <Icon icon="lucide:eye" aria-hidden="true" />
+                  View
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="saveError" class="save-error">{{ saveError }}</p>
+
+          <ion-button
+            expand="block"
+            :disabled="isSaving"
+            class="save-btn"
+            @click="handleSave"
+          >
+            <ion-spinner v-if="isSaving" name="crescent" slot="start" />
+            Save Changes
+          </ion-button>
+
+          <div class="edit-bottom-spacer" />
+        </div>
+      </ion-content>
+    </ion-modal>
   </ion-page>
 </template>
 
@@ -123,143 +331,288 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonContent, IonRefresher, IonRefresherContent, IonSpinner,
+  IonContent, IonRefresher, IonRefresherContent, IonModal, IonSpinner,
   onIonViewWillEnter,
 } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
-import { getProfile, updateProfile } from '@/shared/api'
 import { useToast } from '@/shared/composables'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
-import type { UserProfile } from '@/shared/models'
+import type { UserProfile, ProfileDocument } from '@/shared/models'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const userTypeStore = useUserTypeStore()
-const { isBeautician } = storeToRefs(userTypeStore)
+const { user } = storeToRefs(authStore)
+const { isBeautician, isRider } = storeToRefs(userTypeStore)
 const { showSuccess, showError } = useToast()
 
-const profile = ref<UserProfile | null>(null)
-const isLoading = ref(false)
-const isEditing = ref(false)
-const isSaving = ref(false)
-const saveError = ref<string | null>(null)
+// ── Dummy profile (replace with getProfile() API call when ready) ──────────
 
-const editForm = ref({ name: '', email: '' })
+const profile = ref<UserProfile>({
+  id: '1',
+  name: user.value?.name ?? 'Priya Sharma',
+  phone: user.value?.phone ?? '9999999999',
+  user_type: user.value?.user_type ?? 'beautician',
+  email: user.value?.email ?? '',
+  date_of_birth: '',
+  address: '',
+  emergency_contact_name: '',
+  emergency_contact_phone: '',
+  documents: [],
+})
+
+// ── Document slot definitions ──────────────────────────────────────────────
+
+interface DocSlot {
+  type: string
+  label: string
+  icon: string
+  uploaded: boolean
+  verified: boolean
+  url?: string
+}
+
+// Common docs for both roles
+const COMMON_DOCS = [
+  { type: 'aadhaar',      label: 'Aadhaar Card',    icon: 'lucide:id-card' },
+  { type: 'pan',          label: 'PAN Card',         icon: 'lucide:credit-card' },
+  { type: 'bank_account', label: 'Bank Account',     icon: 'lucide:landmark' },
+]
+
+// Beautician-only docs
+const BEAUTICIAN_DOCS = [
+  { type: 'portfolio',    label: 'Portfolio Photos', icon: 'lucide:image' },
+]
+
+// Rider-only docs
+const RIDER_DOCS = [
+  { type: 'driving_licence', label: 'Driving Licence', icon: 'lucide:car' },
+  { type: 'puc',             label: 'PUC Certificate',  icon: 'lucide:shield-check' },
+  { type: 'insurance',       label: 'Insurance',        icon: 'lucide:shield' },
+  { type: 'rc_book',         label: 'RC Book',          icon: 'lucide:file-text' },
+]
+
+const documentSlots = computed<DocSlot[]>(() => {
+  const roleDocs = isBeautician.value ? BEAUTICIAN_DOCS : isRider.value ? RIDER_DOCS : []
+  return [...COMMON_DOCS, ...roleDocs].map((def) => {
+    const uploaded = profile.value.documents?.find((d) => d.type === def.type)
+    return {
+      ...def,
+      uploaded: !!uploaded?.url,
+      verified: !!uploaded?.verified,
+      url: uploaded?.url,
+    }
+  })
+})
+
+// ── Computed ───────────────────────────────────────────────────────────────
 
 const initials = computed(() => {
-  const name = profile.value?.name ?? ''
+  const name = profile.value.name ?? ''
   return name.split(' ').slice(0, 2).map((n) => n[0]?.toUpperCase() ?? '').join('')
 })
 
 const roleLabel = computed(() => isBeautician.value ? 'Beautician' : 'Rider')
 
-async function fetchProfile(): Promise<void> {
-  isLoading.value = true
-  try {
-    profile.value = await getProfile()
-    await authStore.setUserProfile(profile.value)
-  } catch (err) {
-    showError(err instanceof Error ? err.message : 'Failed to load profile')
-  } finally {
-    isLoading.value = false
-  }
-}
+// ── Edit state ─────────────────────────────────────────────────────────────
 
-function startEdit(): void {
+const showEdit   = ref(false)
+const isSaving   = ref(false)
+const saveError  = ref<string | null>(null)
+const photoPreview = ref<string | null>(null)
+const photoFile    = ref<File | null>(null)
+
+const editForm = ref({
+  name: '',
+  email: '',
+  date_of_birth: '',
+  address: '',
+  emergency_contact_name: '',
+  emergency_contact_phone: '',
+})
+
+function openEdit(): void {
   editForm.value = {
-    name: profile.value?.name ?? '',
-    email: profile.value?.email ?? '',
+    name:                    profile.value.name ?? '',
+    email:                   profile.value.email ?? '',
+    date_of_birth:           profile.value.date_of_birth ?? '',
+    address:                 profile.value.address ?? '',
+    emergency_contact_name:  profile.value.emergency_contact_name ?? '',
+    emergency_contact_phone: profile.value.emergency_contact_phone ?? '',
   }
-  isEditing.value = true
-  saveError.value = null
+  photoPreview.value = null
+  photoFile.value    = null
+  saveError.value    = null
+  showEdit.value     = true
 }
 
-function cancelEdit(): void {
-  isEditing.value = false
-  saveError.value = null
+// ── Photo handling ─────────────────────────────────────────────────────────
+
+function onPhotoSelected(event: Event): void {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    showError('Photo must be under 5 MB')
+    return
+  }
+  photoFile.value = file
+  photoPreview.value = URL.createObjectURL(file)
 }
 
-async function handleSave(): Promise<void> {
+function removePhoto(): void {
+  photoPreview.value = null
+  photoFile.value    = null
+  // When wired to API: also call DELETE /profile/photo
+}
+
+// ── Document handling ──────────────────────────────────────────────────────
+
+function onDocSelected(event: Event, type: string): void {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (file.size > 10 * 1024 * 1024) {
+    showError('File must be under 10 MB')
+    return
+  }
+
+  // Optimistically update the local documents list
+  const existing = profile.value.documents ?? []
+  const idx = existing.findIndex((d) => d.type === type)
+  const newDoc: ProfileDocument = {
+    type,
+    label: documentSlots.value.find((s) => s.type === type)?.label ?? type,
+    url: URL.createObjectURL(file),
+    mime_type: file.type,
+    uploaded_at: new Date().toISOString(),
+    verified: false,
+  }
+
+  if (idx >= 0) {
+    existing[idx] = newDoc
+  } else {
+    existing.push(newDoc)
+  }
+  profile.value = { ...profile.value, documents: [...existing] }
+
+  showSuccess(`${newDoc.label} uploaded`)
+  // When wired to API: call uploadProfileDocument(type, formData)
+}
+
+function viewDoc(doc: DocSlot): void {
+  if (doc.url) window.open(doc.url, '_blank')
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────
+
+function handleSave(): void {
+  if (!editForm.value.name.trim()) {
+    saveError.value = 'Name is required'
+    return
+  }
   isSaving.value = true
   saveError.value = null
-  try {
-    const updated = await updateProfile({
-      name: editForm.value.name,
-      email: editForm.value.email || undefined,
-    })
-    profile.value = updated
-    await authStore.setUserProfile(updated)
-    isEditing.value = false
-    showSuccess('Profile updated')
-  } catch (err) {
-    saveError.value = err instanceof Error ? err.message : 'Failed to save'
-    showError(saveError.value)
-  } finally {
+
+  // Simulate async save
+  setTimeout(() => {
+    // Apply photo preview to profile
+    if (photoPreview.value) {
+      profile.value = {
+        ...profile.value,
+        photo: { url: photoPreview.value },
+      }
+    }
+
+    // Apply form fields
+    profile.value = {
+      ...profile.value,
+      name:                    editForm.value.name,
+      email:                   editForm.value.email || undefined,
+      date_of_birth:           editForm.value.date_of_birth || undefined,
+      address:                 editForm.value.address || undefined,
+      emergency_contact_name:  editForm.value.emergency_contact_name || undefined,
+      emergency_contact_phone: editForm.value.emergency_contact_phone || undefined,
+    }
+
+    // Sync to auth store so header/drawer reflect the new name
+    authStore.setUserProfile(profile.value)
+
     isSaving.value = false
-  }
+    showEdit.value = false
+    showSuccess('Profile updated')
+    // When wired to API: call updateProfile(editForm) + uploadProfilePhoto(formData)
+  }, 700)
 }
 
-async function handleRefresh(event: CustomEvent): Promise<void> {
-  await fetchProfile()
-  ;(event.target as HTMLIonRefresherElement).complete()
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function formatDate(iso?: string): string {
+  if (!iso) return ''
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  })
 }
 
 function goTo(path: string): void {
   router.push(path)
 }
 
-onMounted(fetchProfile)
-onIonViewWillEnter(() => {
-  if (!profile.value) fetchProfile()
+function handleRefresh(event: CustomEvent): void {
+  // When wired to API: await fetchProfile()
+  setTimeout(() => {
+    ;(event.target as HTMLIonRefresherElement).complete()
+  }, 400)
+}
+
+// ── Lifecycle ──────────────────────────────────────────────────────────────
+
+onMounted(() => {
+  // Seed from auth store so the page shows real data immediately
+  if (user.value) {
+    profile.value = {
+      ...profile.value,
+      id:        user.value.id,
+      name:      user.value.name,
+      phone:     user.value.phone,
+      user_type: user.value.user_type,
+      email:     user.value.email ?? '',
+      photo:     user.value.photo,
+    }
+  }
+  // When wired to API: fetchProfile()
 })
+
+onIonViewWillEnter(() => { /* no-op with dummy data */ })
 </script>
 
 <style scoped>
 .header-icon { font-size: 20px; }
 
-/* Loading */
-.profile-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 80px 32px;
-  color: var(--color-text-muted);
-}
+/* ── Hero ────────────────────────────────────────────────────────────────── */
 
-.profile-loading__spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-brand);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-/* Hero */
 .profile-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 32px 16px 20px;
+  gap: 6px;
+  padding: 28px 16px 20px;
   background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-hero-dark) 100%);
 }
 
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  position: relative;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  border: 3px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255,255,255,0.2);
+  border: 3px solid rgba(255,255,255,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   margin-bottom: 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .profile-avatar__img {
@@ -269,8 +622,24 @@ onIonViewWillEnter(() => {
 }
 
 .profile-avatar__initials {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
+  color: #fff;
+}
+
+.profile-avatar__edit-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
   color: #fff;
 }
 
@@ -281,13 +650,35 @@ onIonViewWillEnter(() => {
   color: #fff;
 }
 
-/* Sections */
-.profile-section {
-  padding: 16px 16px 0;
+.profile-hero__role-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 3px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255,255,255,0.3);
 }
 
-.profile-section__title {
-  margin: 0 0 8px;
+.profile-hero__email {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: rgba(255,255,255,0.7);
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+.section { padding: 16px 16px 0; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  margin: 0 0 10px;
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--color-text-muted);
@@ -295,50 +686,164 @@ onIonViewWillEnter(() => {
   letter-spacing: 0.8px;
 }
 
-.profile-card {
+.section-header .section-title { margin-bottom: 0; }
+
+.section-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-brand);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ── Info card ───────────────────────────────────────────────────────────── */
+
+.info-card {
   background: var(--color-surface);
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow: hidden;
 }
 
-.profile-field {
+.info-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 13px 16px;
   border-bottom: 1px solid var(--color-border);
 }
 
-.profile-field:last-child { border-bottom: none; }
+.info-row:last-child { border-bottom: none; }
 
-.profile-field__icon {
-  font-size: 18px;
-  color: var(--color-brand);
-  flex-shrink: 0;
-  margin-top: 2px;
+.info-row--nudge {
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
 }
 
-.profile-field__label {
+.info-row--nudge:active { background: var(--color-background); }
+
+.info-row__icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.info-row__icon-wrap--brand   { background: var(--color-brand-pale); color: var(--color-brand); }
+.info-row__icon-wrap--warning { background: var(--color-warning-bg); color: var(--color-warning-text); }
+
+.info-row__body { flex: 1; min-width: 0; }
+
+.info-row__label {
   margin: 0;
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
   font-weight: 600;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
-.profile-field__value {
+.info-row__value {
   margin: 2px 0 0;
   font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text);
 }
 
-/* Links */
-.profile-card--links { display: flex; flex-direction: column; }
+.info-row__sub {
+  margin: 1px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
 
-.profile-link {
+.info-row__nudge-icon { font-size: 18px; color: var(--color-brand); flex-shrink: 0; margin-top: 2px; }
+.info-row__nudge-text { flex: 1; font-size: var(--font-size-base); font-weight: 500; color: var(--color-brand); }
+.info-row__nudge-chevron { font-size: 16px; color: var(--color-text-muted); }
+
+/* ── Documents grid ──────────────────────────────────────────────────────── */
+
+.docs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.doc-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease;
+}
+
+.doc-card--uploaded { border-color: var(--color-success); }
+.doc-card:active { background: var(--color-background); }
+
+.doc-card__icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.doc-card__icon-wrap--done  { background: #d1fae5; color: #059669; }
+.doc-card__icon-wrap--empty { background: var(--color-background); color: var(--color-text-muted); }
+
+.doc-card__label {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.doc-card__status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.doc-card__status-icon--done  { color: var(--color-success); font-size: 14px; }
+.doc-card__status-icon--empty { color: var(--color-text-muted); font-size: 14px; }
+.doc-card__status-text--done  { color: var(--color-success-text); }
+.doc-card__status-text--empty { color: var(--color-text-muted); }
+
+/* ── Account links ───────────────────────────────────────────────────────── */
+
+.links-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.link-row {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -348,38 +853,142 @@ onIonViewWillEnter(() => {
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   text-align: left;
+  width: 100%;
   -webkit-tap-highlight-color: transparent;
   transition: background 0.15s ease;
 }
 
-.profile-link:last-child { border-bottom: none; }
-.profile-link:active { background: var(--color-background); }
+.link-row:last-child { border-bottom: none; }
+.link-row:active { background: var(--color-background); }
 
-.profile-link__icon {
-  font-size: 18px;
+.link-row__icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-lg);
+  background: var(--color-brand-pale);
   color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
-.profile-link__label {
+.link-row__label {
   flex: 1;
   font-size: var(--font-size-base);
   font-weight: 500;
   color: var(--color-text);
 }
 
-.profile-link__chevron {
-  font-size: 16px;
+.link-row__chevron { font-size: 16px; color: var(--color-text-muted); }
+
+.bottom-spacer { height: 24px; }
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* Edit sheet                                                                 */
+/* ══════════════════════════════════════════════════════════════════════════ */
+
+.edit-content { --background: var(--color-background); }
+
+.edit-body {
+  padding: 0 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.edit-section {
+  padding: 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.edit-section__title {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.edit-section__hint {
+  margin: -6px 0 0;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
-/* Edit form */
-.edit-form {
-  padding: 20px 16px;
+/* ── Photo picker ────────────────────────────────────────────────────────── */
+
+.photo-picker {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
 }
+
+.photo-picker__preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: 3px solid var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.photo-picker__img { width: 100%; height: 100%; object-fit: cover; }
+
+.photo-picker__initials {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-brand);
+}
+
+.photo-picker__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.photo-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.photo-btn--primary { background: var(--color-brand-pale); color: var(--color-brand); }
+.photo-btn--danger  { background: var(--color-error-bg);   color: var(--color-error-text); }
+
+.photo-btn__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 0;
+}
+
+.photo-picker__hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Form fields ─────────────────────────────────────────────────────────── */
 
 .form-field { display: flex; flex-direction: column; gap: 6px; }
 
@@ -389,9 +998,9 @@ onIonViewWillEnter(() => {
   color: var(--color-text-secondary);
 }
 
-.form-input {
+.form-input, .form-textarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: 11px 13px;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-base);
@@ -402,9 +1011,100 @@ onIonViewWillEnter(() => {
   font-family: inherit;
 }
 
-.form-input:focus { border-color: var(--color-brand); }
+.form-input:focus, .form-textarea:focus { border-color: var(--color-brand); }
+.form-textarea { resize: vertical; }
 
-.form-error {
+/* ── Document upload rows ────────────────────────────────────────────────── */
+
+.doc-upload-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.doc-upload-row__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-upload-row__icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.doc-upload-row__icon-wrap--done  { background: #d1fae5; color: #059669; }
+.doc-upload-row__icon-wrap--empty { background: var(--color-background); color: var(--color-text-muted); }
+
+.doc-upload-row__info { flex: 1; min-width: 0; }
+
+.doc-upload-row__label {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-upload-row__status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.doc-upload-row__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.doc-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 11px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.doc-action-btn--upload { background: var(--color-brand-pale); color: var(--color-brand); }
+.doc-action-btn--view   { background: var(--color-background); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+
+.doc-action-btn__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 0;
+}
+
+/* ── Save ────────────────────────────────────────────────────────────────── */
+
+.save-error {
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-error-text);
@@ -413,5 +1113,5 @@ onIonViewWillEnter(() => {
 
 .save-btn { --border-radius: var(--radius-xl); }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+.edit-bottom-spacer { height: 32px; }
 </style>

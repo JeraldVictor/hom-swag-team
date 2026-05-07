@@ -16,7 +16,7 @@ export type {
 } from './auth.model'
 
 // User models
-export type { UserProfile, UserType } from './user.model'
+export type { UserProfile, UserType, ProfileDocument } from './user.model'
 
 // Order models
 export type {
@@ -65,7 +65,28 @@ export type { Session } from './session.model'
 export type { SupportBody, SupportTicket, SupportCategory } from './support.model'
 
 // Calendar models
-export type { CalendarEvent, CalendarData } from './calendar.model'
+export type { CalendarEvent, CalendarData, CalendarEventType } from './calendar.model'
 
 // Dashboard models
 export type { DashboardData } from './dashboard.model'
+
+// OT Request models
+export type { OtRequest, OtRequestBody, OtRequestStatus } from './ot-request.model'
+
+// Weekly Off models
+export type { WeeklyOffRequest, WeeklyOffRequestBody, WeeklyOffStatus, DayOfWeek } from './weekly-off.model'
+
+// External Booking models
+export type { ExternalBooking, ExternalBookingBody, ExternalBookingStatus } from './external-booking.model'
+
+// Reimbursement models
+export type { Reimbursement, ReimbursementBody, ReimbursementStatus, ReimbursementType } from './reimbursement.model'
+
+// Leaderboard models
+export type { LeaderboardEntry, LeaderboardData, LeaderboardPeriod } from './leaderboard.model'
+
+// SOS models
+export type { SosAlert, SosTriggerBody, SosStatus } from './sos.model'
+
+// Trip Fees models
+export type { TripFeeEntry, TripFeesReport } from './trip-fees.model'

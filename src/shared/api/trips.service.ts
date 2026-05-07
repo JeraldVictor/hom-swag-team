@@ -108,3 +108,29 @@ export async function updateTripStatus(
   })
   return normalizeTrip(response.data.data)
 }
+
+/**
+ * Confirm the customer's pickup location and address.
+ * PATCH /trips/:id/confirm-location
+ */
+export async function confirmCustomerLocation(
+  id: string | number,
+  body: { latitude: number; longitude: number; address?: string },
+): Promise<Trip> {
+  const response = await apiClient.patch<{ data: RawTrip }>(`/trips/${id}/confirm-location`, body)
+  return normalizeTrip(response.data.data)
+}
+
+/**
+ * Update the self-ride status for a trip (rider travelling independently).
+ * PATCH /trips/:id/self-ride
+ */
+export async function updateRiderSelfRideStatus(
+  id: string | number,
+  isSelfRide: boolean,
+): Promise<Trip> {
+  const response = await apiClient.patch<{ data: RawTrip }>(`/trips/${id}/self-ride`, {
+    is_self_ride: isSelfRide,
+  })
+  return normalizeTrip(response.data.data)
+}
