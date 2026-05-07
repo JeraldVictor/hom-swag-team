@@ -8,7 +8,7 @@
 
 import { Geolocation } from '@capacitor/geolocation'
 import type { Coordinates } from '@/shared/models/location.model'
-import { postLocation } from '@/shared/api/location.service'
+import { pushLocation } from '@/shared/api/location.service'
 
 /** Maximum watch interval in milliseconds (30 seconds). */
 export const MAX_WATCH_INTERVAL_MS = 30_000
@@ -71,9 +71,9 @@ class LocationService {
 
         // Also POST the location to the BFF API.
         try {
-          await postLocation({
-            ...coords,
-            timestamp: position.timestamp,
+          await pushLocation({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
             accuracy: position.coords.accuracy ?? undefined,
           })
         } catch {

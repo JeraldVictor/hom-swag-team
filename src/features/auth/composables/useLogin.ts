@@ -18,6 +18,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { requestOtp, verifyOtp } from '@/shared/api/auth.service'
 import { getProfile } from '@/shared/api/profile.service'
 import { useToast } from '@/shared/composables/useToast'
+import { locationTracker } from '@/shared/composables/useLocationTracker'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -143,6 +144,9 @@ export function useLogin(): UseLoginReturn {
       }
 
       await router.replace('/home')
+
+      // Start location tracking now that the user is authenticated
+      void locationTracker.start()
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Invalid OTP. Please try again.'

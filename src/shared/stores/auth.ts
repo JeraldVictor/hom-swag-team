@@ -17,6 +17,7 @@ import { defineStore } from 'pinia'
 import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
 import type { AuthResponse } from '@/shared/models/auth.model'
 import type { UserProfile, UserType } from '@/shared/models/user.model'
+import { locationTracker } from '@/shared/composables/useLocationTracker'
 
 const VALID_USER_TYPES: UserType[] = ['rider', 'beautician']
 
@@ -116,6 +117,10 @@ export const useAuthStore = defineStore('auth', () => {
    * Called on explicit sign-out or after an unrecoverable 401.
    */
   async function logout(): Promise<void> {
+    // Stop location tracking before clearing tokens so any in-flight tick
+    // that needs the token can still complete gracefully.
+    locationTracker.stop()
+
     // Best-effort server-side token revocation — don't block logout on failure
     if (refreshToken.value) {
       try {

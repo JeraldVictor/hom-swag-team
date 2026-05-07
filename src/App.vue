@@ -23,15 +23,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { IonApp, IonRouterOutlet } from '@ionic/vue'
+import { App } from '@capacitor/app'
+import type { PluginListenerHandle } from '@capacitor/core'
 import { Icon } from '@iconify/vue'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAppStore } from '@/shared/stores/app'
 import { useNetwork, getIsOnline } from '@/shared/composables/useNetwork'
 import { usePermissions } from '@/shared/composables/usePermissions'
+import { locationTracker } from '@/shared/composables/useLocationTracker'
 import NoInternetView from '@/features/home/views/NoInternetView.vue'
 import PermissionSplashView from '@/features/home/views/PermissionSplashView.vue'
 import logo from '@/shared/images/HomSwagLogo.png'
@@ -100,11 +103,32 @@ async function handlePermissionsGranted() {
 }
 
 // ---------------------------------------------------------------------------
+// App state change — restart tracker when app comes to foreground
+// ---------------------------------------------------------------------------
+
+let appStateListener: PluginListenerHandle | null = null
+
+async function setupAppStateListener() {
+  appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
+    if (isActive && authStore.isAuthenticated && !locationTracker.isTracking.value) {
+      // App returned to foreground and user is authenticated — restart tracker
+      // if it was stopped (e.g. by the OS killing the background process)
+      void locationTracker.start()
+    }
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
 
 onMounted(async () => {
   await boot()
+  await setupAppStateListener()
+})
+
+onUnmounted(() => {
+  appStateListener?.remove()
 })
 
 // Keep the store's isOnline in sync with the composable's reactive ref
