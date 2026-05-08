@@ -1457,7 +1457,7 @@ The SOS feature (`src/features/sos/`) lets any authenticated field worker (beaut
 
 ### `SosView`
 
-The SOS screen (`/sos`). On mount it checks for an active SOS from a previous session via `getLatestSos()` — any alert with status `resolved` or `acknowledged` is treated as inactive.
+The SOS screen (`/sos`). On mount it checks for an active SOS from a previous session via `getLatestSos()` — only alerts with status `resolved` are treated as inactive. An `acknowledged` alert is still considered active and will be displayed.
 
 The view renders three sections:
 
@@ -1465,6 +1465,10 @@ The view renders three sections:
 - **SOS button** — a large circular red button in the centre of the screen. Disabled while an alert is active or a trigger request is in flight. Tapping calls `triggerSos()`, which first attempts to capture the device's current GPS coordinates (5-second timeout) before sending the alert. Location failure is non-fatal — the alert is sent without coordinates.
 - **Instructions panel** — a four-step card explaining how the SOS flow works.
 - **Optional message field** — a free-text textarea (hidden when an alert is active) that lets the worker briefly describe the situation before triggering.
+
+**Live status polling**
+
+While an SOS alert is active, the view polls `getLatestSos()` every 5 seconds to keep the displayed status in sync with the server. If the server reports the alert as `resolved` (e.g. staff resolved it remotely), the active banner is cleared automatically. The poll starts when `activeAlert` becomes non-null and stops when it is cleared or the component is unmounted.
 
 **API calls used**
 

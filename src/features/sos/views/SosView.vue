@@ -11,11 +11,19 @@
 
     <ion-content :fullscreen="true" class="sos-content">
       <!-- Active SOS banner -->
-      <div v-if="activeAlert" class="active-banner">
+      <div v-if="activeAlert" class="active-banner" :class="{ 'active-banner--acknowledged': activeAlert.status === 'acknowledged' }">
         <div class="active-banner__pulse" aria-hidden="true" />
         <div class="active-banner__body">
-          <p class="active-banner__title">SOS Active</p>
-          <p class="active-banner__sub">Office staff have been alerted and will call you shortly.</p>
+          <p class="active-banner__title">
+            {{ activeAlert.status === 'acknowledged' ? 'SOS Acknowledged' : 'SOS Active' }}
+          </p>
+          <p class="active-banner__sub">
+            {{
+              activeAlert.status === 'acknowledged'
+                ? 'A staff member has acknowledged your alert and will contact you shortly.'
+                : 'Office staff have been alerted and will call you shortly.'
+            }}
+          </p>
         </div>
         <ion-button
           fill="outline"
@@ -41,7 +49,7 @@
           @click="handleTrigger"
         >
           <Icon icon="lucide:siren" class="sos-btn__icon" aria-hidden="true" />
-          <span class="sos-btn__label">{{ activeAlert ? 'SOS Active' : 'SOS' }}</span>
+          <span class="sos-btn__label">{{ activeAlert ? (activeAlert.status === 'acknowledged' ? 'Acknowledged' : 'SOS Active') : 'SOS' }}</span>
         </button>
       </div>
 
@@ -83,10 +91,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
   IonContent, IonButton, IonSpinner,
+  onIonViewWillEnter, onIonViewDidLeave,
 } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
 import { storeToRefs } from 'pinia'
@@ -105,6 +114,45 @@ const activeAlert = ref<SosAlert | null>(null)
 const isTriggering = ref(false)
 const isResolving = ref(false)
 const message = ref('')
+
+// Poll interval for status updates while an SOS is active
+let pollInterval: ReturnType<typeof setInterval> | null = null
+const POLL_INTERVAL_MS = 5_000
+
+function startPolling(): void {
+  if (pollInterval) return
+  pollInterval = setInterval(async () => {
+    if (!activeAlert.value) {
+      stopPolling()
+      return
+    }
+    const latest = await getLatestSos()
+    if (!latest || latest.status === 'resolved') {
+      // Staff resolved it — clear the active state
+      activeAlert.value = null
+      stopPolling()
+    } else {
+      // Keep the alert in sync (e.g. status changed to acknowledged)
+      activeAlert.value = latest
+    }
+  }, POLL_INTERVAL_MS)
+}
+
+function stopPolling(): void {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+}
+
+// Start/stop polling whenever activeAlert changes
+watch(activeAlert, (alert) => {
+  if (alert && alert.status !== 'resolved') {
+    startPolling()
+  } else {
+    stopPolling()
+  }
+})
 
 async function handleTrigger(): Promise<void> {
   if (!user.value || !userType.value) return
@@ -155,10 +203,29 @@ async function handleResolve(): Promise<void> {
 
 onMounted(async () => {
   // Check if there's an active SOS from a previous session
-  activeAlert.value = await getLatestSos()
-  if (activeAlert.value?.status === 'resolved' || activeAlert.value?.status === 'acknowledged') {
-    activeAlert.value = null
+  const latest = await getLatestSos()
+  if (latest && latest.status !== 'resolved') {
+    activeAlert.value = latest
   }
+})
+
+// Re-check status every time the user navigates back to this view
+onIonViewWillEnter(async () => {
+  const latest = await getLatestSos()
+  if (!latest || latest.status === 'resolved') {
+    activeAlert.value = null
+  } else {
+    activeAlert.value = latest
+  }
+})
+
+// Stop polling when the user navigates away (Ionic keeps views alive in the stack)
+onIonViewDidLeave(() => {
+  stopPolling()
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
 
@@ -177,6 +244,20 @@ onMounted(async () => {
   background: var(--color-error-bg);
   border: 2px solid var(--color-error);
   border-radius: var(--radius-xl);
+}
+
+.active-banner--acknowledged {
+  background: #fefce8;
+  border-color: #ca8a04;
+}
+
+.active-banner--acknowledged .active-banner__title,
+.active-banner--acknowledged .active-banner__sub {
+  color: #854d0e;
+}
+
+.active-banner--acknowledged .active-banner__pulse {
+  background: #ca8a04;
 }
 
 .active-banner__pulse {
