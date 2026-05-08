@@ -7,8 +7,16 @@ export interface PaginatedResponse<T> {
   data: T[]
   /** Total number of records across all pages */
   total: number
+  /** Number of records in the current page */
+  count?: number
   /** Current page number (1-based) */
   page: number
   /** Maximum number of records per page */
   limit: number
+  /** Total number of pages */
+  pages?: number
+  /** Whether there is a next page */
+  hasNextPage?: boolean
+  /** Whether there is a previous page */
+  hasPrevPage?: boolean
 }

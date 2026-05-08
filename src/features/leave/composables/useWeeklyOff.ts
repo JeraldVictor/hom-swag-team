@@ -2,20 +2,14 @@
  * useWeeklyOff
  *
  * Manages weekly off request state and API calls.
+ * Maps to server's WeekOff model.
  */
 
 import { ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 import { getWeeklyOffRequests, createWeeklyOffRequest, cancelWeeklyOffRequest } from '@/shared/api'
-import type { WeeklyOffRequest, WeeklyOffRequestBody } from '@/shared/models'
+import type { WeeklyOffRequest, WeeklyOffCreateBody } from '@/shared/models'
 
 export function useWeeklyOff() {
-  const authStore = useAuthStore()
-  const userTypeStore = useUserTypeStore()
-  const { user } = storeToRefs(authStore)
-  const { userType } = storeToRefs(userTypeStore)
-
   const requests = ref<WeeklyOffRequest[]>([])
   const isLoading = ref(false)
   const isSubmitting = ref(false)
@@ -34,18 +28,11 @@ export function useWeeklyOff() {
     }
   }
 
-  async function submitRequest(
-    body: Omit<WeeklyOffRequestBody, 'requester_id' | 'requester_type'>,
-  ): Promise<WeeklyOffRequest | null> {
-    if (!user.value || !userType.value) return null
+  async function submitRequest(body: WeeklyOffCreateBody): Promise<WeeklyOffRequest | null> {
     isSubmitting.value = true
     error.value = null
     try {
-      const result = await createWeeklyOffRequest({
-        requester_id: String(user.value.id),
-        requester_type: userType.value as 'beautician' | 'rider',
-        ...body,
-      })
+      const result = await createWeeklyOffRequest(body)
       requests.value.unshift(result)
       return result
     } catch (err) {

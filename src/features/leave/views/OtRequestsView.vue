@@ -55,12 +55,12 @@
             <div class="ot-card__header">
               <div>
                 <p class="ot-card__date">{{ formatDate(req.date) }}</p>
-                <p class="ot-card__hours">{{ req.hours }} hour{{ req.hours !== 1 ? 's' : '' }} OT</p>
+                <p class="ot-card__sub">Overtime Request</p>
               </div>
               <AppBadge :text="statusLabel(req.status)" :variant="statusVariant(req.status)" size="sm" />
             </div>
             <p v-if="req.reason" class="ot-card__reason">{{ req.reason }}</p>
-            <div v-if="req.status === 'requested'" class="ot-card__actions">
+            <div class="ot-card__actions">
               <ion-button
                 fill="outline"
                 color="danger"
@@ -96,17 +96,13 @@
             <input v-model="form.date" type="date" class="form-input" :max="todayStr" />
           </div>
           <div class="form-field">
-            <label class="form-label">Overtime Hours</label>
-            <input v-model.number="form.hours" type="number" class="form-input" min="0.5" max="12" step="0.5" placeholder="e.g. 2" />
-          </div>
-          <div class="form-field">
             <label class="form-label">Reason (optional)</label>
             <textarea v-model="form.reason" class="form-textarea" placeholder="Why did you work overtime?" rows="3" />
           </div>
           <p v-if="error" class="form-error">{{ error }}</p>
           <ion-button
             expand="block"
-            :disabled="isSubmitting || !form.date || !form.hours"
+            :disabled="isSubmitting || !form.date"
             class="submit-btn"
             @click="handleSubmit"
           >
@@ -143,7 +139,6 @@ const todayStr = new Date().toISOString().split('T')[0]
 
 const form = ref({
   date: todayStr,
-  hours: 1,
   reason: '',
 })
 
@@ -164,19 +159,20 @@ function statusVariant(status: OtRequestStatus): 'success' | 'warning' | 'error'
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
 }
 
 async function handleSubmit(): Promise<void> {
   const result = await submitRequest({
     date: form.value.date,
-    hours: form.value.hours,
     reason: form.value.reason || undefined,
   })
   if (result) {
     showSuccess('OT request submitted')
     showForm.value = false
-    form.value = { date: todayStr, hours: 1, reason: '' }
+    form.value = { date: todayStr, reason: '' }
   } else {
     showError(error.value ?? 'Failed to submit')
   }
@@ -233,7 +229,7 @@ onIonViewWillEnter(() => {
   color: var(--color-text);
 }
 
-.ot-card__hours {
+.ot-card__sub {
   margin: 2px 0 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);

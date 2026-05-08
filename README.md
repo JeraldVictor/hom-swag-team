@@ -62,7 +62,7 @@ src/
 │   ├── leave/          # Leave requests, OT requests, and weekly off requests
 │   ├── profile/        # User profile
 │   ├── sessions/       # Active login sessions management
-│   ├── calendar/       # Monthly calendar with events (leave, OT, weekly off)
+│   ├── calendar/       # Monthly calendar with leave and holiday events (fetched from BFF)
 │   ├── reimbursements/ # Travel reimbursement requests (both roles)
 │   ├── external-bookings/ # External bookings (beautician only)
 │   ├── leaderboard/    # Leaderboard (both roles, visibility controlled by BFF)
@@ -426,7 +426,7 @@ On web/PWA all permissions are treated as granted and the splash is skipped auto
 
 | Component | Location | Description |
 |-----------|----------|-------------|
-| `AppDrawer` | `src/shared/components/ui/AppDrawer.vue` | Slide-in navigation drawer. Reads open/close state from `useDrawer`. Displays a user avatar (photo or initials), role label, role-conditional nav items (Home, Orders/Trips, Leave), a secondary Profile item, and a logout button. Active state highlights the current route and any nested child routes (e.g. `/trips/123` highlights the Trips item). Controlled entirely via `useDrawer` — no props required. |
+| `AppDrawer` | `src/shared/components/ui/AppDrawer.vue` | Slide-in navigation drawer. Reads open/close state from `useDrawer`. Displays a user avatar (photo or initials) and role label in a branded header. Navigation is split into three sections: **Primary** (Home; role-conditional Orders/Complaints/External Bookings for beauticians, Trips/Trip Fees for riders; plus Calendar, Notifications, Leaderboard, Reimbursements for all); **Leave & Time Off** (Leave Requests, OT Requests, Weekly Off); **Account** (Profile, Active Sessions, Support & Feedback). A footer SOS button and logout button are always visible. Active state highlights the current route and any nested child routes. Controlled entirely via `useDrawer` — no props required. |
 | `GoogleMapView` | `src/shared/components/ui/GoogleMapView.vue` | Reusable Google Maps component. Wraps `useGoogleMaps` and handles loading/error states internally. Supports pickup, drop, and live-position markers, optional driving route rendering, and automatic bounds fitting. Emits `map-ready` once the map is initialized and `map-error` on failure. Renders a static "Map unavailable" fallback when `FEATURES.maps` is `false`. |
 | `NoInternetView` | `src/features/home/views/NoInternetView.vue` | Full-screen offline overlay. Displays a `wifi-off` icon, a message prompting the user to check connectivity, and a "Try Again" button. The button emits a `retry` event after an 800 ms debounce so the parent can re-check connectivity. Intended to be conditionally rendered over the app shell when `useNetwork`'s `isOnline` is `false`. |
 | `PlacesSearchInput` | `src/shared/components/ui/PlacesSearchInput.vue` | Address search input backed by Google Places Autocomplete. Supports free-text address search, direct lat/lng coordinate entry, a loading spinner during API calls, and a clear button. Emits the selected `PlaceResult` on selection. Fully keyboard-accessible (Enter selects, Escape clears). |
@@ -917,12 +917,10 @@ TypeScript interfaces for the leave requests feature live in `src/shared/models/
 
 **`LeaveRequestBody`**
 
-Sent to `POST /leave-requests`.
+Sent to `POST /leave-requests`. `requester_id` and `requester_type` are injected server-side from the JWT — do not include them in the request body.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `requester_id` | `string` | ID of the user submitting the request. |
-| `requester_type` | `'beautician' \| 'rider'` | Role of the requester. |
 | `date` | `string` | ISO 8601 date string (YYYY-MM-DD). |
 | `leave_type` | `LeaveType` | Category of leave. |
 | `duration` | `LeaveDuration` | Full day or half-day selection. |
@@ -960,7 +958,6 @@ TypeScript interfaces for overtime requests live in `src/shared/models/ot-reques
 | `id` | `string \| number` | OT request ID. |
 | `_id?` | `string` | MongoDB document ID (optional, API-returned). |
 | `date` | `string` | ISO 8601 date string (YYYY-MM-DD) — the date overtime was worked. |
-| `hours` | `number` | Number of overtime hours claimed. |
 | `reason?` | `string` | Optional reason for the overtime. |
 | `status` | `OtRequestStatus` | Current approval state. |
 | `requester_type?` | `'beautician' \| 'rider'` | Role of the requester. |
@@ -976,7 +973,6 @@ Sent when creating a new OT request.
 | `requester_id` | `string` | ID of the user submitting the request. |
 | `requester_type` | `'beautician' \| 'rider'` | Role of the requester. |
 | `date` | `string` | ISO 8601 date string (YYYY-MM-DD). |
-| `hours` | `number` | Number of overtime hours claimed. |
 | `reason?` | `string` | Optional reason. |
 
 ## Leave Feature
@@ -1005,7 +1001,6 @@ A fixed **+** FAB in the bottom-right corner opens a two-step bottom sheet for s
 |-------|-----------|-------|-------|
 | Date | All types | `<input type="date">` | Past dates disabled for leave types; OT allows past dates. |
 | Duration | Paid Leave, Sick Leave | Segmented button tabs | Full Day, First Half, Second Half. |
-| Overtime Hours | OT | +/− stepper | 0.5 hr increments, range 0.5–12 hrs. |
 | Reason | All types | `<textarea>` | Optional. |
 
 On successful submission the sheet closes and a success toast is shown. Cancelling a `requested`-state request removes it from the list immediately.
@@ -1283,7 +1278,7 @@ The guard reads the access token directly from storage (via `Storage_Service`) r
 
 ## Calendar Feature
 
-The Calendar feature (`src/features/calendar/`) gives field workers a monthly view of their leave, OT, and weekly-off requests.
+The Calendar feature (`src/features/calendar/`) gives field workers a monthly view of their leave requests and office holidays.
 
 ### `CalendarView`
 
@@ -1302,14 +1297,15 @@ The main calendar view (`/calendar`). Displays a full-month grid with colour-cod
 |------------|------------|
 | Amber | Paid Leave |
 | Red | Sick Leave |
-| Violet | OT (Overtime) |
-| Emerald | Weekly Off |
+| Emerald | Holiday |
 
-**Event cards** — tapping any day cell shows event cards for that date below the grid. Each card has a left accent bar, a type icon, a title, a detail line (e.g. "Full Day", "2 hrs"), and a status badge (Pending / Approved / Rejected). A shimmer skeleton is shown while data loads; an empty-state illustration is shown when the selected date has no events.
+**Event cards** — tapping any day cell shows event cards for that date below the grid. Each card has a left accent bar, a type icon, a title, a detail line (e.g. "Full Day"), and a status badge (Pending / Approved / Rejected) when applicable. Holiday cards have no status badge. A shimmer skeleton is shown while data loads; an empty-state illustration is shown when the selected date has no events.
 
-**Upcoming events** — when the selected date has no events, or in addition to the selected-date cards, up to 10 events from the next 30 days are shown in a separate "Upcoming" section.
+**Upcoming events** — up to 10 events from the next 30 days are shown in a separate "Upcoming" section below the selected-date cards.
 
-**Data fetching** — on mount (and on pull-to-refresh) the view calls `getLeaveRequests()`, `getOtRequests()`, and `getWeeklyOffRequests()` in parallel via `Promise.allSettled`. Each API is independent — a failure in one does not block the others. The view re-fetches when the displayed month changes. On error the calendar renders empty (non-critical failure).
+**Data fetching** — on mount (and on pull-to-refresh) the view calls `getCalendar(start, end)` with the current month's date range. The response contains `leaves` and `holidays` arrays which are mapped into a unified internal `CalEvent` list. The view re-fetches when the displayed month changes. On error the calendar renders empty (non-critical failure).
+
+**Event types** — the internal `EventType` union is `'paid_leave' | 'sick_leave' | 'loss_of_pay' | 'block_time' | 'holiday'`. Types are mapped from the BFF response's `leave_type` field for leaves and inferred as `'holiday'` for holiday entries.
 
 ### Calendar Models
 
@@ -1317,9 +1313,9 @@ TypeScript interfaces for the calendar feature live in `src/shared/models/calend
 
 | Type | Kind | Description |
 |------|------|-------------|
-| `CalendarEventType` | `type` | Union of displayable event category strings: `'paid_leave' \| 'sick_leave' \| 'ot' \| 'weekly_off'`. |
-| `CalendarEvent` | `interface` | A single calendar event. Required fields: `date` (YYYY-MM-DD), `type` (`CalendarEventType`), `title`, and `status` (`'requested' \| 'approved' \| 'rejected'`). Optional fields: `id` and `detail` (extra display text, e.g. `"Full Day"`, `"2 hrs"`). |
-| `CalendarData` | `interface` | Legacy BFF response shape from `GET /calendar` — kept for compatibility. Contains optional `leaves`, `orders`, `trips`, and `holidays` arrays of `CalendarEvent`, plus an index signature for additional server-defined keys. |
+| `CalendarEventType` | `type` | Union of displayable event category strings: `'paid_leave' \| 'sick_leave' \| 'ot' \| 'weekly_off'`. (Legacy — `CalendarView` now uses its own inline `EventType` union that includes `'loss_of_pay'`, `'block_time'`, and `'holiday'`.) |
+| `CalendarEvent` | `interface` | A single calendar event. Required fields: `date` (YYYY-MM-DD), `type` (`CalendarEventType`), `title`, and `status` (`'requested' \| 'approved' \| 'rejected'`). Optional fields: `id` and `detail` (extra display text, e.g. `"Full Day"`). (Legacy — `CalendarView` uses its own inline `CalEvent` interface where `status` is optional to accommodate holidays.) |
+| `CalendarData` | `interface` | BFF response shape from `GET /calendar`. Contains optional `leaves` and `holidays` arrays, plus an index signature for additional server-defined keys. |
 
 ## Sessions Feature
 

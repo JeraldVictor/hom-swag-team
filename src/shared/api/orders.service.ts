@@ -13,15 +13,20 @@ import type { PaginatedResponse } from '@/shared/models/pagination.model'
  * GET /orders
  */
 export async function getOrders(page?: number, limit?: number): Promise<PaginatedResponse<Order>> {
-  const response = await apiClient.get<{ data: PaginatedResponse<Order> }>('/orders', {
+  const response = await apiClient.get<{ data: PaginatedResponse<Order> | Order[] }>('/orders', {
     params: { page, limit },
   })
-  return response.data.data
+  const raw = response.data.data
+  // Handle both paginated envelope and plain array
+  if (Array.isArray(raw)) {
+    return { data: raw, total: raw.length, count: raw.length, page: 1, limit: raw.length, pages: 1, hasNextPage: false, hasPrevPage: false }
+  }
+  return raw as PaginatedResponse<Order>
 }
 
 /**
  * Fetch a single order by ID.
- * GET /orders/:id  (via PATCH /orders/:id which returns the order)
+ * GET /orders/:id
  */
 export async function getOrder(id: string | number): Promise<Order> {
   const response = await apiClient.get<{ data: Order }>(`/orders/${id}`)

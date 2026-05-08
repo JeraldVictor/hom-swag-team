@@ -19,8 +19,13 @@ export async function getLeaveRequests(params?: {
   date_from?: string
   date_to?: string
 }): Promise<LeaveRequest[]> {
-  const response = await apiClient.get<{ data: LeaveRequest[] }>('/leave-requests', { params })
-  return response.data.data
+  const response = await apiClient.get<{
+    data: LeaveRequest[] | { data: LeaveRequest[]; pagination?: unknown }
+  }>('/leave-requests', { params })
+  const raw = response.data.data
+  // Handle both plain array and paginated envelope
+  if (Array.isArray(raw)) return raw
+  return (raw as { data: LeaveRequest[] }).data ?? []
 }
 
 /**

@@ -61,11 +61,6 @@
           <ion-label>Calendar</ion-label>
         </ion-tab-button>
 
-        <ion-tab-button tab="leave" href="/leave">
-          <Icon icon="lucide:calendar" class="tab-icon" />
-          <ion-label>Leave</ion-label>
-        </ion-tab-button>
-
         <ion-tab-button tab="profile" href="/profile">
           <Icon icon="lucide:user" class="tab-icon" />
           <ion-label>Profile</ion-label>

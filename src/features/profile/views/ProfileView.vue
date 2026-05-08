@@ -338,6 +338,7 @@ import { Icon } from '@iconify/vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 import { useToast } from '@/shared/composables'
+import { getProfile, updateProfile, uploadProfilePhoto } from '@/shared/api'
 import type { UserProfile, ProfileDocument } from '@/shared/models'
 
 const router = useRouter()
@@ -347,20 +348,15 @@ const { user } = storeToRefs(authStore)
 const { isBeautician, isRider } = storeToRefs(userTypeStore)
 const { showSuccess, showError } = useToast()
 
-// ── Dummy profile (replace with getProfile() API call when ready) ──────────
+// ── Profile state ──────────────────────────────────────────────────────────
 
 const profile = ref<UserProfile>({
-  id: '1',
-  name: user.value?.name ?? 'Priya Sharma',
-  phone: user.value?.phone ?? '9999999999',
-  user_type: user.value?.user_type ?? 'beautician',
-  email: user.value?.email ?? '',
-  date_of_birth: '',
-  address: '',
-  emergency_contact_name: '',
-  emergency_contact_phone: '',
-  documents: [],
+  id: '',
+  name: '',
+  phone: '',
+  user_type: 'beautician',
 })
+const isLoadingProfile = ref(false)
 
 // ── Document slot definitions ──────────────────────────────────────────────
 
@@ -505,7 +501,7 @@ function viewDoc(doc: DocSlot): void {
 
 // ── Save ───────────────────────────────────────────────────────────────────
 
-function handleSave(): void {
+async function handleSave(): Promise<void> {
   if (!editForm.value.name.trim()) {
     saveError.value = 'Name is required'
     return
@@ -513,26 +509,31 @@ function handleSave(): void {
   isSaving.value = true
   saveError.value = null
 
-  // Simulate async save
-  setTimeout(() => {
-    // Apply photo preview to profile
-    if (photoPreview.value) {
-      profile.value = {
-        ...profile.value,
-        photo: { url: photoPreview.value },
+  try {
+    // Upload photo first if a new one was selected
+    if (photoFile.value) {
+      const formData = new FormData()
+      formData.append('photo', photoFile.value)
+      try {
+        const updated = await uploadProfilePhoto(formData)
+        profile.value = { ...profile.value, photo: updated.photo }
+      } catch {
+        // Non-critical — continue with other updates
       }
     }
 
-    // Apply form fields
-    profile.value = {
-      ...profile.value,
-      name:                    editForm.value.name,
-      email:                   editForm.value.email || undefined,
-      date_of_birth:           editForm.value.date_of_birth || undefined,
-      address:                 editForm.value.address || undefined,
-      emergency_contact_name:  editForm.value.emergency_contact_name || undefined,
-      emergency_contact_phone: editForm.value.emergency_contact_phone || undefined,
+    // Update profile fields
+    const updates: Record<string, unknown> = {
+      name: editForm.value.name,
     }
+    if (editForm.value.email) updates.email = editForm.value.email
+    if (editForm.value.date_of_birth) updates.date_of_birth = editForm.value.date_of_birth
+    if (editForm.value.address) updates.address = editForm.value.address
+    if (editForm.value.emergency_contact_name) updates.emergency_contact_name = editForm.value.emergency_contact_name
+    if (editForm.value.emergency_contact_phone) updates.emergency_contact_phone = editForm.value.emergency_contact_phone
+
+    const updated = await updateProfile(updates)
+    profile.value = { ...profile.value, ...updated }
 
     // Sync to auth store so header/drawer reflect the new name
     authStore.setUserProfile(profile.value)
@@ -540,8 +541,11 @@ function handleSave(): void {
     isSaving.value = false
     showEdit.value = false
     showSuccess('Profile updated')
-    // When wired to API: call updateProfile(editForm) + uploadProfilePhoto(formData)
-  }, 700)
+  } catch (err) {
+    saveError.value = err instanceof Error ? err.message : 'Failed to save profile'
+    showError(saveError.value)
+    isSaving.value = false
+  }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -557,32 +561,49 @@ function goTo(path: string): void {
   router.push(path)
 }
 
-function handleRefresh(event: CustomEvent): void {
-  // When wired to API: await fetchProfile()
-  setTimeout(() => {
-    ;(event.target as HTMLIonRefresherElement).complete()
-  }, 400)
-}
-
 // ── Lifecycle ──────────────────────────────────────────────────────────────
 
-onMounted(() => {
-  // Seed from auth store so the page shows real data immediately
-  if (user.value) {
-    profile.value = {
-      ...profile.value,
-      id:        user.value.id,
-      name:      user.value.name,
-      phone:     user.value.phone,
-      user_type: user.value.user_type,
-      email:     user.value.email ?? '',
-      photo:     user.value.photo,
+async function fetchProfile(): Promise<void> {
+  isLoadingProfile.value = true
+  try {
+    const data = await getProfile()
+    // Preserve user_type from auth store — server profile (Beautician/Rider model) doesn't include it
+    const rawData = data as unknown as Record<string, unknown>
+    const merged: UserProfile = {
+      ...data,
+      id: (rawData._id as string) ?? data.id,
+      user_type: user.value?.user_type ?? data.user_type,
     }
+    profile.value = merged
+    // Sync to auth store
+    authStore.setUserProfile(merged)
+  } catch {
+    // Fall back to auth store data
+    if (user.value) {
+      profile.value = {
+        id: user.value.id,
+        name: user.value.name,
+        phone: user.value.phone,
+        user_type: user.value.user_type,
+        email: user.value.email ?? '',
+        photo: user.value.photo,
+      }
+    }
+  } finally {
+    isLoadingProfile.value = false
   }
-  // When wired to API: fetchProfile()
-})
+}
 
-onIonViewWillEnter(() => { /* no-op with dummy data */ })
+function handleRefresh(event: CustomEvent): void {
+  fetchProfile().then(() => {
+    ;(event.target as HTMLIonRefresherElement).complete()
+  })
+}
+
+onMounted(fetchProfile)
+onIonViewWillEnter(() => {
+  if (!profile.value.id) fetchProfile()
+})
 </script>
 
 <style scoped>

@@ -48,16 +48,21 @@ export const useAuthStore = defineStore('auth', () => {
    * Returns `true` if a valid session was restored, `false` otherwise.
    */
   async function restoreSession(): Promise<boolean> {
-    const [storedAccessToken, storedRefreshToken, storedProfile] = await Promise.all([
+    const [storedAccessToken, storedRefreshToken, storedProfile, storedUserType] = await Promise.all([
       Storage_Service.getString(STORAGE_KEYS.accessToken),
       Storage_Service.getString(STORAGE_KEYS.refreshToken),
       Storage_Service.getJSON<UserProfile>(STORAGE_KEYS.userProfile),
+      Storage_Service.getString(STORAGE_KEYS.userType),
     ])
 
     if (storedAccessToken && storedRefreshToken && storedProfile) {
       accessToken.value = storedAccessToken
       refreshToken.value = storedRefreshToken
-      user.value = storedProfile
+      // Always ensure user_type is set — fall back to stored userType key
+      user.value = {
+        ...storedProfile,
+        user_type: storedProfile.user_type ?? (storedUserType as UserType) ?? 'beautician',
+      }
       return true
     }
 
@@ -107,8 +112,14 @@ export const useAuthStore = defineStore('auth', () => {
    * Update the stored user profile (e.g. after fetching full profile from GET /profile).
    */
   async function setUserProfile(profile: UserProfile): Promise<void> {
-    user.value = profile
-    await Storage_Service.setJSON<UserProfile>(STORAGE_KEYS.userProfile, profile)
+    // Preserve user_type from current state if the incoming profile doesn't have it
+    // (server Beautician/Rider models don't include user_type)
+    const merged: UserProfile = {
+      ...profile,
+      user_type: profile.user_type ?? user.value?.user_type ?? 'beautician',
+    }
+    user.value = merged
+    await Storage_Service.setJSON<UserProfile>(STORAGE_KEYS.userProfile, merged)
   }
 
   /**

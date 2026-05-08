@@ -52,29 +52,38 @@
       <div class="drawer-body">
         <!-- Primary nav -->
         <ul class="drawer-nav" role="list">
-          <li v-for="item in navItems" :key="item.route">
+          <li v-for="item in primaryItems" :key="item.route">
             <button
               class="drawer-nav__item"
               :class="{ 'drawer-nav__item--active': isActive(item.route) }"
               @click="navigate(item.route)"
             >
-              <span class="drawer-nav__icon">
-                <Icon :icon="item.icon" />
-              </span>
+              <span class="drawer-nav__icon"><Icon :icon="item.icon" /></span>
               <span class="drawer-nav__label">{{ item.label }}</span>
-              <Icon
-                v-if="isActive(item.route)"
-                icon="lucide:chevron-right"
-                class="drawer-nav__chevron"
-              />
+              <Icon v-if="isActive(item.route)" icon="lucide:chevron-right" class="drawer-nav__chevron" />
             </button>
           </li>
         </ul>
 
-        <!-- Divider -->
+        <!-- Leave section -->
         <div class="drawer-divider" />
+        <p class="drawer-section-label">Leave & Time Off</p>
+        <ul class="drawer-nav" role="list">
+          <li v-for="item in leaveItems" :key="item.route">
+            <button
+              class="drawer-nav__item"
+              :class="{ 'drawer-nav__item--active': isActive(item.route) }"
+              @click="navigate(item.route)"
+            >
+              <span class="drawer-nav__icon"><Icon :icon="item.icon" /></span>
+              <span class="drawer-nav__label">{{ item.label }}</span>
+              <Icon v-if="isActive(item.route)" icon="lucide:chevron-right" class="drawer-nav__chevron" />
+            </button>
+          </li>
+        </ul>
 
         <!-- Account section -->
+        <div class="drawer-divider" />
         <p class="drawer-section-label">Account</p>
         <ul class="drawer-nav" role="list">
           <li v-for="item in accountItems" :key="item.route">
@@ -83,9 +92,7 @@
               :class="{ 'drawer-nav__item--active': isActive(item.route) }"
               @click="navigate(item.route)"
             >
-              <span class="drawer-nav__icon">
-                <Icon :icon="item.icon" />
-              </span>
+              <span class="drawer-nav__icon"><Icon :icon="item.icon" /></span>
               <span class="drawer-nav__label">{{ item.label }}</span>
             </button>
           </li>
@@ -150,15 +157,16 @@ interface NavItem {
   route: string
 }
 
-const navItems = computed<NavItem[]>(() => {
+/** Primary navigation — shown at the top of the drawer */
+const primaryItems = computed<NavItem[]>(() => {
   const items: NavItem[] = [
     { label: 'Home', icon: 'lucide:house', route: '/home' },
   ]
 
   if (isBeautician.value) {
     items.push({ label: 'Orders', icon: 'lucide:briefcase', route: '/orders' })
-    items.push({ label: 'External Bookings', icon: 'lucide:calendar-plus', route: '/external-bookings' })
     items.push({ label: 'Complaints', icon: 'lucide:message-circle-warning', route: '/complaints' })
+    items.push({ label: 'External Bookings', icon: 'lucide:calendar-plus', route: '/external-bookings' })
   }
 
   if (isRider.value) {
@@ -167,16 +175,21 @@ const navItems = computed<NavItem[]>(() => {
   }
 
   items.push({ label: 'Calendar', icon: 'lucide:calendar-days', route: '/calendar' })
-  items.push({ label: 'Leave', icon: 'lucide:calendar', route: '/leave' })
-  items.push({ label: 'OT Requests', icon: 'lucide:clock-plus', route: '/ot-requests' })
-  items.push({ label: 'Weekly Off', icon: 'lucide:calendar-x-2', route: '/weekly-off' })
-  items.push({ label: 'Reimbursements', icon: 'lucide:receipt-text', route: '/reimbursements' })
-  items.push({ label: 'Leaderboard', icon: 'lucide:trophy', route: '/leaderboard' })
   items.push({ label: 'Notifications', icon: 'lucide:bell', route: '/notifications' })
+  items.push({ label: 'Leaderboard', icon: 'lucide:trophy', route: '/leaderboard' })
+  items.push({ label: 'Reimbursements', icon: 'lucide:receipt-text', route: '/reimbursements' })
 
   return items
 })
 
+/** Leave & time-off section */
+const leaveItems: NavItem[] = [
+  { label: 'Leave Requests', icon: 'lucide:calendar-off', route: '/leave' },
+  { label: 'OT Requests', icon: 'lucide:clock-plus', route: '/ot-requests' },
+  { label: 'Weekly Off', icon: 'lucide:calendar-x-2', route: '/weekly-off' },
+]
+
+/** Account section */
 const accountItems: NavItem[] = [
   { label: 'Profile', icon: 'lucide:user', route: '/profile' },
   { label: 'Active Sessions', icon: 'lucide:monitor-smartphone', route: '/sessions' },

@@ -34,7 +34,7 @@
         <div class="empty-state">
           <Icon icon="lucide:calendar-x-2" class="empty-state__icon" aria-hidden="true" />
           <p class="empty-state__title">No weekly off requests</p>
-          <p class="empty-state__text">Tap + to request a weekly day off.</p>
+          <p class="empty-state__text">Tap + to request a recurring day off.</p>
         </div>
       </template>
 
@@ -55,12 +55,16 @@
             <div class="woff-card__header">
               <div>
                 <p class="woff-card__day">{{ dayLabel(req.day_of_week) }}</p>
-                <p v-if="req.date" class="woff-card__date">{{ formatDate(req.date) }}</p>
+                <p v-if="req.effective_from" class="woff-card__date">
+                  {{ formatDate(req.effective_from) }}
+                  <template v-if="req.effective_to"> – {{ formatDate(req.effective_to) }}</template>
+                </p>
               </div>
-              <AppBadge :text="statusLabel(req.status)" :variant="statusVariant(req.status)" size="sm" />
+              <span class="woff-card__active-badge" :class="req.is_active ? 'woff-card__active-badge--on' : 'woff-card__active-badge--off'">
+                {{ req.is_active ? 'Active' : 'Inactive' }}
+              </span>
             </div>
-            <p v-if="req.reason" class="woff-card__reason">{{ req.reason }}</p>
-            <div v-if="req.status === 'requested'" class="woff-card__actions">
+            <div class="woff-card__actions">
               <ion-button
                 fill="outline"
                 color="danger"
@@ -69,7 +73,7 @@
                 @click="handleCancel(String(req.id ?? req._id ?? ''))"
               >
                 <ion-spinner v-if="isCancelling === (req.id ?? req._id)" name="crescent" slot="start" />
-                Cancel
+                Deactivate
               </ion-button>
             </div>
           </div>
@@ -98,17 +102,17 @@
             </select>
           </div>
           <div class="form-field">
-            <label class="form-label">Specific Date (optional)</label>
-            <input v-model="form.date" type="date" class="form-input" />
+            <label class="form-label">Effective From</label>
+            <input v-model="form.effective_from" type="date" class="form-input" :min="todayStr" />
           </div>
           <div class="form-field">
-            <label class="form-label">Reason (optional)</label>
-            <textarea v-model="form.reason" class="form-textarea" placeholder="Any specific reason..." rows="3" />
+            <label class="form-label">Effective To</label>
+            <input v-model="form.effective_to" type="date" class="form-input" :min="form.effective_from || todayStr" />
           </div>
           <p v-if="error" class="form-error">{{ error }}</p>
           <ion-button
             expand="block"
-            :disabled="isSubmitting"
+            :disabled="isSubmitting || !form.effective_from || !form.effective_to"
             class="submit-btn"
             @click="handleSubmit"
           >
@@ -131,8 +135,7 @@ import {
 import { Icon } from '@iconify/vue'
 import { useWeeklyOff } from '../composables/useWeeklyOff'
 import { useToast } from '@/shared/composables'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
-import type { WeeklyOffStatus, DayOfWeek } from '@/shared/models'
+import type { DayOfWeek } from '@/shared/models'
 
 const { showSuccess, showError } = useToast()
 const {
@@ -141,6 +144,12 @@ const {
 } = useWeeklyOff()
 
 const showForm = ref(false)
+const todayStr = new Date().toISOString().split('T')[0]
+
+// Default effective_to = 1 year from today
+const oneYearLater = new Date()
+oneYearLater.setFullYear(oneYearLater.getFullYear() + 1)
+const oneYearLaterStr = oneYearLater.toISOString().split('T')[0]
 
 const days: { value: DayOfWeek; label: string }[] = [
   { value: 'monday', label: 'Monday' },
@@ -154,44 +163,31 @@ const days: { value: DayOfWeek; label: string }[] = [
 
 const form = ref({
   day_of_week: 'sunday' as DayOfWeek,
-  date: '',
-  reason: '',
+  effective_from: todayStr,
+  effective_to: oneYearLaterStr,
 })
 
-function dayLabel(day: DayOfWeek): string {
+function dayLabel(day: DayOfWeek | string): string {
+  if (!day) return ''
   return day.charAt(0).toUpperCase() + day.slice(1)
 }
 
-function statusLabel(status: WeeklyOffStatus): string {
-  const map: Record<WeeklyOffStatus, string> = {
-    requested: 'Pending',
-    approved: 'Approved',
-    rejected: 'Rejected',
-  }
-  return map[status] ?? status
-}
-
-function statusVariant(status: WeeklyOffStatus): 'success' | 'warning' | 'error' | 'default' {
-  if (status === 'approved') return 'success'
-  if (status === 'requested') return 'warning'
-  if (status === 'rejected') return 'error'
-  return 'default'
-}
-
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
 }
 
 async function handleSubmit(): Promise<void> {
   const result = await submitRequest({
     day_of_week: form.value.day_of_week,
-    date: form.value.date || undefined,
-    reason: form.value.reason || undefined,
+    effective_from: form.value.effective_from,
+    effective_to: form.value.effective_to,
   })
   if (result) {
     showSuccess('Weekly off request submitted')
     showForm.value = false
-    form.value = { day_of_week: 'sunday', date: '', reason: '' }
+    form.value = { day_of_week: 'sunday', effective_from: todayStr, effective_to: oneYearLaterStr }
   } else {
     showError(error.value ?? 'Failed to submit')
   }
@@ -199,8 +195,8 @@ async function handleSubmit(): Promise<void> {
 
 async function handleCancel(id: string): Promise<void> {
   const ok = await cancelRequest(id)
-  if (ok) showSuccess('Weekly off request cancelled')
-  else showError(error.value ?? 'Failed to cancel')
+  if (ok) showSuccess('Weekly off deactivated')
+  else showError(error.value ?? 'Failed to deactivate')
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
@@ -254,11 +250,16 @@ onIonViewWillEnter(() => {
   color: var(--color-text-muted);
 }
 
-.woff-card__reason {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+.woff-card__active-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
+
+.woff-card__active-badge--on { background: #d1fae5; color: #065f46; }
+.woff-card__active-badge--off { background: var(--color-border); color: var(--color-text-muted); }
 
 .woff-card__actions { display: flex; justify-content: flex-end; }
 
@@ -326,8 +327,7 @@ onIonViewWillEnter(() => {
   font-family: inherit;
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--color-brand); }
-.form-textarea { resize: vertical; }
+.form-input:focus, .form-select:focus { border-color: var(--color-brand); }
 
 .submit-btn { --border-radius: var(--radius-xl); margin-top: 4px; }
 

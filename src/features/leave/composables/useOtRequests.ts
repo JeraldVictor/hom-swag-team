@@ -2,20 +2,14 @@
  * useOtRequests
  *
  * Manages OT (overtime) request state and API calls.
+ * Maps to server's OvertimeEntry model (date + reason, no hours field).
  */
 
 import { ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 import { getOtRequests, createOtRequest, cancelOtRequest } from '@/shared/api'
-import type { OtRequest, OtRequestBody } from '@/shared/models'
+import type { OtRequest, OtRequestCreateBody } from '@/shared/models'
 
 export function useOtRequests() {
-  const authStore = useAuthStore()
-  const userTypeStore = useUserTypeStore()
-  const { user } = storeToRefs(authStore)
-  const { userType } = storeToRefs(userTypeStore)
-
   const requests = ref<OtRequest[]>([])
   const isLoading = ref(false)
   const isSubmitting = ref(false)
@@ -34,18 +28,11 @@ export function useOtRequests() {
     }
   }
 
-  async function submitRequest(
-    body: Omit<OtRequestBody, 'requester_id' | 'requester_type'>,
-  ): Promise<OtRequest | null> {
-    if (!user.value || !userType.value) return null
+  async function submitRequest(body: OtRequestCreateBody): Promise<OtRequest | null> {
     isSubmitting.value = true
     error.value = null
     try {
-      const result = await createOtRequest({
-        requester_id: String(user.value.id),
-        requester_type: userType.value as 'beautician' | 'rider',
-        ...body,
-      })
+      const result = await createOtRequest(body)
       requests.value.unshift(result)
       return result
     } catch (err) {

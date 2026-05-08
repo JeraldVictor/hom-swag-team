@@ -1,5 +1,6 @@
 /**
  * OT (Overtime) Request model.
+ * Maps to the server's OvertimeEntry model.
  * Submitted by beauticians and riders when they work beyond their scheduled hours.
  */
 
@@ -10,9 +11,8 @@ export interface OtRequest {
   _id?: string
   /** ISO 8601 date string (YYYY-MM-DD) */
   date: string
-  /** Overtime hours claimed */
-  hours: number
   reason?: string
+  /** Status — server OvertimeEntry has no approval flow yet; treat all as 'requested' */
   status: OtRequestStatus
   requester_type?: 'beautician' | 'rider'
   /** ISO 8601 date-time string */
@@ -26,6 +26,7 @@ export interface OtRequestBody {
   requester_type: 'beautician' | 'rider'
   /** ISO 8601 date string (YYYY-MM-DD) */
   date: string
-  hours: number
   reason?: string
 }
+
+export type OtRequestCreateBody = Pick<OtRequestBody, 'date' | 'reason'>

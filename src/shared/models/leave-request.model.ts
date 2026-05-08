@@ -39,10 +39,9 @@ export interface LeaveRequest {
 /**
  * Request body for creating a new leave request.
  * Sent to POST /leave-requests
+ * Note: requester_id and requester_type are injected server-side from the JWT.
  */
 export interface LeaveRequestBody {
-  requester_id: string
-  requester_type: 'beautician' | 'rider'
   /** ISO 8601 date string (YYYY-MM-DD) */
   date: string
   leave_type: LeaveType

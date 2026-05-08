@@ -71,10 +71,10 @@ export type { CalendarEvent, CalendarData, CalendarEventType } from './calendar.
 export type { DashboardData } from './dashboard.model'
 
 // OT Request models
-export type { OtRequest, OtRequestBody, OtRequestStatus } from './ot-request.model'
+export type { OtRequest, OtRequestBody, OtRequestCreateBody, OtRequestStatus } from './ot-request.model'
 
 // Weekly Off models
-export type { WeeklyOffRequest, WeeklyOffRequestBody, WeeklyOffStatus, DayOfWeek } from './weekly-off.model'
+export type { WeeklyOffRequest, WeeklyOffRequestBody, WeeklyOffCreateBody, WeeklyOffStatus, DayOfWeek } from './weekly-off.model'
 
 // External Booking models
 export type { ExternalBooking, ExternalBookingBody, ExternalBookingStatus } from './external-booking.model'
