@@ -2,6 +2,11 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button class="header-icon-btn" aria-label="Open menu" @click="openMenu">
+            <Icon icon="lucide:menu" class="header-icon" />
+          </ion-button>
+        </ion-buttons>
         <ion-title>Calendar</ion-title>
         <ion-buttons slot="end">
           <ion-button @click="goToToday">Today</ion-button>
@@ -15,7 +20,7 @@
       </ion-refresher>
 
       <!-- ── Month navigation ──────────────────────────────────────────── -->
-      <div class="month-nav">
+      <div class="month-nav anim-fade-up">
         <button class="month-nav__btn" aria-label="Previous month" @click="prevMonth">
           <Icon icon="lucide:chevron-left" />
         </button>
@@ -31,29 +36,31 @@
       </div>
 
       <!-- ── Calendar grid ─────────────────────────────────────────────── -->
-      <div class="cal-grid">
-        <div
-          v-for="cell in calendarCells"
-          :key="cell.key"
-          class="cal-cell"
-          :class="{
-            'cal-cell--empty':    !cell.day,
-            'cal-cell--today':    cell.isToday,
-            'cal-cell--selected': cell.date === selectedDate,
-          }"
-          @click="cell.day && selectDate(cell.date)"
-        >
-          <span v-if="cell.day" class="cal-cell__day">{{ cell.day }}</span>
-          <div v-if="cell.dots.length > 0" class="cal-cell__dots" aria-hidden="true">
-            <span
-              v-for="dot in cell.dots"
-              :key="dot"
-              class="cal-cell__dot"
-              :class="`cal-cell__dot--${dot}`"
-            />
+      <Transition name="cal-slide" mode="out-in">
+        <div :key="`${currentYear}-${currentMonth}`" class="cal-grid">
+          <div
+            v-for="cell in calendarCells"
+            :key="cell.key"
+            class="cal-cell"
+            :class="{
+              'cal-cell--empty':    !cell.day,
+              'cal-cell--today':    cell.isToday,
+              'cal-cell--selected': cell.date === selectedDate,
+            }"
+            @click="cell.day && selectDate(cell.date)"
+          >
+            <span v-if="cell.day" class="cal-cell__day">{{ cell.day }}</span>
+            <div v-if="cell.dots.length > 0" class="cal-cell__dots" aria-hidden="true">
+              <span
+                v-for="dot in cell.dots"
+                :key="dot"
+                class="cal-cell__dot"
+                :class="`cal-cell__dot--${dot}`"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </Transition>
 
       <!-- ── Legend ────────────────────────────────────────────────────── -->
       <div class="cal-legend">
@@ -81,42 +88,45 @@
 
       <!-- ── Events for selected date ──────────────────────────────────── -->
       <template v-else>
-        <div class="events-section">
-          <p class="events-section__heading">
-            <Icon icon="lucide:calendar-days" aria-hidden="true" />
-            {{ formattedSelectedDate }}
-          </p>
+        <Transition name="events-fade" mode="out-in">
+          <div :key="selectedDate" class="events-section">
+            <p class="events-section__heading">
+              <Icon icon="lucide:calendar-days" aria-hidden="true" />
+              {{ formattedSelectedDate }}
+            </p>
 
-          <template v-if="selectedEvents.length > 0">
-            <div
-              v-for="ev in selectedEvents"
-              :key="`${ev.type}-${ev.id}`"
-              class="event-card"
-              :class="`event-card--${ev.type}`"
-            >
-              <div class="event-card__accent" />
-              <div class="event-card__body">
-                <div class="event-card__top">
-                  <span class="event-card__icon-wrap" :class="`event-card__icon-wrap--${ev.type}`">
-                    <Icon :icon="eventIcon(ev.type)" aria-hidden="true" />
-                  </span>
-                  <div class="event-card__info">
-                    <p class="event-card__title">{{ ev.title }}</p>
-                    <p v-if="ev.detail" class="event-card__detail">{{ ev.detail }}</p>
+            <template v-if="selectedEvents.length > 0">
+              <div
+                v-for="(ev, i) in selectedEvents"
+                :key="`${ev.type}-${ev.id}`"
+                class="event-card anim-fade-up"
+                :class="`event-card--${ev.type}`"
+                :style="{ animationDelay: `${i * 0.06}s` }"
+              >
+                <div class="event-card__accent" />
+                <div class="event-card__body">
+                  <div class="event-card__top">
+                    <span class="event-card__icon-wrap" :class="`event-card__icon-wrap--${ev.type}`">
+                      <Icon :icon="eventIcon(ev.type)" aria-hidden="true" />
+                    </span>
+                    <div class="event-card__info">
+                      <p class="event-card__title">{{ ev.title }}</p>
+                      <p v-if="ev.detail" class="event-card__detail">{{ ev.detail }}</p>
+                    </div>
+                    <span v-if="ev.status" class="event-card__badge" :class="`event-card__badge--${ev.status}`">
+                      {{ statusLabel(ev.status) }}
+                    </span>
                   </div>
-                  <span v-if="ev.status" class="event-card__badge" :class="`event-card__badge--${ev.status}`">
-                    {{ statusLabel(ev.status) }}
-                  </span>
                 </div>
               </div>
-            </div>
-          </template>
+            </template>
 
-          <div v-else class="events-empty">
-            <Icon icon="lucide:sun" class="events-empty__icon" aria-hidden="true" />
-            <p>No events on this day</p>
+            <div v-else class="events-empty">
+              <Icon icon="lucide:sun" class="events-empty__icon" aria-hidden="true" />
+              <p>No events on this day</p>
+            </div>
           </div>
-        </div>
+        </Transition>
 
         <!-- ── Upcoming events ────────────────────────────────────────── -->
         <div v-if="upcomingEvents.length > 0" class="events-section">
@@ -125,10 +135,11 @@
             Upcoming
           </p>
           <div
-            v-for="ev in upcomingEvents"
+            v-for="(ev, i) in upcomingEvents"
             :key="`upcoming-${ev.type}-${ev.id}-${ev.date}`"
-            class="event-card"
+            class="event-card anim-fade-up"
             :class="`event-card--${ev.type}`"
+            :style="{ animationDelay: `${i * 0.05}s` }"
           >
             <div class="event-card__accent" />
             <div class="event-card__body">
@@ -164,7 +175,7 @@ import {
 } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
 import { getCalendar } from '@/shared/api'
-import { useToast } from '@/shared/composables'
+import { useToast, useDrawer } from '@/shared/composables'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -215,6 +226,11 @@ const isLoading    = ref(false)
 const allEvents    = ref<CalEvent[]>([])
 
 const { showError } = useToast()
+const { openDrawer } = useDrawer()
+
+function openMenu(): void {
+  openDrawer()
+}
 
 // ── Computed: month label ──────────────────────────────────────────────────
 
@@ -398,6 +414,18 @@ onIonViewWillEnter(() => {
 </script>
 
 <style scoped>
+.header-icon-btn {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --box-shadow: none;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --color: var(--color-text);
+}
+
+.header-icon { font-size: 22px; }
+
 .month-nav {
   display: flex;
   align-items: center;
@@ -416,10 +444,13 @@ onIonViewWillEnter(() => {
   display: flex;
   align-items: center;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.month-nav__btn:active { background: var(--color-background); }
+.month-nav__btn:active {
+  background: var(--color-background);
+  transform: scale(0.88);
+}
 
 .month-nav__label {
   font-size: var(--font-size-lg);
@@ -456,12 +487,15 @@ onIonViewWillEnter(() => {
   cursor: pointer;
   min-height: 52px;
   gap: 3px;
-  transition: background 0.12s ease;
+  transition: background 0.12s ease, transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
   -webkit-tap-highlight-color: transparent;
 }
 
 .cal-cell--empty { cursor: default; pointer-events: none; }
-.cal-cell:not(.cal-cell--empty):active { background: var(--color-background); }
+.cal-cell:not(.cal-cell--empty):active {
+  background: var(--color-background);
+  transform: scale(0.88);
+}
 
 .cal-cell--today .cal-cell__day {
   background: var(--color-brand);
@@ -654,6 +688,53 @@ onIonViewWillEnter(() => {
 }
 
 .bottom-spacer { height: 24px; }
+
+/* ── Calendar slide transition (month change) ────────────────────────────── */
+
+.cal-slide-enter-active,
+.cal-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cal-slide-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.cal-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* ── Events fade transition (date selection) ─────────────────────────────── */
+
+.events-fade-enter-active,
+.events-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.events-fade-enter-from,
+.events-fade-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+/* ── Entrance animation for event cards ──────────────────────────────────── */
+
+.anim-fade-up {
+  animation: anim-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes anim-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Month nav entrance ──────────────────────────────────────────────────── */
+
+.anim-fade-up {
+  animation: anim-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
 
 @keyframes shimmer {
   0%   { background-position: 200% 0; }

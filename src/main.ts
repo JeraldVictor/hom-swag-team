@@ -35,6 +35,9 @@ import '@ionic/vue/css/display.css'
 /* Theme variables */
 import './core/theme/variables.css'
 
+/* Global animation system */
+import './core/theme/animations.css'
+
 const app = createApp(App).use(IonicVue).use(createPinia()).use(router)
 
 router.isReady().then(() => {

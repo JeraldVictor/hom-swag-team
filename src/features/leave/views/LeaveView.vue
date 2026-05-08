@@ -2,6 +2,11 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button class="header-icon-btn" aria-label="Open menu" @click="openMenu">
+            <Icon icon="lucide:menu" class="header-icon" />
+          </ion-button>
+        </ion-buttons>
         <ion-title>Leave</ion-title>
         <ion-buttons slot="end">
           <ion-button @click="router.push('/ot-requests')" aria-label="OT Requests">
@@ -20,7 +25,7 @@
       </ion-refresher>
 
       <!-- ── Balance card ──────────────────────────────────────────────── -->
-      <div class="balance-card">
+      <div class="balance-card anim-hero">
         <p class="balance-card__title">Leave Balance (This Year)</p>
         <div class="balance-grid">
           <div class="balance-item">
@@ -72,9 +77,7 @@
 
       <!-- ── Requests list ─────────────────────────────────────────────── -->
       <template v-else>
-        <div class="list">
-          <div
-            v-for="req in sortedRequests"
+        <div class="list anim-list">
             :key="req.id ?? req._id"
             class="req-card"
             :class="`req-card--${req.leave_type}`"
@@ -225,6 +228,7 @@ import { useLeave } from '../composables/useLeave'
 import { useToast } from '@/shared/composables'
 import { useAuthStore } from '@/shared/stores'
 import { useUserTypeStore } from '@/shared/stores'
+import { useDrawer } from '@/shared/composables'
 import { storeToRefs } from 'pinia'
 import type { LeaveType, LeaveDuration, LeaveRequest } from '@/shared/models'
 
@@ -234,6 +238,11 @@ const authStore = useAuthStore()
 const userTypeStore = useUserTypeStore()
 const { user: _user } = storeToRefs(authStore)
 const { userType: _userType } = storeToRefs(userTypeStore)
+const { openDrawer } = useDrawer()
+
+function openMenu(): void {
+  openDrawer()
+}
 
 const {
   requests, balance, isLoading, isSubmitting, isCancelling, error,
@@ -668,11 +677,18 @@ onIonViewWillEnter(() => {
   cursor: pointer;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.type-card:active { background: var(--color-brand-pale); }
-.type-card--selected { border-color: var(--color-brand); background: var(--color-brand-pale); }
+.type-card:active {
+  background: var(--color-brand-pale);
+  transform: scale(0.97);
+}
+.type-card--selected {
+  border-color: var(--color-brand);
+  background: var(--color-brand-pale);
+  transform: scale(1.01);
+}
 
 .type-card__icon-wrap {
   width: 44px;
@@ -734,13 +750,18 @@ onIonViewWillEnter(() => {
   cursor: pointer;
   text-align: center;
   -webkit-tap-highlight-color: transparent;
-  transition: all 0.15s ease;
+  transition: all 0.15s ease, transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.duration-tab:active {
+  transform: scale(0.95);
 }
 
 .duration-tab--active {
   border-color: var(--color-brand);
   background: var(--color-brand-pale);
   color: var(--color-brand);
+  transform: scale(1.02);
 }
 
 .submit-btn { --border-radius: var(--radius-xl); }
@@ -753,6 +774,16 @@ onIonViewWillEnter(() => {
 }
 
 .header-icon { font-size: 20px; }
+
+.header-icon-btn {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --box-shadow: none;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --color: var(--color-text);
+}
 
 @keyframes shimmer {
   0%   { background-position: 200% 0; }

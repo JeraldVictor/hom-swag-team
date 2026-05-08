@@ -2,6 +2,11 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button class="header-icon-btn" aria-label="Open menu" @click="openMenu">
+            <Icon icon="lucide:menu" class="header-icon" />
+          </ion-button>
+        </ion-buttons>
         <ion-title>Orders</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -47,7 +52,7 @@
           <Icon icon="lucide:alert-circle" aria-hidden="true" />
           {{ error }}
         </div>
-        <div class="orders-list">
+        <div class="orders-list anim-list">
           <OrderCard
             v-for="order in orders"
             :key="order.id ?? order._id"
@@ -64,16 +69,22 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButton, IonRefresher, IonRefresherContent, onIonViewWillEnter,
+  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
+  IonRefresher, IonRefresherContent, onIonViewWillEnter,
 } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
 import { useOrders } from '../composables/useOrders'
 import OrderCard from '../components/OrderCard.vue'
 import type { Order } from '@/shared/models'
+import { useDrawer } from '@/shared/composables'
 
 const router = useRouter()
 const { orders, isLoading, error, fetchOrders, refresh } = useOrders()
+const { openDrawer } = useDrawer()
+
+function openMenu(): void {
+  openDrawer()
+}
 
 onMounted(() => fetchOrders())
 onIonViewWillEnter(() => {
@@ -91,6 +102,18 @@ function goToDetail(id: string | number): void {
 </script>
 
 <style scoped>
+.header-icon-btn {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --box-shadow: none;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --color: var(--color-text);
+}
+
+.header-icon { font-size: 22px; }
+
 .orders-list {
   display: flex;
   flex-direction: column;
@@ -106,6 +129,12 @@ function goToDetail(id: string | number): void {
   gap: 8px;
   padding: 64px 32px;
   text-align: center;
+  animation: fade-in 0.3s ease both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .orders-empty__icon {

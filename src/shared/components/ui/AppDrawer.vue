@@ -370,12 +370,13 @@ async function handleLogout(): Promise<void> {
   font-weight: 500;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .drawer-nav__item:active {
   background: var(--color-brand-pale);
+  transform: scale(0.97);
 }
 
 .drawer-nav__item--active {

@@ -2,6 +2,11 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button class="header-icon-btn" aria-label="Open menu" @click="openMenu">
+            <Icon icon="lucide:menu" class="header-icon" />
+          </ion-button>
+        </ion-buttons>
         <ion-title>Trips</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -49,7 +54,7 @@
           <Icon icon="lucide:alert-circle" aria-hidden="true" />
           {{ error }}
         </div>
-        <div class="trips-list">
+        <div class="trips-list anim-list">
           <TripCard
             v-for="trip in trips"
             :key="trip.id"
@@ -70,8 +75,9 @@ import {
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonContent,
+  IonButtons,
   IonButton,
+  IonContent,
   IonRefresher,
   IonRefresherContent,
   onIonViewWillEnter,
@@ -79,9 +85,15 @@ import {
 import { Icon } from '@iconify/vue'
 import { useTrips } from '../composables/useTrips'
 import TripCard from '../components/TripCard.vue'
+import { useDrawer } from '@/shared/composables'
 
 const router = useRouter()
 const { trips, isLoading, error, fetchTrips, refresh } = useTrips()
+const { openDrawer } = useDrawer()
+
+function openMenu(): void {
+  openDrawer()
+}
 
 // onMounted fires once on first render.
 // onIonViewWillEnter fires every time the tab becomes active (back navigation, tab switch).
@@ -103,6 +115,18 @@ function goToDetail(id: string | number): void {
 </script>
 
 <style scoped>
+.header-icon-btn {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --box-shadow: none;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --color: var(--color-text);
+}
+
+.header-icon { font-size: 22px; }
+
 .trips-list {
   display: flex;
   flex-direction: column;
@@ -120,6 +144,12 @@ function goToDetail(id: string | number): void {
   gap: 8px;
   padding: 64px 32px;
   text-align: center;
+  animation: fade-in 0.3s ease both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .trips-empty__icon {

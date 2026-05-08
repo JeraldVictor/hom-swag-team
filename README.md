@@ -1235,7 +1235,7 @@ The `DashboardData` interface lives in `src/shared/models/dashboard.model.ts`.
 
 The main app shell (`TabsLayout`) wraps all authenticated routes and provides:
 
-- **Header** — app title ("HomSwag"), a menu button (top-left), and a notification bell with an unread badge (top-right). Tapping the bell navigates to `/notifications`.
+- **Header** — each individual view is responsible for rendering its own `<ion-header>`. `TabsLayout` itself does not render a shared header.
 - **Bottom tab bar** — tabs are shown conditionally based on user role (`isBeautician` / `isRider` from the `userTypeStore`). All roles see a Calendar tab (`/calendar`) in addition to the role-specific Orders/Trips tab.
 
 ## Routing
@@ -1493,3 +1493,120 @@ The `SosAlert` interface lives in `@/shared/models`.
 | `message?` | `string` | Optional free-text description provided by the worker. |
 | `created_at?` | `string` | ISO 8601 creation timestamp. |
 | `updated_at?` | `string` | ISO 8601 last-updated timestamp. |
+
+## Animation System
+
+The global animation system lives in `src/core/theme/animations.css` and is imported once in `main.ts`. It provides reusable keyframes, utility classes, Vue `<Transition>` named classes, and interactive feedback helpers — no per-component duplication needed.
+
+### Keyframes
+
+| Name | Effect |
+|------|--------|
+| `shimmer` | Horizontal gradient sweep (skeleton loaders) |
+| `spin` | Continuous 360° rotation |
+| `fade-in` | Opacity 0 → 1 |
+| `slide-up` | Fade in + translate up from 16 px |
+| `slide-down` | Fade in + translate down from −12 px |
+| `slide-in-right` | Fade in + translate in from 20 px right |
+| `slide-in-left` | Fade in + translate in from 20 px left |
+| `scale-in` | Fade in + scale from 0.92 |
+| `scale-in-bounce` | Scale in with a slight overshoot (1.04) |
+| `pop-in` | Aggressive scale-in with overshoot (1.08) |
+| `pulse-ring` | Expanding ring that fades out (FAB decoration) |
+| `progress-fill` | Width 0 → current value (progress bars) |
+| `count-up` | Fade in + translate up (stat counters) |
+| `hero-entrance` | Subtle scale + translate for hero sections |
+| `float` | Gentle vertical bob (−4 px, looping) |
+| `wiggle` | ±6° rotation wiggle |
+
+### Entrance utility classes
+
+Apply directly to elements for one-shot entrance animations:
+
+| Class | Animation |
+|-------|-----------|
+| `.anim-hero` | `hero-entrance` — for page hero sections |
+| `.anim-fade-up` | `slide-up` — generic fade + slide up |
+| `.anim-fade-in` | `fade-in` — plain opacity fade |
+| `.anim-scale-in` | `scale-in` — scale + fade |
+
+### Staggered list / grid
+
+Wrap a list container with `.anim-list` or `.anim-grid` to automatically stagger child entrance animations:
+
+```html
+<!-- Slide-up stagger (up to 8 children, then capped) -->
+<div class="anim-list">
+  <div v-for="item in items" :key="item.id">…</div>
+</div>
+
+<!-- Scale-in stagger (up to 6 children, then capped) -->
+<div class="anim-grid">
+  <div v-for="item in items" :key="item.id">…</div>
+</div>
+```
+
+### Delay utilities
+
+Override the animation delay on any animated element:
+
+| Class | Delay |
+|-------|-------|
+| `.anim-delay-0` | 0 s |
+| `.anim-delay-1` | 0.05 s |
+| `.anim-delay-2` | 0.10 s |
+| `.anim-delay-3` | 0.15 s |
+| `.anim-delay-4` | 0.20 s |
+| `.anim-delay-5` | 0.25 s |
+| `.anim-delay-6` | 0.30 s |
+| `.anim-delay-7` | 0.35 s |
+| `.anim-delay-8` | 0.40 s |
+
+### Interactive feedback
+
+| Class | Effect |
+|-------|--------|
+| `.press-feedback` | Scale 0.96 + opacity 0.85 on `:active` |
+| `.press-feedback--subtle` | Scale 0.98 + opacity 0.9 on `:active` |
+| `.press-feedback--strong` | Scale 0.92 + opacity 0.75 on `:active` |
+| `.card-interactive` | Scale 0.985 + reduced shadow on `:active` |
+
+### Skeleton shimmer
+
+Replace per-component shimmer definitions with the shared class:
+
+```html
+<div class="skeleton-shimmer" style="height: 16px; border-radius: 4px;" />
+```
+
+Uses `--color-border` and `--color-background` CSS variables so it automatically adapts to the theme.
+
+### FAB pulse ring
+
+Add `.fab-pulse` to a `position: relative` element to render an expanding ring behind it:
+
+```html
+<button class="fab-pulse" style="position: relative; border-radius: 50%;">…</button>
+```
+
+### Vue `<Transition>` named classes
+
+Use these names directly in `<Transition name="…">`:
+
+| Name | Effect |
+|------|--------|
+| `fade` | Opacity only (0.2 s) |
+| `fade-up` | Opacity + translate up 12 px (0.25 s) |
+| `fade-down` | Opacity + translate down −4 px (0.18 s) |
+| `slide-right` | Opacity + translate ±24 px (forward page transition) |
+| `scale-up` | Opacity + scale 0.94 (modal / bottom sheet) |
+
+```vue
+<Transition name="fade-up">
+  <div v-if="show">…</div>
+</Transition>
+```
+
+### Reduced-motion
+
+All animations and transitions are collapsed to near-instant durations when the user has `prefers-reduced-motion: reduce` set at the OS level. No extra work is needed in components.

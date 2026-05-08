@@ -1,12 +1,30 @@
 <template>
   <ion-page>
+    <ion-header :translucent="true">
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button class="header-icon-btn" aria-label="Open menu" @click="openMenu">
+            <Icon icon="lucide:menu" class="header-icon" />
+          </ion-button>
+        </ion-buttons>
+        <ion-title class="header-title">HomSwag</ion-title>
+        <ion-buttons slot="end">
+          <ion-button class="header-icon-btn" aria-label="Notifications" @click="router.push('/notifications')">
+            <div class="notif-wrap">
+              <Icon icon="lucide:bell" class="header-icon" />
+            </div>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
     <ion-content class="home-content" :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh">
         <ion-refresher-content />
       </ion-refresher>
 
       <!-- ── Hero ──────────────────────────────────────────────────────── -->
-      <div class="home-hero">
+      <div class="home-hero anim-hero">
         <div class="home-hero__left">
           <p class="home-hero__greeting">{{ greeting }},</p>
           <p class="home-hero__name">{{ userName }}</p>
@@ -37,7 +55,7 @@
       <template v-else>
 
         <!-- KPI strip -->
-        <div class="kpi-row">
+        <div class="kpi-row anim-grid">
           <div class="kpi-card kpi-card--brand">
             <Icon icon="lucide:zap" class="kpi-card__icon" aria-hidden="true" />
             <p class="kpi-card__value">{{ todayActive }}</p>
@@ -65,10 +83,10 @@
           <div class="section-header">
             <p class="section-title">Today at a Glance</p>
           </div>
-          <div class="glance-grid">
+          <div class="glance-grid anim-grid">
             <!-- Beautician: upcoming orders -->
             <template v-if="isBeautician">
-              <div class="glance-card glance-card--purple" @click="goTo('/orders')">
+          <div class="glance-card glance-card--purple press-feedback" @click="goTo('/orders')">
                 <div class="glance-card__top">
                   <Icon icon="lucide:clock" class="glance-card__icon" aria-hidden="true" />
                   <span class="glance-card__count">{{ upcomingOrders.length }}</span>
@@ -190,7 +208,7 @@
           </div>
 
           <!-- Grouped list -->
-          <div v-else class="today-list">
+          <div v-else class="today-list anim-list">
             <div
               v-for="item in todayList"
               :key="item.id"
@@ -351,7 +369,7 @@
         <!-- ── Quick actions ──────────────────────────────────────────── -->
         <div class="section">
           <p class="section-title">Quick Actions</p>
-          <div class="quick-actions">
+          <div class="quick-actions anim-grid">
             <button class="quick-action" @click="goTo(isBeautician ? '/orders' : '/trips')">
               <div class="quick-action__icon-wrap quick-action__icon-wrap--brand">
                 <Icon :icon="isBeautician ? 'lucide:briefcase' : 'lucide:car'" aria-hidden="true" />
@@ -400,16 +418,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { IonPage, IonContent, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
+import { useDrawer } from '@/shared/composables'
 import { getDashboard, getOrders, getTrips, getComplaints } from '@/shared/api'
 import type { DashboardData, Order, Trip } from '@/shared/models'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const userTypeStore = useUserTypeStore()
+const { openDrawer } = useDrawer()
+
+function openMenu(): void {
+  openDrawer()
+}
 const { user } = storeToRefs(authStore)
 const { isBeautician, isRider } = storeToRefs(userTypeStore)
 
@@ -754,9 +778,34 @@ onIonViewWillEnter(() => {
 </script>
 
 <style scoped>
+.header-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--color-brand);
+}
+
+.header-icon-btn {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --box-shadow: none;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --color: var(--color-text);
+}
+
+.header-icon { font-size: 22px; }
+
+.notif-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .home-content {
   --background: var(--color-background);
-  --padding-top: 56px;
 }
 
 /* ── Hero ────────────────────────────────────────────────────────────────── */
@@ -917,10 +966,14 @@ onIonViewWillEnter(() => {
   padding: 14px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.15s ease;
+  transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.14s ease, box-shadow 0.14s ease;
 }
 
-.glance-card:active { opacity: 0.85; }
+.glance-card:active {
+  transform: scale(0.94);
+  opacity: 0.88;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
 
 .glance-card--purple { background: linear-gradient(135deg, #7c3aed 0%, #9d5cf6 100%); }
 .glance-card--green  { background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); }
@@ -967,10 +1020,13 @@ onIonViewWillEnter(() => {
   overflow: hidden;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: box-shadow 0.15s ease;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
 }
 
-.next-card:active { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+.next-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+}
 
 .next-card__accent {
   width: 4px;
@@ -1290,10 +1346,13 @@ onIonViewWillEnter(() => {
   border-radius: var(--radius-xl);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.15s ease;
+  transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.14s ease;
 }
 
-.alert-card:active { opacity: 0.85; }
+.alert-card:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
 
 .alert-card--warning {
   background: var(--color-warning-bg);
@@ -1340,11 +1399,15 @@ onIonViewWillEnter(() => {
   font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--color-text-secondary);
-  transition: background 0.15s ease;
+  transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, box-shadow 0.14s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-.quick-action:active { background: var(--color-background); }
+.quick-action:active {
+  transform: scale(0.92);
+  background: var(--color-background);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
 
 .quick-action__icon-wrap {
   width: 40px;
@@ -1419,6 +1482,12 @@ onIonViewWillEnter(() => {
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow: hidden;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.today-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* Left accent stripe by status */

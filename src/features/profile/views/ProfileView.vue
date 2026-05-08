@@ -2,6 +2,11 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button class="header-icon-btn" aria-label="Open menu" @click="openMenu">
+            <Icon icon="lucide:menu" class="header-icon" />
+          </ion-button>
+        </ion-buttons>
         <ion-title>Profile</ion-title>
         <ion-buttons slot="end">
           <ion-button aria-label="Edit profile" @click="openEdit">
@@ -17,7 +22,7 @@
       </ion-refresher>
 
       <!-- ── Hero ──────────────────────────────────────────────────────── -->
-      <div class="profile-hero">
+      <div class="profile-hero anim-hero">
         <div class="profile-avatar" @click="openEdit">
           <img
             v-if="profile.photo?.url"
@@ -105,7 +110,7 @@
             Manage
           </button>
         </div>
-        <div class="docs-grid">
+        <div class="docs-grid anim-grid">
           <div
             v-for="doc in documentSlots"
             :key="doc.type"
@@ -337,7 +342,7 @@ import {
 import { Icon } from '@iconify/vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
-import { useToast } from '@/shared/composables'
+import { useToast, useDrawer } from '@/shared/composables'
 import { getProfile, updateProfile, uploadProfilePhoto } from '@/shared/api'
 import type { UserProfile, ProfileDocument } from '@/shared/models'
 
@@ -347,6 +352,11 @@ const userTypeStore = useUserTypeStore()
 const { user } = storeToRefs(authStore)
 const { isBeautician, isRider } = storeToRefs(userTypeStore)
 const { showSuccess, showError } = useToast()
+const { openDrawer } = useDrawer()
+
+function openMenu(): void {
+  openDrawer()
+}
 
 // ── Profile state ──────────────────────────────────────────────────────────
 
@@ -609,6 +619,16 @@ onIonViewWillEnter(() => {
 <style scoped>
 .header-icon { font-size: 20px; }
 
+.header-icon-btn {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-hover: transparent;
+  --box-shadow: none;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --color: var(--color-text);
+}
+
 /* ── Hero ────────────────────────────────────────────────────────────────── */
 
 .profile-hero {
@@ -618,6 +638,12 @@ onIonViewWillEnter(() => {
   gap: 6px;
   padding: 28px 16px 20px;
   background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-hero-dark) 100%);
+  animation: hero-entrance 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hero-entrance {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .profile-avatar {
@@ -634,6 +660,18 @@ onIonViewWillEnter(() => {
   margin-bottom: 4px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: scale-in-bounce 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+
+.profile-avatar:active {
+  transform: scale(0.93);
+}
+
+@keyframes scale-in-bounce {
+  0%   { opacity: 0; transform: scale(0.7); }
+  60%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 .profile-avatar__img {
@@ -690,6 +728,15 @@ onIonViewWillEnter(() => {
 /* ── Sections ────────────────────────────────────────────────────────────── */
 
 .section { padding: 16px 16px 0; }
+
+.section:nth-child(1) { animation: slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both; }
+.section:nth-child(2) { animation: slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both; }
+.section:nth-child(3) { animation: slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.26s both; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 .section-header {
   display: flex;
@@ -814,11 +861,14 @@ onIonViewWillEnter(() => {
   gap: 8px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .doc-card--uploaded { border-color: var(--color-success); }
-.doc-card:active { background: var(--color-background); }
+.doc-card:active {
+  background: var(--color-background);
+  transform: scale(0.95);
+}
 
 .doc-card__icon-wrap {
   width: 44px;
@@ -876,11 +926,14 @@ onIonViewWillEnter(() => {
   text-align: left;
   width: 100%;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, transform 0.12s ease;
 }
 
 .link-row:last-child { border-bottom: none; }
-.link-row:active { background: var(--color-background); }
+.link-row:active {
+  background: var(--color-background);
+  transform: scale(0.99);
+}
 
 .link-row__icon-wrap {
   width: 34px;
