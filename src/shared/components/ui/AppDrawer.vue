@@ -167,6 +167,7 @@ const primaryItems = computed<NavItem[]>(() => {
     items.push({ label: 'Orders', icon: 'lucide:briefcase', route: '/orders' })
     items.push({ label: 'Complaints', icon: 'lucide:message-circle-warning', route: '/complaints' })
     items.push({ label: 'External Bookings', icon: 'lucide:calendar-plus', route: '/external-bookings' })
+    items.push({ label: 'Leaderboard', icon: 'lucide:trophy', route: '/leaderboard' })
   }
 
   if (isRider.value) {
@@ -176,7 +177,6 @@ const primaryItems = computed<NavItem[]>(() => {
 
   items.push({ label: 'Calendar', icon: 'lucide:calendar-days', route: '/calendar' })
   items.push({ label: 'Notifications', icon: 'lucide:bell', route: '/notifications' })
-  items.push({ label: 'Leaderboard', icon: 'lucide:trophy', route: '/leaderboard' })
   items.push({ label: 'Reimbursements', icon: 'lucide:receipt-text', route: '/reimbursements' })
 
   return items

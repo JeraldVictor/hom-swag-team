@@ -10,15 +10,15 @@ export interface LeaderboardEntry {
   photo_url?: string
   /** Total completed orders (beautician) or trips (rider) */
   count: number
-  /** Total earnings for the period */
-  earnings?: number
+  /** Total amount generated for the period */
+  amount?: number
   /** Score used for ranking — may be composite */
   score?: number
   /** Whether this entry belongs to the currently logged-in user */
   is_self?: boolean
 }
 
-export type LeaderboardPeriod = 'weekly' | 'monthly' | 'all_time'
+export type LeaderboardPeriod = 'weekly' | 'monthly' | 'financial_year' | 'all_time'
 
 export interface LeaderboardData {
   period: LeaderboardPeriod

@@ -38,19 +38,31 @@
       <!-- Error state -->
       <template v-else-if="error">
         <div class="empty-state">
-          <Icon icon="lucide:wifi-off" class="empty-state__icon" aria-hidden="true" />
-          <p class="empty-state__title">Could not load leaderboard</p>
+          <div class="empty-state__icon-wrapper empty-state__icon-wrapper--error">
+            <Icon :icon="error.includes('permission') ? 'lucide:shield-alert' : 'lucide:wifi-off'" class="empty-state__icon empty-state__icon--error" aria-hidden="true" />
+          </div>
+          <p class="empty-state__title">{{ error.includes('permission') ? 'Access Restricted' : 'Could not load leaderboard' }}</p>
           <p class="empty-state__text">{{ error }}</p>
-          <ion-button fill="outline" size="small" @click="fetchLeaderboard">Retry</ion-button>
+          <ion-button v-if="!error.includes('permission')" fill="outline" size="small" @click="fetchLeaderboard" class="ion-margin-top">Retry</ion-button>
         </div>
       </template>
 
       <!-- Leaderboard content -->
       <template v-else-if="data">
+        <!-- Empty state / No data -->
+        <template v-if="!isLoading && data && top3.length === 0">
+          <div class="empty-state">
+            <div class="empty-state__icon-wrapper">
+              <Icon icon="lucide:trophy" class="empty-state__icon" aria-hidden="true" />
+            </div>
+            <p class="empty-state__title">No Data Available</p>
+            <p class="empty-state__text">Check back later when orders are completed and revenue is generated.</p>
+          </div>
+        </template>
         <!-- Restriction notice for riders -->
         <div v-if="data.is_restricted" class="restriction-banner">
           <Icon icon="lucide:lock" class="restriction-banner__icon" aria-hidden="true" />
-          <p class="restriction-banner__text">Showing top 3 riders only.</p>
+          <p class="restriction-banner__text">Showing top 3 Beauticians.</p>
         </div>
 
         <!-- Podium (top 3) -->
@@ -96,10 +108,50 @@
           </div>
         </div>
 
-        <!-- Full list (rank 4+) — only shown when not restricted -->
-        <div v-if="!data.is_restricted && rest.length > 0" class="list">
-          <div
-            v-for="entry in rest"
+        <!-- Compact Table view for Financial Year -->
+        <div v-if="selectedPeriod === 'financial_year' && rest.length > 0" class="year-table-container">
+          <table class="year-table">
+            <thead>
+              <tr>
+                <th class="year-table__header-rank">Rank</th>
+                <th class="year-table__header-name">Beautician Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                v-for="entry in rest" 
+                :key="entry.user_id" 
+                class="year-table__row" 
+                :class="{ 'year-table__row--self': entry.is_self }"
+              >
+                <td class="year-table__cell-rank">{{ entry.rank }}</td>
+                <td class="year-table__cell-name">
+                  <div class="name-wrapper">
+                    <div class="entry-avatar-small">
+                      <img v-if="entry.photo_url" :src="entry.photo_url" :alt="entry.name" class="entry-avatar__img" />
+                      <span v-else class="entry-avatar__initials-small">{{ initials(entry.name) }}</span>
+                    </div>
+                    <span class="name-text">{{ entry.name }}</span>
+                    <span v-if="entry.is_self" class="entry-you-tag">YOU</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Full list (rank 4+) — for other periods or if not restricted -->
+        <div v-else-if="!data.is_restricted && rest.length > 0" class="table-container">
+          <!-- Table Headers -->
+          <div class="table-header">
+            <span class="table-header__rank">Rank</span>
+            <span class="table-header__name">Beautician</span>
+            <span class="table-header__earnings">Revenue</span>
+          </div>
+          
+          <div class="list">
+            <div
+              v-for="entry in rest"
             :key="entry.user_id"
             class="entry-card"
             :class="{ 'entry-card--self': entry.is_self }"
@@ -111,11 +163,12 @@
             </div>
             <div class="entry-info">
               <p class="entry-name">{{ entry.name }} <span v-if="entry.is_self" class="entry-you">(You)</span></p>
-              <p class="entry-count">{{ entry.count }} {{ isBeautician ? 'orders' : 'trips' }}</p>
+              <p class="entry-count">{{ entry.count }} orders</p>
             </div>
-            <span v-if="entry.earnings" class="entry-earnings">
-              ₹{{ entry.earnings.toLocaleString('en-IN') }}
+            <span v-if="entry.amount" class="entry-earnings">
+              ₹{{ entry.amount.toLocaleString('en-IN') }}
             </span>
+          </div>
           </div>
         </div>
 
@@ -129,7 +182,7 @@
             </div>
             <div class="entry-info">
               <p class="entry-name">{{ data.self_entry.name }} <span class="entry-you">(You)</span></p>
-              <p class="entry-count">{{ data.self_entry.count }} {{ isBeautician ? 'orders' : 'trips' }}</p>
+              <p class="entry-count">{{ data.self_entry.count }} orders</p>
             </div>
           </div>
         </div>
@@ -162,7 +215,7 @@ const selectedPeriod = ref<LeaderboardPeriod>('monthly')
 const periods: { value: LeaderboardPeriod; label: string }[] = [
   { value: 'weekly', label: 'This Week' },
   { value: 'monthly', label: 'This Month' },
-  { value: 'all_time', label: 'All Time' },
+  { value: 'financial_year', label: 'Financial Year' },
 ]
 
 const top3 = computed(() => data.value?.entries.slice(0, 3) ?? [])
@@ -334,10 +387,37 @@ onIonViewWillEnter(() => {
 
 /* List */
 .list {
+  padding: 0 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 16px;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  padding: 0 24px 8px 32px;
+  margin-top: 16px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-header__rank {
+  width: 32px;
+  text-align: center;
+  margin-right: 12px;
+}
+
+.table-header__name {
+  flex: 1;
+}
+
+.table-header__earnings {
+  text-align: right;
+  padding-left: 8px;
 }
 
 .entry-card {
@@ -453,17 +533,176 @@ onIonViewWillEnter(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 80px 32px;
+  gap: 12px;
+  padding: 60px 32px;
   text-align: center;
+  margin: 24px 16px;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
 }
 
-.empty-state__icon { font-size: 52px; color: var(--color-text-muted); margin-bottom: 8px; }
-.empty-state__title { margin: 0; font-size: var(--font-size-lg); font-weight: 700; color: var(--color-text); }
-.empty-state__text { margin: 0; font-size: var(--font-size-base); color: var(--color-text-muted); }
+.empty-state::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-pale));
+}
+
+.empty-state__icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--color-brand-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,0.5);
+  animation: float 3s ease-in-out infinite;
+}
+
+.empty-state__icon-wrapper--error {
+  background: var(--color-error-bg);
+}
+
+.empty-state__icon { 
+  font-size: 36px; 
+  color: var(--color-brand); 
+}
+
+.empty-state__icon--error {
+  color: var(--color-error);
+}
+
+.empty-state__title { 
+  margin: 0; 
+  font-size: 20px; 
+  font-weight: 800; 
+  color: var(--color-text); 
+  letter-spacing: -0.3px;
+}
+
+.empty-state__text { 
+  margin: 0; 
+  font-size: 15px; 
+  color: var(--color-text-muted); 
+  line-height: 1.5;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
 
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* Year Table Styles */
+.year-table-container {
+  padding: 0 16px 24px;
+  margin-top: 16px;
+}
+
+.year-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+}
+
+.year-table th {
+  background: var(--color-background);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.year-table__header-rank {
+  width: 60px;
+  text-align: center !important;
+}
+
+.year-table__row {
+  transition: background-color 0.2s ease;
+}
+
+.year-table__row:not(:last-child) .year-table__cell-rank,
+.year-table__row:not(:last-child) .year-table__cell-name {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.year-table__row--self {
+  background-color: var(--color-brand-pale);
+}
+
+.year-table__cell-rank {
+  padding: 14px 16px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+}
+
+.year-table__cell-name {
+  padding: 14px 16px;
+}
+
+.name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.name-text {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.entry-avatar-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.entry-avatar__initials-small {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-brand);
+}
+
+.entry-you-tag {
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--color-brand);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
 }
 </style>

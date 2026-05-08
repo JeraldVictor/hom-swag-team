@@ -141,7 +141,7 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/reimbursements/views/ReimbursementsView.vue'),
       },
 
-      // Leaderboard (both roles — visibility controlled by BFF)
+      // Leaderboard (beautician only)
       {
         path: 'leaderboard',
         name: 'Leaderboard',

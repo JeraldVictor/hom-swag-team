@@ -78,6 +78,8 @@
       <!-- ── Requests list ─────────────────────────────────────────────── -->
       <template v-else>
         <div class="list anim-list">
+          <div
+            v-for="req in sortedRequests"
             :key="req.id ?? req._id"
             class="req-card"
             :class="`req-card--${req.leave_type}`"
