@@ -12,9 +12,14 @@ import type { PaginatedResponse } from '@/shared/models/pagination.model'
  * Fetch a paginated list of orders assigned to the authenticated beautician.
  * GET /orders
  */
-export async function getOrders(page?: number, limit?: number): Promise<PaginatedResponse<Order>> {
+export async function getOrders(
+  page?: number, 
+  limit?: number, 
+  status?: string, 
+  date?: string
+): Promise<PaginatedResponse<Order>> {
   const response = await apiClient.get<{ data: PaginatedResponse<Order> | Order[] }>('/orders', {
-    params: { page, limit },
+    params: { page, limit, status, date },
   })
   const raw = response.data.data
   // Handle both paginated envelope and plain array

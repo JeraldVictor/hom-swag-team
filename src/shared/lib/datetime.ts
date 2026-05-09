@@ -71,3 +71,14 @@ export function formatISTDate(isoString: string): string {
 
   return `${dayName}, ${day} ${month} ${year}`
 }
+
+/**
+ * Format an ISO 8601 string as a YYYY-MM-DD string in IST.
+ */
+export function formatISTDateShort(isoString: string): string {
+  const ist = toISTDate(isoString)
+  const yyyy = ist.getUTCFullYear()
+  const mm = String(ist.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(ist.getUTCDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}

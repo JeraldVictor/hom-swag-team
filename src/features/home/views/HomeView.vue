@@ -61,7 +61,7 @@
             <p class="kpi-card__value">{{ todayActive }}</p>
             <p class="kpi-card__label">Active Today</p>
           </div>
-          <div class="kpi-card kpi-card--success">
+          <div class="kpi-card kpi-card--success" @click="goTo('/orders', { date: 'today', status: 'Completed' })">
             <Icon icon="lucide:circle-check-big" class="kpi-card__icon" aria-hidden="true" />
             <p class="kpi-card__value">{{ todayDone }}</p>
             <p class="kpi-card__label">Completed</p>
@@ -86,7 +86,7 @@
           <div class="glance-grid anim-grid">
             <!-- Beautician: upcoming orders -->
             <template v-if="isBeautician">
-          <div class="glance-card glance-card--purple press-feedback" @click="goTo('/orders')">
+          <div class="glance-card glance-card--purple press-feedback" @click="goTo('/orders', { date: 'tomorrow' })">
                 <div class="glance-card__top">
                   <Icon icon="lucide:clock" class="glance-card__icon" aria-hidden="true" />
                   <span class="glance-card__count">{{ upcomingOrders.length }}</span>
@@ -94,7 +94,7 @@
                 <p class="glance-card__label">Upcoming Orders</p>
                 <p class="glance-card__sub">Tap to view</p>
               </div>
-              <div class="glance-card glance-card--green" @click="goTo('/orders')">
+              <div class="glance-card glance-card--green" @click="goTo('/orders', { status: 'Completed' })">
                 <div class="glance-card__top">
                   <Icon icon="lucide:check-circle-2" class="glance-card__icon" aria-hidden="true" />
                   <span class="glance-card__count">{{ completedOrders.length }}</span>
@@ -102,7 +102,7 @@
                 <p class="glance-card__label">Completed Orders</p>
                 <p class="glance-card__sub">Today</p>
               </div>
-              <div class="glance-card glance-card--blue" @click="goTo('/orders')">
+              <div class="glance-card glance-card--blue" @click="goTo('/orders', { status: 'Ongoing' })">
                 <div class="glance-card__top">
                   <Icon icon="lucide:loader" class="glance-card__icon" aria-hidden="true" />
                   <span class="glance-card__count">{{ ongoingOrders.length }}</span>
@@ -425,6 +425,7 @@ import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 import { useDrawer } from '@/shared/composables'
 import { getDashboard, getOrders, getTrips, getComplaints } from '@/shared/api'
 import type { DashboardData, Order, Trip } from '@/shared/models'
+import { formatISTDateShort } from '@/shared/lib/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -468,11 +469,11 @@ const todayLabel = computed(() =>
 
 // ── Computed: order buckets ────────────────────────────────────────────────
 
-const todayStr = new Date().toISOString().split('T')[0]
+const todayStr = formatISTDateShort(new Date().toISOString())
 
 function isToday(iso?: string): boolean {
   if (!iso) return false
-  return iso.startsWith(todayStr)
+  return formatISTDateShort(iso) === todayStr
 }
 
 const upcomingOrders = computed(() =>
@@ -673,19 +674,17 @@ function tripToItem(t: Trip): ListItem {
   }
 }
 
-// Today's full list: active first, then upcoming, then completed
+// Today's full list: active first, then upcoming
 const todayList = computed<ListItem[]>(() => {
   if (isBeautician.value) {
     return [
       ...ongoingOrders.value.map(orderToItem),
       ...upcomingOrders.value.map(orderToItem),
-      ...completedOrders.value.map(orderToItem),
     ]
   }
   return [
     ...activeTrips.value.map(tripToItem),
     ...upcomingTrips.value.map(tripToItem),
-    ...completedTrips.value.map(tripToItem),
   ]
 })
 
@@ -751,8 +750,8 @@ async function handleRefresh(event: CustomEvent): Promise<void> {
   ;(event.target as HTMLIonRefresherElement).complete()
 }
 
-function goTo(path: string): void {
-  router.push(path)
+function goTo(path: string, query?: Record<string, string>): void {
+  router.push({ path, query })
 }
 
 function goToDetail(item: ListItem): void {

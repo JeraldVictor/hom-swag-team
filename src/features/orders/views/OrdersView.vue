@@ -16,8 +16,39 @@
         <ion-refresher-content />
       </ion-refresher>
 
+      <!-- Filters -->
+      <div class="filters-container">
+        <div class="date-filters">
+          <ion-segment v-model="dateFilter" mode="md">
+            <ion-segment-button value="today">
+              <ion-label>Today</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="tomorrow">
+              <ion-label>Tomorrow</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="past">
+              <ion-label>Past</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div class="status-filters">
+          <div class="filter-chips">
+            <div 
+              v-for="status in statusOptions" 
+              :key="status"
+              class="filter-chip"
+              :class="{ 'filter-chip--active': statusFilter === status }"
+              @click="statusFilter = status"
+            >
+              {{ status }}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Loading skeleton -->
-      <template v-if="isLoading && orders.length === 0">
+      <template v-if="isLoading && filteredOrders.length === 0">
         <div class="orders-list">
           <div v-for="n in 4" :key="n" class="order-skeleton">
             <div class="order-skeleton__header" />
@@ -28,7 +59,7 @@
       </template>
 
       <!-- Error state -->
-      <template v-else-if="error && orders.length === 0">
+      <template v-else-if="error && filteredOrders.length === 0">
         <div class="orders-empty">
           <Icon icon="lucide:wifi-off" class="orders-empty__icon" aria-hidden="true" />
           <p class="orders-empty__title">Could not load orders</p>
@@ -38,11 +69,11 @@
       </template>
 
       <!-- Empty state -->
-      <template v-else-if="!isLoading && orders.length === 0">
+      <template v-else-if="!isLoading && filteredOrders.length === 0">
         <div class="orders-empty">
           <Icon icon="lucide:briefcase" class="orders-empty__icon" aria-hidden="true" />
-          <p class="orders-empty__title">No orders yet</p>
-          <p class="orders-empty__text">Your assigned orders will appear here.</p>
+          <p class="orders-empty__title">No orders found</p>
+          <p class="orders-empty__text">Adjust your filters or check back later.</p>
         </div>
       </template>
 
@@ -54,12 +85,20 @@
         </div>
         <div class="orders-list anim-list">
           <OrderCard
-            v-for="order in orders"
+            v-for="order in filteredOrders"
             :key="order.id ?? order._id"
             :order="(order as Order)"
             @click="goToDetail(order.id ?? order._id ?? '')"
           />
         </div>
+
+        <!-- Infinite Scroll -->
+        <ion-infinite-scroll 
+          @ionInfinite="loadData" 
+          :disabled="currentPage >= totalPages"
+        >
+          <ion-infinite-scroll-content loading-spinner="bubbles" loading-text="Loading more orders..." />
+        </ion-infinite-scroll>
       </template>
     </ion-content>
   </ion-page>
@@ -67,33 +106,64 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
   IonRefresher, IonRefresherContent, onIonViewWillEnter,
+  IonSegment, IonSegmentButton, IonLabel,
+  IonInfiniteScroll, IonInfiniteScrollContent,
 } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
-import { useOrders } from '../composables/useOrders'
+import { useOrders, type OrderDateFilter } from '../composables/useOrders'
 import OrderCard from '../components/OrderCard.vue'
-import type { Order } from '@/shared/models'
+import type { Order, OrderStatus } from '@/shared/models'
 import { useDrawer } from '@/shared/composables'
 
 const router = useRouter()
-const { orders, isLoading, error, fetchOrders, refresh } = useOrders()
+const route = useRoute()
+const { 
+  filteredOrders, 
+  isLoading, 
+  error, 
+  fetchOrders, 
+  refresh,
+  loadMore,
+  statusFilter,
+  dateFilter,
+  currentPage,
+  totalPages
+} = useOrders()
 const { openDrawer } = useDrawer()
+
+const statusOptions: (OrderStatus | 'All')[] = ['All', 'Confirmed', 'Started', 'Ongoing', 'Completed']
 
 function openMenu(): void {
   openDrawer()
 }
 
-onMounted(() => fetchOrders())
+onMounted(() => {
+  // Handle query params
+  if (route.query.date) {
+    dateFilter.value = route.query.date as OrderDateFilter
+  }
+  if (route.query.status) {
+    statusFilter.value = route.query.status as OrderStatus | 'All'
+  }
+  fetchOrders()
+})
+
 onIonViewWillEnter(() => {
-  if (orders.value.length > 0) fetchOrders()
+  if (filteredOrders.value.length > 0) refresh()
 })
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
   await refresh()
   ;(event.target as HTMLIonRefresherElement).complete()
+}
+
+async function loadData(event: CustomEvent): Promise<void> {
+  await loadMore()
+  ;(event.target as HTMLIonInfiniteScrollElement).complete()
 }
 
 function goToDetail(id: string | number): void {
@@ -113,6 +183,61 @@ function goToDetail(id: string | number): void {
 }
 
 .header-icon { font-size: 22px; }
+
+.filters-container {
+  background: var(--color-background);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.date-filters {
+  --background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+ion-segment {
+  --background: var(--color-surface);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+}
+
+.filter-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+}
+
+.filter-chips::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome/Safari */
+}
+
+.filter-chip {
+  padding: 6px 16px;
+  border-radius: 100px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.filter-chip--active {
+  background: var(--color-primary-light, #f0f4ff);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
 
 .orders-list {
   display: flex;
