@@ -102,13 +102,48 @@
               <div v-for="item in order.products" :key="item.product_id" class="line-item">
                 <div class="item-main">
                   <div class="item-info">
-                    <p class="item-title">{{ item.title }}</p>
-                    <p class="item-qty">Qty: {{ item.quantity }} × ₹{{ item.price }}</p>
+                    <p class="item-title">
+                      {{ item.title }}
+                      <AppBadge v-if="item.total === 0" variant="success" size="sm" class="ms-2">Free</AppBadge>
+                      <AppBadge v-if="item.type === 'package'" variant="info" size="sm" class="ms-2">Package</AppBadge>
+                    </p>
+                    <p class="item-qty">
+                      Qty: {{ item.quantity }}
+                      <span v-if="item.price > 0"> × ₹{{ item.price }}</span>
+                      <span v-if="item.duration" class="ms-2">
+                        <Icon icon="lucide:clock" class="inline-icon" /> {{ item.duration }} min
+                      </span>
+                    </p>
                   </div>
-                  <p class="item-total">₹{{ item.total }}</p>
+                  <p class="item-total" v-if="item.total > 0">₹{{ item.total }}</p>
+                  <p class="item-total free-text" v-else>FREE</p>
                 </div>
                 
-                <div v-if="canUpgrade" class="item-actions">
+                <!-- Package Duration Top Level -->
+                <div v-if="item.type === 'package' && item.duration" class="package-duration">
+                  <Icon icon="lucide:timer" />
+                  <span>Total Duration: {{ item.duration }} mins</span>
+                </div>
+
+                <!-- Selected Options -->
+                <div v-if="item.selected_options?.length" class="item-sub-list">
+                  <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="sub-item">
+                    <Icon icon="lucide:plus" class="sub-item-icon" />
+                    <span>{{ opt.title }}</span>
+                    <span v-if="opt.price" class="ms-auto">+₹{{ opt.price }}</span>
+                  </div>
+                </div>
+
+                <!-- Free Items -->
+                <div v-if="item.selected_free_items?.length" class="item-sub-list free-items">
+                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="sub-item">
+                    <Icon icon="lucide:gift" class="sub-item-icon" />
+                    <span>{{ free.title }}</span>
+                    <AppBadge variant="success" size="sm" class="ms-auto">Included</AppBadge>
+                  </div>
+                </div>
+
+                <div v-if="canUpgrade && item.type !== 'package'" class="item-actions">
                   <ion-button fill="clear" size="small" @click="openUpgradeModal(item as any)">
                     <Icon icon="lucide:trending-up" slot="start" />
                     Upgrade
@@ -143,11 +178,11 @@
               <Icon icon="lucide:credit-card" class="header-icon" />
               <h3>Payment</h3>
               <AppBadge :variant="(paymentStatusVariant as any)" class="ms-auto">
-                {{ order.payment_status || 'Pending' }}
+                {{ order.payment_status?.toUpperCase() || 'Pending' }}
               </AppBadge>
             </div>
             <div class="payment-method">
-              <p>Method: <strong>{{ order.payment_method || 'Online' }}</strong></p>
+              <p>Method: <strong>{{ order.payment_method?.toUpperCase() || 'Online' }}</strong></p>
             </div>
           </div>
         </div>
@@ -535,6 +570,50 @@ onMounted(() => fetchOrder(orderId))
 .header-icon { font-size: 18px; color: var(--color-brand); }
 
 .address-text { margin: 0; font-size: 15px; line-height: 1.6; color: var(--color-text-secondary); font-weight: 500; }
+
+.inline-icon { font-size: 14px; vertical-align: middle; margin-right: 2px; }
+.ms-2 { margin-left: 8px; }
+
+.package-duration {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.item-sub-list {
+  margin-top: 10px;
+  padding-left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.sub-item-icon { font-size: 12px; color: var(--color-brand); }
+
+.free-items {
+  margin-top: 8px;
+  border-top: 1px solid var(--color-background);
+  padding-top: 8px;
+}
+
+.free-text { color: var(--color-success); font-weight: 800; }
+
 .order-notes { 
   margin: 16px 0 0; 
   padding: 12px; 

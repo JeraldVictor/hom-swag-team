@@ -2,7 +2,7 @@
 import { IonBadge } from '@ionic/vue'
 import { computed } from 'vue'
 
-type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'brand' | 'neutral' | 'default'
+type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'brand' | 'neutral' | 'default' | 'danger'
 
 const props = withDefaults(
   defineProps<{
@@ -18,7 +18,6 @@ const props = withDefaults(
 
 /**
  * Map variant → CSS custom properties defined in variables.css
- * (status color groups from Design_Token)
  */
 const badgeStyle = computed(() => {
   const variantStyles: Record<BadgeVariant, { background: string; color: string }> = {
@@ -31,6 +30,10 @@ const badgeStyle = computed(() => {
       color: 'var(--color-warning-text, #d97706)',
     },
     error: {
+      background: 'var(--color-error-bg, #fef2f2)',
+      color: 'var(--color-error-text, #dc2626)',
+    },
+    danger: {
       background: 'var(--color-error-bg, #fef2f2)',
       color: 'var(--color-error-text, #dc2626)',
     },
@@ -75,7 +78,7 @@ const combinedStyle = computed(() => ({
     :class="`app-badge--${variant}`"
     :style="combinedStyle"
   >
-    <slot>{{ text }}</slot>
+    <slot>{{ text?.toUpperCase() }}</slot>
   </ion-badge>
 </template>
 

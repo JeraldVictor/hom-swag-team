@@ -84,14 +84,17 @@ export interface OrderProduct {
   quantity: number
   price: number
   total: number
+  duration?: number
+  type?: 'service' | 'package'
   selected_options?: {
     order_product_option_id?: string
     product_option_id: string
     title: string
+    price?: number
   }[]
   selected_free_items?: {
     order_free_item_id?: string
-    free_product_id: string
+    product_id: string
     title: string
   }[]
 }
