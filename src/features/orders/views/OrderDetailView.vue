@@ -1,182 +1,247 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
+    <ion-header :translucent="true" class="ion-no-border">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/orders" />
+          <ion-back-button default-href="/orders" text="" />
         </ion-buttons>
-        <ion-title>Order Details</ion-title>
+        <ion-title>Order #{{ order?.order_number || '...' }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button v-if="order && !isCompleted" @click="handleRefresh">
+            <Icon icon="lucide:refresh-cw" :class="{ 'spin': isLoading }" />
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="order-detail-content">
-      <!-- Loading -->
-      <div v-if="isLoading" class="detail-loading">
-        <div class="detail-loading__spinner" />
-        <p>Loading order…</p>
+    <ion-content :fullscreen="true">
+      <div v-if="isLoading && !order" class="loading-state">
+        <ion-spinner name="crescent" />
+        <p>Loading order details...</p>
       </div>
 
-      <!-- Error -->
-      <div v-else-if="error && !order" class="detail-error">
-        <Icon icon="lucide:alert-circle" class="detail-error__icon" aria-hidden="true" />
+      <div v-else-if="error && !order" class="error-state">
+        <Icon icon="lucide:alert-circle" class="error-icon" />
+        <h3>Something went wrong</h3>
         <p>{{ error }}</p>
-        <ion-button fill="outline" size="small" @click="fetchOrder(orderId)">Retry</ion-button>
+        <ion-button fill="outline" @click="handleRefresh">Retry</ion-button>
       </div>
 
-      <!-- Order content -->
       <template v-else-if="order">
-        <!-- Status timeline -->
-        <div class="status-timeline">
-          <div
-            v-for="(step, i) in statusSteps"
-            :key="step.key"
-            class="status-step"
-            :class="{
-              'status-step--done': isStepDone(step.key),
-              'status-step--active': isStepActive(step.key),
-            }"
-          >
-            <div class="status-step__indicator">
-              <div class="status-step__dot">
-                <Icon v-if="isStepDone(step.key)" icon="lucide:check" class="status-step__check" />
+        <!-- Hero Section: Customer & Quick Info -->
+        <div class="order-hero">
+          <div class="customer-profile">
+            <div class="customer-avatar">
+              {{ customerInitials }}
+            </div>
+            <div class="customer-info">
+              <h2 class="customer-name">{{ order.customer?.full_name || 'Customer' }}</h2>
+              <p class="order-id">Order #{{ order.order_number }}</p>
+            </div>
+            <AppBadge :variant="(statusVariant as any)" class="status-badge">
+              {{ order.status }}
+            </AppBadge>
+          </div>
+
+          <div class="order-meta-grid">
+            <div class="meta-item">
+              <Icon icon="lucide:calendar" class="meta-icon" />
+              <div>
+                <p class="meta-label">Date</p>
+                <p class="meta-value">{{ formattedDate }}</p>
               </div>
-              <div v-if="i < statusSteps.length - 1" class="status-step__line" />
             </div>
-            <span class="status-step__label">{{ step.label }}</span>
-          </div>
-        </div>
-
-        <!-- Info card -->
-        <div class="info-card">
-          <!-- Order number + date -->
-          <div class="info-row info-row--header">
-            <div>
-              <p class="info-label">Order</p>
-              <p class="info-value">#{{ order.order_number ?? order.id }}</p>
-            </div>
-            <div class="text-right">
-              <p class="info-label">Date</p>
-              <p class="info-value">{{ formattedDate }}</p>
+            <div class="meta-item">
+              <Icon icon="lucide:clock" class="meta-icon" />
+              <div>
+                <p class="meta-label">Timing</p>
+                <p class="meta-value">{{ order.booking_info?.timing || 'Not set' }}</p>
+              </div>
             </div>
           </div>
 
-          <div class="info-divider" />
-
-          <!-- Customer -->
-          <div v-if="customerName" class="info-row">
-            <Icon icon="lucide:user" class="info-icon" aria-hidden="true" />
-            <div>
-              <p class="info-label">Customer</p>
-              <p class="info-value">{{ customerName }}</p>
-              <p v-if="customerPhone" class="info-sub">
-                <a :href="`tel:${customerPhone}`" class="info-link">{{ customerPhone }}</a>
-              </p>
-            </div>
-          </div>
-
-          <!-- Address -->
-          <div v-if="addressText" class="info-row">
-            <Icon icon="lucide:map-pin" class="info-icon" aria-hidden="true" />
-            <div>
-              <p class="info-label">Service Address</p>
-              <p class="info-value">{{ addressText }}</p>
-            </div>
-          </div>
-
-          <!-- Timing -->
-          <div v-if="order.booking_info?.timing" class="info-row">
-            <Icon icon="lucide:clock" class="info-icon" aria-hidden="true" />
-            <div>
-              <p class="info-label">Timing</p>
-              <p class="info-value">{{ order.booking_info.timing }}</p>
-            </div>
-          </div>
-
-          <!-- Notes -->
-          <div v-if="order.notes" class="info-row">
-            <Icon icon="lucide:file-text" class="info-icon" aria-hidden="true" />
-            <div>
-              <p class="info-label">Notes</p>
-              <p class="info-value">{{ order.notes }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- OTP section (shown when status is Confirmed, before starting) -->
-        <div v-if="showOtpSection" class="otp-card">
-          <p class="otp-card__title">
-            <Icon icon="lucide:shield-check" aria-hidden="true" />
-            Service OTP
-          </p>
-          <p class="otp-card__hint">Share this OTP with the customer to verify your arrival.</p>
-
-          <div v-if="order.service_otp" class="otp-display">
-            <span class="otp-display__code">{{ order.service_otp }}</span>
-          </div>
-
-          <ion-button
-            v-if="!order.service_otp"
-            expand="block"
-            fill="outline"
-            :disabled="isGeneratingOtp"
-            @click="handleGenerateOtp"
-          >
-            <ion-spinner v-if="isGeneratingOtp" name="crescent" slot="start" />
-            Generate OTP
-          </ion-button>
-
-          <!-- OTP verify input -->
-          <div v-if="order.service_otp" class="otp-verify">
-            <p class="otp-verify__label">Customer confirms OTP:</p>
-            <div class="otp-verify__row">
-              <input
-                v-model="otpInput"
-                type="text"
-                inputmode="numeric"
-                maxlength="6"
-                placeholder="Enter 6-digit OTP"
-                class="otp-verify__input"
-              />
-              <ion-button
-                :disabled="otpInput.length !== 6 || isVerifyingOtp"
-                @click="handleVerifyOtp"
-              >
-                <ion-spinner v-if="isVerifyingOtp" name="crescent" />
-                <span v-else>Verify</span>
+          <div class="hero-actions" v-if="!isCompleted">
+            <ion-button expand="block" mode="ios" class="nav-btn" @click="navigateToCustomer">
+              <Icon icon="lucide:navigation" slot="start" />
+              Navigate to Location
+            </ion-button>
+            <div class="dual-btns">
+              <ion-button fill="outline" mode="ios" class="call-btn" :href="'tel:' + order.customer?.phone">
+                <Icon icon="lucide:phone" slot="start" />
+                Call
+              </ion-button>
+              <ion-button fill="outline" mode="ios" class="msg-btn" :href="'https://wa.me/' + order.customer?.phone">
+                <Icon icon="lucide:message-square" slot="start" />
+                WhatsApp
               </ion-button>
             </div>
           </div>
         </div>
 
-        <!-- Cancel after arrival -->
-        <div v-if="canCancelAfterArrival" class="cancel-section">
-          <ion-button
-            expand="block"
-            fill="outline"
-            color="danger"
-            :disabled="isUpdating"
-            @click="showCancelModal = true"
-          >
-            Cancel After Arrival
-          </ion-button>
+        <div class="order-content anim-fade-in">
+          <!-- Address Section -->
+          <div class="content-card">
+            <div class="card-header">
+              <Icon icon="lucide:map-pin" class="header-icon" />
+              <h3>Service Address</h3>
+            </div>
+            <p class="address-text">{{ fullAddress }}</p>
+            <p v-if="order.notes" class="order-notes">
+              <Icon icon="lucide:info" />
+              <span>Notes: {{ order.notes }}</span>
+            </p>
+          </div>
+
+          <!-- Items Section -->
+          <div class="content-card">
+            <div class="card-header">
+              <Icon icon="lucide:shopping-bag" class="header-icon" />
+              <h3>Services & Items</h3>
+            </div>
+            <div class="line-items">
+              <div v-for="item in order.products" :key="item.product_id" class="line-item">
+                <div class="item-main">
+                  <div class="item-info">
+                    <p class="item-title">{{ item.title }}</p>
+                    <p class="item-qty">Qty: {{ item.quantity }} × ₹{{ item.price }}</p>
+                  </div>
+                  <p class="item-total">₹{{ item.total }}</p>
+                </div>
+                
+                <div v-if="canUpgrade" class="item-actions">
+                  <ion-button fill="clear" size="small" @click="openUpgradeModal(item as any)">
+                    <Icon icon="lucide:trending-up" slot="start" />
+                    Upgrade
+                  </ion-button>
+                </div>
+              </div>
+            </div>
+
+            <div class="order-summary-footer">
+              <div class="summary-row">
+                <span>Subtotal</span>
+                <span>₹{{ order.subtotal }}</span>
+              </div>
+              <div v-if="order.discount_total" class="summary-row discount">
+                <span>Discount</span>
+                <span>-₹{{ order.discount_total }}</span>
+              </div>
+              <div v-if="order.delivery_fee" class="summary-row">
+                <span>Conveyance</span>
+                <span>₹{{ order.delivery_fee }}</span>
+              </div>
+              <div class="summary-row total">
+                <span>Total Amount</span>
+                <span>₹{{ order.total }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Info -->
+          <div class="content-card payment-card">
+            <div class="card-header">
+              <Icon icon="lucide:credit-card" class="header-icon" />
+              <h3>Payment</h3>
+              <AppBadge :variant="(paymentStatusVariant as any)" class="ms-auto">
+                {{ order.payment_status || 'Pending' }}
+              </AppBadge>
+            </div>
+            <div class="payment-method">
+              <p>Method: <strong>{{ order.payment_method || 'Online' }}</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Footer -->
+        <div class="action-footer" v-if="!isCompleted">
+          <div v-if="error" class="error-banner">{{ error }}</div>
+          
+          <!-- OTP Verification Step -->
+          <div v-if="showOtpInput" class="otp-verification anim-slide-up">
+            <h3>Verify Service OTP</h3>
+            <p>Enter the 6-digit code provided by the customer.</p>
+            <div class="otp-input-row">
+              <input 
+                v-model="otpValue" 
+                type="number" 
+                pattern="[0-9]*" 
+                inputmode="numeric" 
+                placeholder="000000"
+                maxlength="6"
+                class="otp-field"
+                @keyup.enter="handleVerifyOtp"
+              />
+            </div>
+            <div class="otp-actions">
+              <ion-button fill="clear" color="medium" @click="showOtpInput = false">Cancel</ion-button>
+              <ion-button :disabled="isVerifyingOtp || otpValue.length < 6" @click="handleVerifyOtp">
+                <ion-spinner v-if="isVerifyingOtp" name="crescent" slot="start" />
+                Verify & Start
+              </ion-button>
+            </div>
+          </div>
+
+          <!-- Main Actions -->
+          <div v-else class="main-actions">
+            <ion-button 
+              v-if="nextActionLabel"
+              expand="block" 
+              class="primary-action-btn"
+              :disabled="isUpdating"
+              @click="handleMainAction"
+            >
+              <ion-spinner v-if="isUpdating" name="crescent" slot="start" />
+              {{ nextActionLabel }}
+            </ion-button>
+            
+            <ion-button 
+              v-if="canCancelAfterArrival"
+              expand="block" 
+              fill="clear" 
+              color="danger" 
+              class="cancel-btn"
+              @click="showCancelModal = true"
+            >
+              Cancel Order
+            </ion-button>
+          </div>
         </div>
       </template>
     </ion-content>
 
-    <!-- Action footer -->
-    <div v-if="order && nextActionLabel && !isCompleted" class="action-footer">
-      <ion-button
-        expand="block"
-        :disabled="isUpdating"
-        class="action-btn"
-        @click="handleAdvance"
-      >
-        <ion-spinner v-if="isUpdating" name="crescent" slot="start" />
-        {{ nextActionLabel }}
-      </ion-button>
-    </div>
+    <!-- Upgrade Modal -->
+    <ion-modal :is-open="showUpgradeModal" @didDismiss="showUpgradeModal = false" class="upgrade-modal">
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <ion-title>Upgrade Service</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="showUpgradeModal = false">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <div v-if="isFetchingUpgrades" class="modal-loading">
+          <ion-spinner name="crescent" />
+          <p>Finding better options...</p>
+        </div>
+        <div v-else-if="upgradableProducts.length === 0" class="modal-empty">
+          <Icon icon="lucide:info" />
+          <p>No upgrades available for this item.</p>
+        </div>
+        <div v-else class="upgrade-list">
+          <div v-for="p in upgradableProducts" :key="p._id || p.id" class="upgrade-option" @click="handleUpgrade(p)">
+            <div class="upgrade-option__info">
+              <h4>{{ p.title || p.name }}</h4>
+              <p>{{ p.short_description || p.description }}</p>
+              <span class="price-diff">Upgrade for +₹{{ (p.base_price || p.price) - (selectedItem?.price || 0) }}</span>
+            </div>
+            <Icon icon="lucide:chevron-right" />
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
 
-    <!-- Cancel modal -->
+    <!-- Cancel Modal -->
     <ion-modal :is-open="showCancelModal" @didDismiss="showCancelModal = false">
       <ion-header>
         <ion-toolbar>
@@ -201,7 +266,7 @@
             expand="block"
             color="danger"
             :disabled="!cancelReason.trim() || isUpdating"
-            @click="handleCancelAfterArrival"
+            @click="handleCancel"
           >
             <ion-spinner v-if="isUpdating" name="crescent" slot="start" />
             Confirm Cancellation
@@ -214,74 +279,84 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonContent, IonButton, IonSpinner, IonModal,
+  IonContent, IonButton, IonSpinner, IonModal, toastController,
 } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
 import { useOrderDetail } from '../composables/useOrderDetail'
-import { useToast } from '@/shared/composables'
+import { AppBadge } from '@/shared/components/ui'
+import type { OrderProduct } from '@/shared/models'
+import { formatISTDate } from '@/shared/lib/datetime'
 
 const route = useRoute()
-const orderId = computed(() => route.params.id as string)
-const { showSuccess, showError } = useToast()
+const router = useRouter()
+const orderId = route.params.id as string
 
 const {
-  order, isLoading, isUpdating, isGeneratingOtp, isVerifyingOtp, error,
-  nextActionLabel, isCompleted,
-  fetchOrder, advanceStatus, cancelAfterArrival, generateOtp, verifyOtp,
+  order,
+  isLoading,
+  isUpdating,
+  isVerifyingOtp,
+  error,
+  nextActionLabel,
+  isCompleted,
+  canUpgrade,
+  fetchOrder,
+  advanceStatus,
+  cancelAfterArrival,
+  verifyOtp,
+  upgradeProduct,
+  getUpgradableProducts,
+  navigateToCustomer,
 } = useOrderDetail()
 
-const otpInput = ref('')
+// ── UI State ───────────────────────────────────────────────────────────────
+
+const showOtpInput = ref(false)
+const otpValue = ref('')
 const showCancelModal = ref(false)
 const cancelReason = ref('')
+const showUpgradeModal = ref(false)
+const isFetchingUpgrades = ref(false)
+const selectedItem = ref<OrderProduct | null>(null)
+const upgradableProducts = ref<any[]>([])
 
-// Status steps for the timeline
-const statusSteps = [
-  { key: 'Confirmed', label: 'Confirmed' },
-  { key: 'started',   label: 'Started' },
-  { key: 'ongoing',   label: 'Ongoing' },
-  { key: 'completed', label: 'Completed' },
-]
+// ── Computed ───────────────────────────────────────────────────────────────
 
-const statusOrder = ['Confirmed', 'started', 'Started', 'ongoing', 'Ongoing', 'completed', 'Completed']
-
-function isStepDone(key: string): boolean {
-  if (!order.value) return false
-  const currentIdx = statusOrder.findIndex(
-    (s) => s.toLowerCase() === order.value!.status.toLowerCase()
-  )
-  const stepIdx = statusOrder.findIndex((s) => s.toLowerCase() === key.toLowerCase())
-  return stepIdx < currentIdx
-}
-
-function isStepActive(key: string): boolean {
-  if (!order.value) return false
-  return order.value.status.toLowerCase() === key.toLowerCase()
-}
-
-const customerName = computed(() =>
-  order.value?.customer?.full_name ?? order.value?.customer?.name ?? null
-)
-
-const customerPhone = computed(() => order.value?.customer?.phone ?? null)
-
-const addressText = computed(() => {
-  const a = order.value?.delivery_address ?? order.value?.address
-  if (!a) return null
-  return [a.street ?? a.line1, a.landmark, a.city, a.pincode].filter(Boolean).join(', ')
+const customerInitials = computed(() => {
+  const name = order.value?.customer?.full_name || order.value?.customer?.name || '?'
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 })
 
 const formattedDate = computed(() => {
   const d = order.value?.booking_info?.date ?? order.value?.service_date ?? order.value?.created_at
-  if (!d) return ''
-  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  if (!d) return '...'
+  return formatISTDate(d)
 })
 
-const showOtpSection = computed(() => {
+const fullAddress = computed(() => {
+  if (!order.value) return '...'
+  const addr = order.value.delivery_address || order.value.address
+  if (!addr) return 'No address provided'
+  return [addr.street || addr.line1, addr.landmark, addr.city, addr.pincode]
+    .filter(Boolean)
+    .join(', ')
+})
+
+const statusVariant = computed(() => {
   const s = order.value?.status?.toLowerCase()
-  return s === 'confirmed'
+  if (s === 'completed') return 'success'
+  if (s === 'ongoing' || s === 'started') return 'brand'
+  if (s === 'confirmed') return 'info'
+  if (s === 'arrived_and_cancelled') return 'danger'
+  return 'neutral'
+})
+
+const paymentStatusVariant = computed(() => {
+  const s = order.value?.payment_status?.toLowerCase()
+  return s === 'paid' ? 'success' : 'warning'
 })
 
 const canCancelAfterArrival = computed(() => {
@@ -289,324 +364,303 @@ const canCancelAfterArrival = computed(() => {
   return s === 'confirmed' || s === 'started'
 })
 
-async function handleAdvance(): Promise<void> {
-  await advanceStatus()
-  if (!error.value) showSuccess('Order status updated')
-  else showError(error.value)
+// ── Methods ────────────────────────────────────────────────────────────────
+
+async function handleRefresh() {
+  await fetchOrder(orderId)
 }
 
-async function handleGenerateOtp(): Promise<void> {
-  const otp = await generateOtp()
-  if (!otp) showError(error.value ?? 'Failed to generate OTP')
-}
-
-async function handleVerifyOtp(): Promise<void> {
-  const ok = await verifyOtp(otpInput.value)
-  if (ok) {
-    showSuccess('OTP verified — service started')
-    otpInput.value = ''
+async function handleMainAction() {
+  const s = order.value?.status?.toLowerCase()
+  
+  if ((s === 'confirmed' || s === 'started') && !showOtpInput.value) {
+    showOtpInput.value = true
   } else {
-    showError(error.value ?? 'Invalid OTP')
+    await advanceStatus()
   }
 }
 
-async function handleCancelAfterArrival(): Promise<void> {
-  await cancelAfterArrival(cancelReason.value)
+async function handleVerifyOtp() {
+  if (otpValue.value.length !== 6) return
+  
+  const success = await verifyOtp(otpValue.value)
+  if (success) {
+    showOtpInput.value = false
+    otpValue.value = ''
+    const toast = await toastController.create({
+      message: 'Service started successfully!',
+      duration: 2000,
+      color: 'success',
+      position: 'top'
+    })
+    await toast.present()
+  }
+}
+
+async function handleCancel() {
+  await cancelAfterArrival(cancelReason.value || 'Beautician requested cancellation')
+  showCancelModal.value = false
+  cancelReason.value = ''
+}
+
+async function openUpgradeModal(item: OrderProduct) {
+  selectedItem.value = item
+  showUpgradeModal.value = true
+  isFetchingUpgrades.value = true
+  try {
+    const prods = await getUpgradableProducts(item.product_id)
+    upgradableProducts.value = prods
+  } catch (err) {
+    console.error('Failed to fetch upgrades', err)
+  } finally {
+    isFetchingUpgrades.value = false
+  }
+}
+
+async function handleUpgrade(newProduct: any) {
+  if (!selectedItem.value || !order.value) return
+  
+  await upgradeProduct({
+    order_product_id: selectedItem.value.order_product_id || '',
+    new_product_id: String(newProduct._id || newProduct.id)
+  })
+  
+  showUpgradeModal.value = false
   if (!error.value) {
-    showSuccess('Order cancelled')
-    showCancelModal.value = false
-    cancelReason.value = ''
-  } else {
-    showError(error.value)
+    const toast = await toastController.create({
+      message: `${newProduct.title || newProduct.name} added to order!`,
+      duration: 2000,
+      color: 'success',
+      position: 'top'
+    })
+    await toast.present()
   }
 }
 
-onMounted(() => fetchOrder(orderId.value))
+onMounted(() => fetchOrder(orderId))
 </script>
 
 <style scoped>
-.order-detail-content { --padding-bottom: 100px; }
+/* ── Layout & Sections ───────────────────────────────────────────────────── */
 
-/* Loading / error */
-.detail-loading,
-.detail-error {
+.loading-state, .error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 64px 32px;
+  height: 80vh;
+  padding: 40px;
   text-align: center;
   color: var(--color-text-muted);
 }
 
-.detail-loading__spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-brand);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.error-icon { font-size: 48px; color: var(--color-danger); margin-bottom: 16px; }
+
+.order-hero {
+  padding: 24px 20px 32px;
+  background: linear-gradient(to bottom, var(--color-surface) 0%, var(--color-background) 100%);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.detail-error__icon { font-size: 48px; color: var(--color-error); }
-
-/* Status timeline */
-.status-timeline {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 20px 16px 8px;
-  gap: 4px;
-}
-
-.status-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  gap: 6px;
-}
-
-.status-step__indicator {
+.customer-profile {
   display: flex;
   align-items: center;
-  width: 100%;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.status-step__dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid var(--color-border);
-  background: var(--color-surface);
+.customer-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--color-brand-pale);
+  color: var(--color-brand);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.status-step--done .status-step__dot {
-  background: var(--color-success);
-  border-color: var(--color-success);
-}
-
-.status-step--active .status-step__dot {
-  background: var(--color-brand);
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 4px var(--color-brand-pale);
-}
-
-.status-step__check { font-size: 13px; color: #fff; }
-
-.status-step__line {
-  flex: 1;
-  height: 2px;
-  background: var(--color-border);
-  margin: 0 2px;
-}
-
-.status-step--done + .status-step .status-step__line,
-.status-step--done .status-step__line {
-  background: var(--color-success);
-}
-
-.status-step__label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-align: center;
-  font-weight: 500;
-}
-
-.status-step--active .status-step__label {
-  color: var(--color-brand);
-  font-weight: 700;
-}
-
-.status-step--done .status-step__label {
-  color: var(--color-success-text);
-}
-
-/* Info card */
-.info-card {
-  margin: 8px 16px 0;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.info-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.info-row--header {
-  justify-content: space-between;
-}
-
-.text-right { text-align: right; }
-
-.info-icon {
-  font-size: 16px;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.info-label {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-.info-value {
-  margin: 2px 0 0;
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.info-sub {
-  margin: 2px 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.info-link { color: var(--color-brand); text-decoration: none; }
-
-.info-divider {
-  height: 1px;
-  background: var(--color-border);
-  margin: 0 -16px;
-}
-
-/* OTP card */
-.otp-card {
-  margin: 12px 16px 0;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-brand-light);
-  border-radius: var(--radius-xl);
-  padding: 16px;
-}
-
-.otp-card__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 4px;
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  color: var(--color-brand);
-}
-
-.otp-card__hint {
-  margin: 0 0 12px;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.otp-display {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.otp-display__code {
-  font-size: 36px;
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: 8px;
-  color: var(--color-brand);
-  font-family: monospace;
+  box-shadow: 0 8px 16px rgba(var(--color-brand-rgb), 0.1);
 }
 
-.otp-verify__label {
-  margin: 0 0 8px;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-secondary);
+.customer-info { flex: 1; }
+.customer-name { margin: 0; font-size: 22px; font-weight: 800; color: var(--color-text); }
+.order-id { margin: 2px 0 0; font-size: 14px; color: var(--color-text-muted); font-weight: 600; }
+
+.status-badge { font-size: 11px; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.order-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.otp-verify__row {
+.meta-item {
   display: flex;
-  gap: 8px;
   align-items: center;
-}
-
-.otp-verify__input {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  letter-spacing: 4px;
-  text-align: center;
-  color: var(--color-text);
+  gap: 12px;
+  padding: 12px;
   background: var(--color-surface);
-  outline: none;
-  font-family: monospace;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
 }
 
-.otp-verify__input:focus { border-color: var(--color-brand); }
+.meta-icon { font-size: 20px; color: var(--color-brand); }
+.meta-label { margin: 0; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; }
+.meta-value { margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text); }
 
-/* Cancel section */
-.cancel-section {
-  margin: 12px 16px 0;
+.hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Action footer */
+.nav-btn { --background: var(--color-brand); --border-radius: 14px; font-weight: 700; margin: 0; height: 52px; }
+.dual-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.call-btn, .msg-btn { --border-radius: 14px; font-weight: 700; margin: 0; height: 48px; }
+
+.order-content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+.content-card {
+  padding: 20px;
+  background: var(--color-surface);
+  border-radius: 24px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.card-header h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--color-text); }
+.header-icon { font-size: 18px; color: var(--color-brand); }
+
+.address-text { margin: 0; font-size: 15px; line-height: 1.6; color: var(--color-text-secondary); font-weight: 500; }
+.order-notes { 
+  margin: 16px 0 0; 
+  padding: 12px; 
+  background: #fffbeb; 
+  border-radius: 12px; 
+  font-size: 13px; 
+  color: #92400e; 
+  display: flex; 
+  gap: 8px; 
+  font-weight: 600;
+}
+
+.line-items { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+.line-item { 
+  padding-bottom: 16px; 
+  border-bottom: 1px dashed var(--color-border);
+}
+.line-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+.item-main { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.item-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--color-text); }
+.item-qty { margin: 4px 0 0; font-size: 13px; color: var(--color-text-muted); font-weight: 500; }
+.item-total { margin: 0; font-size: 15px; font-weight: 800; color: var(--color-text); }
+
+.item-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
+.item-actions ion-button { --padding-start: 0; --padding-end: 0; height: 32px; font-size: 12px; font-weight: 700; }
+
+.order-summary-footer {
+  padding-top: 16px;
+  border-top: 2px solid var(--color-background);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); }
+.summary-row.discount { color: var(--color-success); }
+.summary-row.total { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--color-border); font-size: 18px; font-weight: 800; color: var(--color-text); }
+
+.payment-card { display: flex; flex-direction: column; }
+.payment-method { font-size: 14px; color: var(--color-text-secondary); }
+
+/* ── Action Footer ───────────────────────────────────────────────────────── */
+
 .action-footer {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 12px 16px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
-  z-index: 100;
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.05);
 }
 
-.action-btn { --border-radius: var(--radius-xl); }
+.primary-action-btn { --background: var(--color-brand); --border-radius: 16px; height: 56px; font-weight: 800; font-size: 17px; margin: 0; }
+.cancel-btn { margin-top: 8px; font-weight: 700; }
 
-/* Cancel form */
-.cancel-form {
-  padding: 20px 16px;
+.error-banner { 
+  margin-bottom: 12px; 
+  padding: 10px; 
+  background: var(--color-danger-pale); 
+  color: var(--color-danger); 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  text-align: center;
+}
+
+.otp-verification { padding: 10px 0; }
+.otp-verification h3 { margin: 0; font-size: 18px; font-weight: 800; }
+.otp-verification p { margin: 4px 0 20px; font-size: 14px; color: var(--color-text-muted); }
+
+.otp-field {
+  width: 100%;
+  height: 64px;
+  background: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: 16px;
+  text-align: center;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.otp-field:focus { border-color: var(--color-brand); }
+
+.otp-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+
+/* ── Modals & Helpers ────────────────────────────────────────────────────── */
+
+.upgrade-modal { --height: 70%; --border-radius: 24px 24px 0 0; }
+
+.modal-loading, .modal-empty {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+  text-align: center;
 }
 
-.cancel-form__hint {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.cancel-form__input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-base);
-  color: var(--color-text);
+.upgrade-list { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.upgrade-option {
+  display: flex;
+  align-items: center;
+  padding: 16px;
   background: var(--color-surface);
-  box-sizing: border-box;
-  outline: none;
-  font-family: inherit;
-  resize: vertical;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
 }
+.upgrade-option:active { background: var(--color-background); }
+.upgrade-option__info { flex: 1; }
+.upgrade-option__info h4 { margin: 0; font-size: 16px; font-weight: 700; }
+.upgrade-option__info p { margin: 4px 0 8px; font-size: 13px; color: var(--color-text-muted); }
+.price-diff { font-size: 12px; font-weight: 700; color: var(--color-success); background: var(--color-success-pale); padding: 4px 8px; border-radius: 6px; }
 
-.cancel-form__input:focus { border-color: var(--color-danger); }
-
+.spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.ms-auto { margin-left: auto; }
+
+/* Animations */
+.anim-fade-in { animation: fadeIn 0.4s ease-out both; }
+.anim-slide-up { animation: slideUp 0.3s ease-out both; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>

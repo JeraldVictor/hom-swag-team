@@ -28,6 +28,7 @@ export type {
   OrderProduct,
   UpdateOrderStatusBody,
   VerifyServiceOtpBody,
+  UpgradeProductBody,
 } from './order.model'
 
 // Trip models

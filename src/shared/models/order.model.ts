@@ -66,17 +66,45 @@ export interface Order {
   products?: OrderProduct[]
   /** Invoice info if available */
   invoice?: { id?: string; invoice_number?: number }
+  subtotal?: number
+  total?: number
+  discount_total?: number
+  delivery_fee?: number
+  payment_status?: string
+  payment_method?: string
 }
 
 /**
  * A product/service line item within an order.
  */
 export interface OrderProduct {
+  order_product_id?: string
   product_id: string
   title: string
   quantity: number
   price: number
   total: number
+  selected_options?: {
+    order_product_option_id?: string
+    product_option_id: string
+    title: string
+  }[]
+  selected_free_items?: {
+    order_free_item_id?: string
+    free_product_id: string
+    title: string
+  }[]
+}
+
+/**
+ * Request body for upgrading a product in an order.
+ */
+export interface UpgradeProductBody {
+  order_product_id: string
+  new_product_id: string
+  new_selected_options?: {
+    product_option_id: string
+  }[]
 }
 
 /**

@@ -5,7 +5,7 @@
  */
 
 import apiClient from '@/shared/lib/api'
-import type { Order, UpdateOrderStatusBody, VerifyServiceOtpBody } from '@/shared/models/order.model'
+import type { Order, UpdateOrderStatusBody, VerifyServiceOtpBody, UpgradeProductBody } from '@/shared/models/order.model'
 import type { PaginatedResponse } from '@/shared/models/pagination.model'
 
 /**
@@ -68,6 +68,18 @@ export async function verifyServiceOtp(
   body: VerifyServiceOtpBody,
 ): Promise<Order> {
   const response = await apiClient.post<{ data: Order }>(`/orders/${id}/otp/verify`, body)
+  return response.data.data
+}
+
+/**
+ * Upgrade a product in an order.
+ * POST /orders/:id/upgrade-product
+ */
+export async function upgradeOrderProduct(
+  id: string | number,
+  body: UpgradeProductBody,
+): Promise<Order> {
+  const response = await apiClient.post<{ data: Order }>(`/orders/${id}/upgrade-product`, body)
   return response.data.data
 }
 

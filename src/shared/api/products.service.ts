@@ -21,3 +21,21 @@ export async function getProducts(
   })
   return response.data.data
 }
+
+/**
+ * Fetch a single product by ID.
+ * GET /products/:id
+ */
+export async function getProduct(id: string | number): Promise<Product> {
+  const response = await apiClient.get<{ data: Product }>(`/products/${id}`)
+  return response.data.data
+}
+
+/**
+ * Fetch products that can be upgraded to from a given product.
+ * GET /products/:id/upgradables
+ */
+export async function getUpgradableProducts(id: string | number): Promise<Product[]> {
+  const response = await apiClient.get<{ data: Product[] }>(`/products/${id}/upgradables`)
+  return response.data.data
+}

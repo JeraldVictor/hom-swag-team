@@ -2,11 +2,11 @@
 import { IonBadge } from '@ionic/vue'
 import { computed } from 'vue'
 
-type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'default'
+type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'brand' | 'neutral' | 'default'
 
 const props = withDefaults(
   defineProps<{
-    text: string
+    text?: string
     variant?: BadgeVariant
     size?: 'sm' | 'md' | 'lg'
   }>(),
@@ -23,24 +23,32 @@ const props = withDefaults(
 const badgeStyle = computed(() => {
   const variantStyles: Record<BadgeVariant, { background: string; color: string }> = {
     success: {
-      background: 'var(--color-success-bg)',
-      color: 'var(--color-success-text)',
+      background: 'var(--color-success-bg, #ecfdf5)',
+      color: 'var(--color-success-text, #059669)',
     },
     warning: {
-      background: 'var(--color-warning-bg)',
-      color: 'var(--color-warning-text)',
+      background: 'var(--color-warning-bg, #fffbeb)',
+      color: 'var(--color-warning-text, #d97706)',
     },
     error: {
-      background: 'var(--color-error-bg)',
-      color: 'var(--color-error-text)',
+      background: 'var(--color-error-bg, #fef2f2)',
+      color: 'var(--color-error-text, #dc2626)',
     },
     info: {
-      background: 'var(--color-info-bg)',
-      color: 'var(--color-info-text)',
+      background: 'var(--color-info-bg, #eff6ff)',
+      color: 'var(--color-info-text, #2563eb)',
+    },
+    brand: {
+      background: 'var(--color-brand-pale, #f5f3ff)',
+      color: 'var(--color-brand, #7c3aed)',
+    },
+    neutral: {
+      background: 'var(--color-background, #f3f4f6)',
+      color: 'var(--color-text-muted, #6b7280)',
     },
     default: {
-      background: 'var(--color-border)',
-      color: 'var(--color-text)',
+      background: 'var(--color-border, #e5e7eb)',
+      color: 'var(--color-text, #111827)',
     },
   }
   return variantStyles[props.variant]
@@ -67,7 +75,7 @@ const combinedStyle = computed(() => ({
     :class="`app-badge--${variant}`"
     :style="combinedStyle"
   >
-    {{ text }}
+    <slot>{{ text }}</slot>
   </ion-badge>
 </template>
 
