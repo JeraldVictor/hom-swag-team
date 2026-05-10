@@ -123,6 +123,7 @@ async function setupAppStateListener() {
 // ---------------------------------------------------------------------------
 
 onMounted(async () => {
+  void import('@aejkatappaja/phantom-ui')
   await boot()
   await setupAppStateListener()
 })

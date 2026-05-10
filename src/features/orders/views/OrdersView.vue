@@ -47,49 +47,41 @@
         </div>
       </div>
 
-      <!-- Loading skeleton -->
-      <template v-if="isLoading && filteredOrders.length === 0">
-        <div class="orders-list">
-          <div v-for="n in 4" :key="n" class="order-skeleton">
-            <div class="order-skeleton__header" />
-            <div class="order-skeleton__body" />
-            <div class="order-skeleton__footer" />
-          </div>
-        </div>
-      </template>
+      <!-- Loading state & Orders list -->
+      <div v-if="error && filteredOrders.length === 0" class="orders-empty">
+        <Icon icon="lucide:wifi-off" class="orders-empty__icon" aria-hidden="true" />
+        <p class="orders-empty__title">Could not load orders</p>
+        <p class="orders-empty__text">{{ error }}</p>
+        <ion-button fill="outline" size="small" @click="fetchOrders()">Retry</ion-button>
+      </div>
 
-      <!-- Error state -->
-      <template v-else-if="error && filteredOrders.length === 0">
-        <div class="orders-empty">
-          <Icon icon="lucide:wifi-off" class="orders-empty__icon" aria-hidden="true" />
-          <p class="orders-empty__title">Could not load orders</p>
-          <p class="orders-empty__text">{{ error }}</p>
-          <ion-button fill="outline" size="small" @click="fetchOrders()">Retry</ion-button>
-        </div>
-      </template>
+      <div v-else-if="!isLoading && filteredOrders.length === 0" class="orders-empty">
+        <Icon icon="lucide:briefcase" class="orders-empty__icon" aria-hidden="true" />
+        <p class="orders-empty__title">No orders found</p>
+        <p class="orders-empty__text">Adjust your filters or check back later.</p>
+      </div>
 
-      <!-- Empty state -->
-      <template v-else-if="!isLoading && filteredOrders.length === 0">
-        <div class="orders-empty">
-          <Icon icon="lucide:briefcase" class="orders-empty__icon" aria-hidden="true" />
-          <p class="orders-empty__title">No orders found</p>
-          <p class="orders-empty__text">Adjust your filters or check back later.</p>
-        </div>
-      </template>
-
-      <!-- Orders list -->
       <template v-else>
         <div v-if="error" class="orders-error-banner" role="alert">
           <Icon icon="lucide:alert-circle" aria-hidden="true" />
           {{ error }}
         </div>
+        
         <div class="orders-list anim-list">
-          <OrderCard
-            v-for="order in filteredOrders"
-            :key="order.id ?? order._id"
-            :order="(order as Order)"
-            @click="goToDetail(order.id ?? order._id ?? '')"
-          />
+          <phantom-ui 
+            :loading="isLoading && filteredOrders.length === 0" 
+            :count="isLoading && filteredOrders.length === 0 ? 5 : 1" 
+            count-gap="12"
+            animation="shimmer"
+            stagger="0.05"
+          >
+            <OrderCard
+              v-for="order in (isLoading && filteredOrders.length === 0 ? [placeholderOrder] : filteredOrders)"
+              :key="order.id ?? order._id ?? 'skeleton'"
+              :order="order"
+              @click="goToDetail(order.id ?? order._id ?? '')"
+            />
+          </phantom-ui>
         </div>
 
         <!-- Infinite Scroll -->
@@ -134,6 +126,14 @@ const {
   totalPages
 } = useOrders()
 const { openDrawer } = useDrawer()
+const placeholderOrder: Order = {
+  id: 'skeleton',
+  order_number: '123456',
+  status: 'Confirmed',
+  customer: { full_name: 'Placeholder Name', phone: '1234567890' },
+  booking_info: { date: '2024-01-01', timing: '10:00 AM - 12:00 PM' },
+  address: { street: '123 Placeholder St', city: 'Placeholder City' }
+} as Order // using as Order to satisfy the interface which has many optional but some required fields like id
 
 const statusOptions: (OrderStatus | 'All')[] = ['All', 'Confirmed', 'Started', 'Ongoing', 'Completed', 'Cancelled']
 
@@ -294,32 +294,8 @@ ion-segment {
   font-weight: 500;
 }
 
-/* Skeleton */
-.order-skeleton {
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.order-skeleton__header,
-.order-skeleton__body,
-.order-skeleton__footer {
-  border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-background) 50%, var(--color-border) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-}
-
-.order-skeleton__header { height: 20px; width: 45%; }
-.order-skeleton__body   { height: 48px; }
-.order-skeleton__footer { height: 16px; width: 60%; }
-
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 </style>

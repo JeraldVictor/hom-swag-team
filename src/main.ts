@@ -37,6 +37,7 @@ import './core/theme/variables.css'
 
 /* Global animation system */
 import './core/theme/animations.css'
+import '@aejkatappaja/phantom-ui/ssr.css'
 
 const app = createApp(App).use(IonicVue).use(createPinia()).use(router)
 

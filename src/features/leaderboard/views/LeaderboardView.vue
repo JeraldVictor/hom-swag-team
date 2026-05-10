@@ -27,12 +27,79 @@
         </button>
       </div>
 
-      <!-- Loading skeleton -->
-      <template v-if="isLoading">
-        <div class="podium-skeleton" />
-        <div class="list">
-          <div v-for="n in 5" :key="n" class="entry-skeleton" />
-        </div>
+      <!-- Loading state & Leaderboard content -->
+      <template v-if="data || isLoading">
+        <phantom-ui 
+          :loading="isLoading" 
+          animation="shimmer" 
+          stagger="0.05"
+        >
+          <!-- Podium (top 3) -->
+          <div v-if="top3.length > 0 || isLoading" class="podium">
+            <!-- 2nd place -->
+            <div v-if="top3[1] || isLoading" class="podium-slot podium-slot--second">
+              <div class="podium-avatar podium-avatar--second">
+                <img v-if="top3[1]?.photo_url" :src="top3[1].photo_url" :alt="top3[1].name" class="podium-avatar__img" />
+                <span v-else class="podium-avatar__initials">{{ initials(top3[1]?.name ?? 'Placeholder') }}</span>
+              </div>
+              <p class="podium-name">{{ (top3[1]?.name ?? 'Placeholder').split(' ')[0] }}</p>
+              <p class="podium-count">{{ top3[1]?.count ?? 0 }}</p>
+              <div class="podium-block podium-block--second">
+                <span class="podium-rank">2</span>
+              </div>
+            </div>
+
+            <!-- 1st place -->
+            <div v-if="top3[0] || isLoading" class="podium-slot podium-slot--first">
+              <div class="podium-crown" aria-hidden="true">👑</div>
+              <div class="podium-avatar podium-avatar--first">
+                <img v-if="top3[0]?.photo_url" :src="top3[0].photo_url" :alt="top3[0].name" class="podium-avatar__img" />
+                <span v-else class="podium-avatar__initials">{{ initials(top3[0]?.name ?? 'Placeholder') }}</span>
+              </div>
+              <p class="podium-name">{{ (top3[0]?.name ?? 'Placeholder').split(' ')[0] }}</p>
+              <p class="podium-count">{{ top3[0]?.count ?? 0 }}</p>
+              <div class="podium-block podium-block--first">
+                <span class="podium-rank">1</span>
+              </div>
+            </div>
+
+            <!-- 3rd place -->
+            <div v-if="top3[2] || isLoading" class="podium-slot podium-slot--third">
+              <div class="podium-avatar podium-avatar--third">
+                <img v-if="top3[2]?.photo_url" :src="top3[2].photo_url" :alt="top3[2].name" class="podium-avatar__img" />
+                <span v-else class="podium-avatar__initials">{{ initials(top3[2]?.name ?? 'Placeholder') }}</span>
+              </div>
+              <p class="podium-name">{{ (top3[2]?.name ?? 'Placeholder').split(' ')[0] }}</p>
+              <p class="podium-count">{{ top3[2]?.count ?? 0 }}</p>
+              <div class="podium-block podium-block--third">
+                <span class="podium-rank">3</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- List rows -->
+          <div v-if="rest.length > 0 || isLoading" class="list" style="margin-top: 16px;">
+             <phantom-ui :loading="isLoading" :count="isLoading ? 5 : 1" count-gap="8">
+                <div
+                  v-for="entry in (isLoading ? [placeholderEntry] : rest)"
+                  :key="entry.user_id"
+                  class="entry-card"
+                >
+                  <span class="entry-rank">{{ entry.rank }}</span>
+                  <div class="entry-avatar">
+                    <span class="entry-avatar__initials">{{ initials(entry.name) }}</span>
+                  </div>
+                  <div class="entry-info">
+                    <p class="entry-name">{{ entry.name }}</p>
+                    <p class="entry-count">{{ entry.count }} orders</p>
+                  </div>
+                  <span v-if="entry.amount" class="entry-earnings">
+                    ₹{{ entry.amount.toLocaleString('en-IN') }}
+                  </span>
+                </div>
+             </phantom-ui>
+          </div>
+        </phantom-ui>
       </template>
 
       <!-- Error state -->
@@ -202,7 +269,7 @@ import { Icon } from '@iconify/vue'
 import { storeToRefs } from 'pinia'
 import { useUserTypeStore } from '@/shared/stores'
 import { getLeaderboard } from '@/shared/api'
-import type { LeaderboardData, LeaderboardPeriod } from '@/shared/models'
+import type { LeaderboardData, LeaderboardEntry, LeaderboardPeriod } from '@/shared/models'
 
 const userTypeStore = useUserTypeStore()
 const { isBeautician } = storeToRefs(userTypeStore)
@@ -220,6 +287,14 @@ const periods: { value: LeaderboardPeriod; label: string }[] = [
 
 const top3 = computed(() => data.value?.entries.slice(0, 3) ?? [])
 const rest = computed(() => data.value?.entries.slice(3) ?? [])
+const placeholderEntry: LeaderboardEntry = {
+  user_id: 'skeleton',
+  name: 'Placeholder Name',
+  count: 0,
+  rank: 4,
+  amount: 0,
+  is_self: false
+}
 
 function initials(name: string): string {
   return name.split(' ').slice(0, 2).map((n) => n[0]?.toUpperCase() ?? '').join('')
@@ -510,23 +585,7 @@ onIonViewWillEnter(() => {
   letter-spacing: 0.8px;
 }
 
-/* Skeletons */
-.podium-skeleton {
-  height: 180px;
-  margin: 16px;
-  border-radius: var(--radius-xl);
-  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-background) 50%, var(--color-border) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-}
-
-.entry-skeleton {
-  height: 64px;
-  border-radius: var(--radius-xl);
-  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-background) 50%, var(--color-border) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-}
+/* Skeletons removed - using phantom-ui */
 
 .empty-state {
   display: flex;
