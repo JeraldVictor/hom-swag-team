@@ -135,7 +135,7 @@ const {
 } = useOrders()
 const { openDrawer } = useDrawer()
 
-const statusOptions: (OrderStatus | 'All')[] = ['All', 'Confirmed', 'Started', 'Ongoing', 'Completed']
+const statusOptions: (OrderStatus | 'All')[] = ['All', 'Confirmed', 'Started', 'Ongoing', 'Completed', 'Cancelled']
 
 function openMenu(): void {
   openDrawer()

@@ -7,27 +7,41 @@ import {
   upgradeOrderProduct,
   updateOrder,
   getUpgradableProducts,
+  uploadArrivalSelfie,
 } from '@/shared/api'
-import type { Order, UpgradeProductBody, OrderProduct } from '@/shared/models'
+import type { Order, UpgradeProductBody, OrderProduct, OrderStatus } from '@/shared/models'
 import { useDirections, useCamera } from '@/shared/composables'
 
+/** Helper to convert base64 data URL to Blob */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const parts = dataUrl.split(';base64,')
+  const contentType = parts[0].split(':')[1]
+  const raw = window.atob(parts[1])
+  const rawLength = raw.length
+  const uInt8Array = new Uint8Array(rawLength)
+  for (let i = 0; i < rawLength; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i)
+  }
+  return new Blob([uInt8Array], { type: contentType })
+}
+
 /** Status progression for beautician */
-const NEXT_STATUS: Partial<Record<string, 'started' | 'ongoing' | 'completed'>> = {
-  Confirmed: 'started',
-  confirmed: 'started',
-  started: 'ongoing',
-  Started: 'ongoing',
-  ongoing: 'completed',
-  Ongoing: 'completed',
+const NEXT_STATUS: Partial<Record<string, 'ongoing' | 'started' | 'completed'>> = {
+  Confirmed: 'ongoing',
+  confirmed: 'ongoing',
+  ongoing: 'started',
+  Ongoing: 'started',
+  started: 'completed',
+  Started: 'completed',
 }
 
 const NEXT_LABEL: Partial<Record<string, string>> = {
-  Confirmed: 'Start Service',
-  confirmed: 'Start Service',
-  started: 'Mark Ongoing',
-  Started: 'Mark Ongoing',
-  ongoing: 'Complete Service',
-  Ongoing: 'Complete Service',
+  Confirmed: 'Start to Customer',
+  confirmed: 'Start to Customer',
+  ongoing: 'Take Selfie (Uniform)',
+  Ongoing: 'Take Selfie (Uniform)',
+  started: 'Complete Service',
+  Started: 'Complete Service',
 }
 
 export function useOrderDetail() {
@@ -41,18 +55,23 @@ export function useOrderDetail() {
   const { openDirections } = useDirections()
   const { takePhoto } = useCamera()
 
-  const nextActionLabel = computed(() =>
-    order.value ? (NEXT_LABEL[order.value.status] ?? null) : null
-  )
+  const nextActionLabel = computed(() => {
+    if (!order.value) return null
+    const s = order.value.status.toLowerCase()
+    if (s === 'ongoing' && order.value.arrival_selfie) {
+      return 'Enter OTP to Start'
+    }
+    return NEXT_LABEL[order.value.status] ?? null
+  })
 
   const isCompleted = computed(() =>
     order.value?.status?.toLowerCase() === 'completed'
   )
 
-  const canUpgrade = computed(() =>
-    order.value?.status?.toLowerCase() === 'started' || 
-    order.value?.status?.toLowerCase() === 'ongoing'
-  )
+  const canUpgrade = computed(() => {
+    const s = order.value?.status?.toLowerCase()
+    return s === 'started' || s === 'ongoing'
+  })
 
   async function fetchOrder(id: string | number): Promise<void> {
     isLoading.value = true
@@ -66,7 +85,7 @@ export function useOrderDetail() {
     }
   }
 
-  async function advanceStatus(reason?: string): Promise<void> {
+  async function advanceStatus(reason?: string, otp?: string): Promise<void> {
     if (!order.value) return
     const next = NEXT_STATUS[order.value.status]
     if (!next) return
@@ -74,7 +93,12 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      order.value = await updateOrderStatus(order.value.id, { status: next, status_reason: reason })
+      const id = order.value._id || order.value.id
+      order.value = await updateOrderStatus(id, { 
+        status: next, 
+        status_reason: reason,
+        otp 
+      })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update status'
     } finally {
@@ -82,14 +106,42 @@ export function useOrderDetail() {
     }
   }
 
-  async function cancelAfterArrival(reason: string): Promise<void> {
+  async function uploadSelfie(): Promise<boolean> {
+    if (!order.value) return false
+    isUpdating.value = true
+    error.value = null
+    try {
+      const dataUrl = await takePhoto()
+      if (!dataUrl) return false
+
+      const blob = dataUrlToBlob(dataUrl)
+      const formData = new FormData()
+      formData.append('image', blob, `selfie_${order.value._id || order.value.id}.jpg`)
+
+      const id = order.value._id || order.value.id
+      order.value = await uploadArrivalSelfie(id, formData)
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to upload selfie'
+      return false
+    } finally {
+      isUpdating.value = false
+    }
+  }
+
+  async function cancelAfterArrival(reason: string, otp?: string): Promise<void> {
     if (!order.value) return
     isUpdating.value = true
     error.value = null
     try {
-      order.value = await updateOrderStatus(order.value.id, {
-        status: 'arrived_and_cancelled',
+      const nextStatus: 'cancelled' | 'arrived_and_cancelled' = 
+        order.value.status.toLowerCase() === 'confirmed' ? 'cancelled' : 'arrived_and_cancelled'
+        
+      const id = order.value._id || order.value.id
+      order.value = await updateOrderStatus(id, {
+        status: nextStatus,
         status_reason: reason,
+        otp
       })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to cancel order'
@@ -103,7 +155,8 @@ export function useOrderDetail() {
     isGeneratingOtp.value = true
     error.value = null
     try {
-      const updated = await generateServiceOtp(order.value.id)
+      const id = order.value._id || order.value.id
+      const updated = await generateServiceOtp(id)
       order.value = updated
       return updated.service_otp ?? null
     } catch (err) {
@@ -119,7 +172,8 @@ export function useOrderDetail() {
     isVerifyingOtp.value = true
     error.value = null
     try {
-      order.value = await verifyServiceOtp(order.value.id, { otp })
+      const id = order.value._id || order.value.id
+      order.value = await verifyServiceOtp(id, { otp })
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Invalid OTP'
@@ -134,7 +188,8 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      order.value = await upgradeOrderProduct(order.value.id, body)
+      const id = order.value._id || order.value.id
+      order.value = await upgradeOrderProduct(id, body)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upgrade product'
     } finally {
@@ -147,7 +202,8 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      order.value = await updateOrder(order.value.id, updates)
+      const id = order.value._id || order.value.id
+      order.value = await updateOrder(id, updates)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update order'
     } finally {
@@ -175,6 +231,7 @@ export function useOrderDetail() {
     canUpgrade,
     fetchOrder,
     advanceStatus,
+    uploadSelfie,
     cancelAfterArrival,
     generateOtp,
     verifyOtp,

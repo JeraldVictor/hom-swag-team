@@ -1,7 +1,7 @@
 /**
  * Progression states for a beautician's service order.
  */
-export type OrderStatus = 'Confirmed' | 'Ongoing' | 'Started' | 'Completed' | 'started' | 'ongoing' | 'completed' | 'arrived_and_cancelled'
+export type OrderStatus = 'Confirmed' | 'Ongoing' | 'Started' | 'Completed' | 'started' | 'ongoing' | 'completed' | 'arrived_and_cancelled' | 'cancelled' | 'cancelled_and_refunded'
 
 /**
  * Customer address associated with an order.
@@ -36,6 +36,7 @@ export interface OrderCustomer {
 export interface OrderBookingInfo {
   timing?: string
   date?: string
+  effective_start_time?: string
   surge_amount?: number
   slot_id?: string
 }
@@ -72,6 +73,10 @@ export interface Order {
   delivery_fee?: number
   payment_status?: string
   payment_method?: string
+  /** Photo taken on arrival */
+  arrival_selfie?: { url?: string; key?: string }
+  /** Photo taken on completion */
+  proof_of_service?: { url?: string; key?: string }
 }
 
 /**
@@ -115,8 +120,9 @@ export interface UpgradeProductBody {
  * Sent to PATCH /orders/:id/status
  */
 export interface UpdateOrderStatusBody {
-  status: 'started' | 'ongoing' | 'completed' | 'arrived_and_cancelled'
+  status: 'started' | 'ongoing' | 'completed' | 'arrived_and_cancelled' | 'cancelled'
   status_reason?: string
+  otp?: string
 }
 
 /**

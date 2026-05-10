@@ -193,26 +193,21 @@
           
           <!-- OTP Verification Step -->
           <div v-if="showOtpInput" class="otp-verification anim-slide-up">
-            <h3>Verify Service OTP</h3>
-            <p>Enter the 6-digit code provided by the customer.</p>
-            <div class="otp-input-row">
-              <input 
-                v-model="otpValue" 
-                type="number" 
-                pattern="[0-9]*" 
-                inputmode="numeric" 
-                placeholder="000000"
-                maxlength="6"
-                class="otp-field"
-                @keyup.enter="handleVerifyOtp"
-              />
+            <div class="otp-header">
+              <Icon icon="lucide:shield-check" class="otp-icon" />
+              <h3>Verify Service OTP</h3>
+              <p>Enter the 6-digit code provided by the customer to start the service.</p>
             </div>
+            
+            <div class="otp-container">
+              <OtpInput v-model="otpValue" @complete="handleVerifyOtp" />
+            </div>
+
             <div class="otp-actions">
-              <ion-button fill="clear" color="medium" @click="showOtpInput = false">Cancel</ion-button>
-              <ion-button :disabled="isVerifyingOtp || otpValue.length < 6" @click="handleVerifyOtp">
-                <ion-spinner v-if="isVerifyingOtp" name="crescent" slot="start" />
+              <AppButton variant="ghost" @click="showOtpInput = false">Cancel</AppButton>
+              <AppButton :disabled="otpValue.length < 6" :loading="isVerifyingOtp" @click="handleVerifyOtp">
                 Verify & Start
-              </ion-button>
+              </AppButton>
             </div>
           </div>
 
@@ -222,22 +217,27 @@
               v-if="nextActionLabel"
               expand="block" 
               class="primary-action-btn"
-              :disabled="isUpdating"
+              :disabled="isUpdating || !isBookingDateToday"
               @click="handleMainAction"
             >
               <ion-spinner v-if="isUpdating" name="crescent" slot="start" />
+              <Icon v-if="isSelfieStep" icon="lucide:camera" slot="start" />
               {{ nextActionLabel }}
             </ion-button>
             
+            <div class="date-restriction-tip" v-if="!isBookingDateToday && !isCompleted && order" style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin: 8px 0; padding: 8px; background: var(--color-surface); border-radius: 8px;">
+              Note: You can only start or update this order on the scheduled date ({{ order.booking_info?.date }}).
+            </div>
+
             <ion-button 
-              v-if="canCancelAfterArrival"
+              v-if="canCancel && isBookingDateToday"
               expand="block" 
               fill="clear" 
               color="danger" 
               class="cancel-btn"
-              @click="showCancelModal = true"
+              @click="openCancelModal"
             >
-              Cancel Order
+              Customer Request to Cancel
             </ion-button>
           </div>
         </div>
@@ -277,8 +277,15 @@
     </ion-modal>
 
     <!-- Cancel Modal -->
-    <ion-modal :is-open="showCancelModal" @didDismiss="showCancelModal = false">
-      <ion-header>
+    <ion-modal 
+      :is-open="showCancelModal" 
+      @didDismiss="showCancelModal = false" 
+      class="cancel-modal"
+      :initial-breakpoint="0.85"
+      :breakpoints="[0, 0.85, 1]"
+      handle-behavior="cycle"
+    >
+      <ion-header class="ion-no-border">
         <ion-toolbar>
           <ion-title>Cancel Order</ion-title>
           <ion-buttons slot="end">
@@ -288,24 +295,51 @@
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      <ion-content>
-        <div class="cancel-form">
-          <p class="cancel-form__hint">Please provide a reason for cancellation after arrival.</p>
-          <textarea
-            v-model="cancelReason"
-            class="cancel-form__input"
-            placeholder="Reason for cancellation..."
-            rows="4"
-          />
-          <ion-button
-            expand="block"
-            color="danger"
-            :disabled="!cancelReason.trim() || isUpdating"
-            @click="handleCancel"
-          >
-            <ion-spinner v-if="isUpdating" name="crescent" slot="start" />
-            Confirm Cancellation
-          </ion-button>
+      <ion-content class="ion-padding">
+        <div class="cancel-container">
+          <div class="cancel-warning">
+            <div class="warning-icon-wrapper">
+              <Icon icon="lucide:alert-triangle" />
+            </div>
+            <h3>Are you sure?</h3>
+            <p>Cancellation is permanent. Please ensure you have valid reasons and the customer's consent.</p>
+          </div>
+
+          <div class="cancel-form-section">
+            <ion-label class="form-label">Reason for Cancellation</ion-label>
+            <ion-textarea
+              v-model="cancelReason"
+              placeholder="Provide a detailed reason for cancellation..."
+              fill="outline"
+              shape="round"
+              rows="4"
+              class="cancel-textarea"
+              mode="md"
+            ></ion-textarea>
+          </div>
+
+          <div class="cancel-form-section">
+            <ion-label class="form-label">Verification OTP</ion-label>
+            <p class="form-hint">Ask the customer for the 6-digit cancellation OTP code.</p>
+            <div class="otp-wrapper">
+              <OtpInput v-model="otpValue" />
+            </div>
+          </div>
+
+          <div class="cancel-actions">
+            <AppButton
+              variant="danger"
+              expand="block"
+              :disabled="!cancelReason.trim() || otpValue.length < 6"
+              :loading="isUpdating"
+              @click="handleCancel"
+            >
+              Confirm & Cancel Order
+            </AppButton>
+            <AppButton variant="ghost" expand="block" @click="showCancelModal = false">
+              Go Back
+            </AppButton>
+          </div>
         </div>
       </ion-content>
     </ion-modal>
@@ -317,11 +351,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonContent, IonButton, IonSpinner, IonModal, toastController,
+  IonContent, IonButton, IonSpinner, IonModal, IonLabel, IonTextarea,
+  toastController, alertController,
 } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
 import { useOrderDetail } from '../composables/useOrderDetail'
-import { AppBadge } from '@/shared/components/ui'
+import { AppBadge, AppButton } from '@/shared/components/ui'
+import { OtpInput } from '@/features/auth'
 import type { OrderProduct } from '@/shared/models'
 import { formatISTDate } from '@/shared/lib/datetime'
 
@@ -340,6 +376,7 @@ const {
   canUpgrade,
   fetchOrder,
   advanceStatus,
+  uploadSelfie,
   cancelAfterArrival,
   verifyOtp,
   upgradeProduct,
@@ -394,9 +431,21 @@ const paymentStatusVariant = computed(() => {
   return s === 'paid' ? 'success' : 'warning'
 })
 
-const canCancelAfterArrival = computed(() => {
+const canCancel = computed(() => {
   const s = order.value?.status?.toLowerCase()
-  return s === 'confirmed' || s === 'started'
+  return s === 'confirmed' || s === 'ongoing' || s === 'started'
+})
+
+const isSelfieStep = computed(() => {
+  return order.value?.status?.toLowerCase() === 'ongoing' && !order.value?.arrival_selfie
+})
+
+const isBookingDateToday = computed(() => {
+  if (!order.value?.booking_info?.date) return false
+  const today = new Date()
+  // Simple YYYY-MM-DD comparison in IST
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(today)
+  return order.value.booking_info.date === todayStr
 })
 
 // ── Methods ────────────────────────────────────────────────────────────────
@@ -405,12 +454,48 @@ async function handleRefresh() {
   await fetchOrder(orderId)
 }
 
+async function presentConfirm(header: string, message: string) {
+  const alert = await alertController.create({
+    header,
+    message,
+    mode: 'ios',
+    buttons: [
+      { text: 'No', role: 'cancel' },
+      { text: 'Yes', role: 'confirm' }
+    ]
+  })
+  await alert.present()
+  const { role } = await alert.onDidDismiss()
+  return role === 'confirm'
+}
+
 async function handleMainAction() {
   const s = order.value?.status?.toLowerCase()
+  const label = nextActionLabel.value
   
-  if ((s === 'confirmed' || s === 'started') && !showOtpInput.value) {
-    showOtpInput.value = true
+  if (s === 'confirmed') {
+    // Confirmed -> Ongoing (Start to Customer)
+    const confirmed = await presentConfirm('Start to Customer', 'Are you sure you want to start moving to the customer location?')
+    if (!confirmed) return
+    await advanceStatus()
+  } else if (s === 'ongoing') {
+    // Ongoing -> Started (Reached Customer + Selfie + OTP)
+    if (!order.value?.arrival_selfie) {
+      // For selfie, maybe the camera is enough of a confirmation, but user asked for "all"
+      const confirmed = await presentConfirm('Take Selfie', 'Are you ready to take the arrival selfie?')
+      if (!confirmed) return
+      
+      const uploaded = await uploadSelfie()
+      if (uploaded) {
+        showOtpInput.value = true
+      }
+    } else {
+      showOtpInput.value = true
+    }
   } else {
+    // Started -> Completed (Complete Service)
+    const confirmed = await presentConfirm('Complete Service', 'Have you finished all services? This will mark the order as completed.')
+    if (!confirmed) return
     await advanceStatus()
   }
 }
@@ -418,8 +503,13 @@ async function handleMainAction() {
 async function handleVerifyOtp() {
   if (otpValue.value.length !== 6) return
   
-  const success = await verifyOtp(otpValue.value)
-  if (success) {
+  const confirmed = await presentConfirm('Verify OTP', 'Are you sure you want to verify the OTP and start the service?')
+  if (!confirmed) return
+  
+  // Requirement: Transition to 'started' using OTP
+  // We use advanceStatus here because it calls the status update endpoint which handles OTP verification and state transition in one go.
+  await advanceStatus(undefined, otpValue.value)
+  if (!error.value) {
     showOtpInput.value = false
     otpValue.value = ''
     const toast = await toastController.create({
@@ -432,10 +522,50 @@ async function handleVerifyOtp() {
   }
 }
 
+function openCancelModal() {
+  showCancelModal.value = true
+  otpValue.value = ''
+}
+
 async function handleCancel() {
-  await cancelAfterArrival(cancelReason.value || 'Beautician requested cancellation')
-  showCancelModal.value = false
-  cancelReason.value = ''
+  if (!cancelReason.value.trim()) {
+    const toast = await toastController.create({
+      message: 'Please provide a reason for cancellation.',
+      duration: 2000,
+      color: 'warning'
+    })
+    await toast.present()
+    return
+  }
+
+  if (otpValue.value.length !== 6) {
+    const toast = await toastController.create({
+      message: 'Please enter the 6-digit cancellation OTP.',
+      duration: 2000,
+      color: 'warning'
+    })
+    await toast.present()
+    return
+  }
+
+  // API Trigger
+  await cancelAfterArrival(
+    cancelReason.value,
+    otpValue.value
+  )
+
+  if (!error.value) {
+    showCancelModal.value = false
+    cancelReason.value = ''
+    otpValue.value = ''
+    const toast = await toastController.create({
+      message: 'Order cancelled successfully',
+      duration: 2000,
+      color: 'success',
+      position: 'top'
+    })
+    await toast.present()
+  }
 }
 
 async function openUpgradeModal(item: OrderProduct) {
@@ -682,26 +812,42 @@ onMounted(() => fetchOrder(orderId))
   text-align: center;
 }
 
-.otp-verification { padding: 10px 0; }
-.otp-verification h3 { margin: 0; font-size: 18px; font-weight: 800; }
-.otp-verification p { margin: 4px 0 20px; font-size: 14px; color: var(--color-text-muted); }
+.otp-verification { padding: 8px 0; }
+.otp-header { text-align: center; margin-bottom: 24px; }
+.otp-icon { font-size: 40px; color: var(--color-brand); margin-bottom: 12px; }
+.otp-header h3 { margin: 0; font-size: 20px; font-weight: 800; color: var(--color-text); }
+.otp-header p { margin: 8px 0 0; font-size: 14px; color: var(--color-text-muted); line-height: 1.5; }
 
-.otp-field {
-  width: 100%;
-  height: 64px;
-  background: var(--color-background);
-  border: 2px solid var(--color-border);
-  border-radius: 16px;
-  text-align: center;
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: 8px;
-  outline: none;
-  transition: border-color 0.2s;
+.otp-container { margin: 24px 0; }
+.otp-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+
+/* ── Cancel Modal Styling ─────────────────────────────────────────────────── */
+
+.cancel-modal { --border-radius: 28px 28px 0 0; }
+
+.cancel-container { padding: 8px 4px 24px; display: flex; flex-direction: column; gap: 28px; }
+
+.cancel-warning { text-align: center; }
+.warning-icon-wrapper { 
+  width: 56px; height: 56px; border-radius: 18px; background: var(--color-danger-pale); 
+  color: var(--color-danger); display: flex; align-items: center; justify-content: center; 
+  margin: 0 auto 16px; font-size: 28px; 
 }
-.otp-field:focus { border-color: var(--color-brand); }
+.cancel-warning h3 { margin: 0; font-size: 20px; font-weight: 800; color: var(--color-text); }
+.cancel-warning p { margin: 8px 0 0; font-size: 14px; color: var(--color-text-muted); line-height: 1.5; }
 
-.otp-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+.cancel-form-section { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 14px; font-weight: 700; color: var(--color-text); }
+.form-hint { margin: 0; font-size: 13px; color: var(--color-text-muted); }
+
+.cancel-textarea { 
+  --padding-start: 16px; --padding-end: 16px; --padding-top: 16px; --padding-bottom: 16px;
+  --border-radius: 16px; --border-color: var(--color-border); font-size: 15px;
+}
+
+.otp-wrapper { margin-top: 8px; }
+
+.cancel-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 
 /* ── Modals & Helpers ────────────────────────────────────────────────────── */
 
