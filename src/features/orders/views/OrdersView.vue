@@ -41,7 +41,7 @@
               :class="{ 'filter-chip--active': statusFilter === status }"
               @click="statusFilter = status"
             >
-              {{ status }}
+              {{ status === 'all' ? 'All' : status }}
             </div>
           </div>
         </div>
@@ -142,7 +142,7 @@ const placeholderOrder: Order = {
   address: { street: '123 Placeholder St', city: 'Placeholder City' }
 } as Order // using as Order to satisfy the interface which has many optional but some required fields like id
 
-const statusOptions: (OrderStatus | 'All')[] = ['All', 'Confirmed', 'Started', 'Ongoing', 'Completed', 'cancelled']
+const statusOptions: (OrderStatus | 'all')[] = ['all', 'Confirmed', 'Started', 'Ongoing', 'Completed', 'cancelled']
 
 function openMenu(): void {
   openDrawer()

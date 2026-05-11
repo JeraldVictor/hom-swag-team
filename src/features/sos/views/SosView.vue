@@ -191,9 +191,11 @@ async function handleResolve(): Promise<void> {
   if (!activeAlert.value) return
   isResolving.value = true
   try {
-    await resolveSos(activeAlert.value.id)
+    const alertId = activeAlert.value.id || activeAlert.value._id
+    if (!alertId) throw new Error('Alert ID not found')
+    await resolveSos(alertId)
     activeAlert.value = null
-    showSuccess('SOS cancelled')
+    showSuccess('SOS resolved and marked as safe')
   } catch (err) {
     showError(err instanceof Error ? err.message : 'Failed to cancel SOS')
   } finally {

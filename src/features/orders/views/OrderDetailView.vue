@@ -63,11 +63,11 @@
               Navigate to Location
             </AppButton>
             <div class="dual-btns">
+              <AppButton variant="outline" icon="lucide:copy" @click="copyAddress">
+                Copy Address
+              </AppButton>
               <AppButton variant="outline" icon="lucide:phone" :href="'tel:' + order.customer?.phone">
                 Call
-              </AppButton>
-              <AppButton variant="outline" icon="lucide:message-circle" :href="'https://wa.me/' + order.customer?.phone">
-                WhatsApp
               </AppButton>
             </div>
           </div>
@@ -190,32 +190,10 @@
           </div>
         </div>
 
-        <!-- Action Footer -->
         <div class="action-footer" v-if="!isCompleted">
           <div v-if="error" class="error-banner">{{ error }}</div>
-          
-          <!-- OTP Verification Step -->
-          <div v-if="showOtpInput" class="otp-verification anim-slide-up">
-            <div class="otp-header">
-              <Icon icon="lucide:shield-check" class="otp-icon" />
-              <h3>Verify Service OTP</h3>
-              <p>Enter the 6-digit code provided by the customer to start the service.</p>
-            </div>
-            
-            <div class="otp-container">
-              <OtpInput v-model="otpValue" @complete="handleVerifyOtp" />
-            </div>
-
-            <div class="otp-actions">
-              <AppButton variant="ghost" @click="showOtpInput = false">Cancel</AppButton>
-              <AppButton :disabled="otpValue.length < 6" :loading="isVerifyingOtp" @click="handleVerifyOtp">
-                Verify & Start
-              </AppButton>
-            </div>
-          </div>
-
           <!-- Main Actions -->
-          <div v-else class="main-actions">
+          <div class="main-actions">
             <AppButton 
               v-if="nextActionLabel"
               expand="block"
@@ -248,6 +226,45 @@
         </div>
       </template>
     </ion-content>
+
+    <!-- OTP Verification Drawer -->
+    <ion-modal 
+      :is-open="showOtpInput" 
+      @didDismiss="showOtpInput = false" 
+      class="otp-modal"
+      :initial-breakpoint="0.5"
+      :breakpoints="[0, 0.5, 0.7]"
+      handle-behavior="cycle"
+    >
+      <div class="otp-drawer-content">
+        <div class="otp-header">
+          <div class="otp-icon-wrapper">
+            <Icon icon="lucide:shield-check" />
+          </div>
+          <h3>Verify Service OTP</h3>
+          <p>Enter the 6-digit code provided by the customer to start the service.</p>
+        </div>
+        
+        <div class="otp-input-section">
+          <OtpInput v-model="otpValue" @complete="handleVerifyOtp" />
+        </div>
+
+        <div class="otp-footer">
+          <AppButton 
+            expand="block" 
+            size="lg" 
+            :disabled="otpValue.length < 6" 
+            :loading="isVerifyingOtp" 
+            @click="handleVerifyOtp"
+          >
+            Verify & Start Service
+          </AppButton>
+          <AppButton variant="ghost" expand="block" @click="showOtpInput = false">
+            Cancel
+          </AppButton>
+        </div>
+      </div>
+    </ion-modal>
 
     <!-- Upgrade Modal -->
     <ion-modal :is-open="showUpgradeModal" @didDismiss="showUpgradeModal = false" class="upgrade-modal">
@@ -630,6 +647,42 @@ async function navigateToLocation() {
   showRideModal.value = true
 }
 
+async function copyAddress() {
+  if (!fullAddress.value) return
+  
+  const text = fullAddress.value
+  try {
+    // 1. Try modern API
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      showSuccess('Address copied to clipboard')
+      return
+    }
+    
+    // 2. Fallback for non-secure / older mobile contexts
+    const textArea = document.createElement("textarea")
+    textArea.value = text
+    textArea.style.position = "fixed"
+    textArea.style.left = "-9999px"
+    textArea.style.top = "0"
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textArea)
+    
+    if (successful) {
+      showSuccess('Address copied')
+    } else {
+      throw new Error('Fallback copy failed')
+    }
+  } catch (err) {
+    console.error('Copy failed', err)
+    showError('Failed to copy address')
+  }
+}
+
 onMounted(() => fetchOrder(orderId))
 </script>
 
@@ -811,6 +864,18 @@ onMounted(() => fetchOrder(orderId))
 .cancel-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 
 /* ── Modals & Helpers ────────────────────────────────────────────────────── */
+.otp-modal { --border-radius: 32px 32px 0 0; }
+.otp-drawer-content { padding: 32px 24px; display: flex; flex-direction: column; gap: 32px; }
+.otp-icon-wrapper { 
+  width: 64px; height: 64px; border-radius: 20px; background: var(--color-brand-pale); 
+  color: var(--color-brand); display: flex; align-items: center; justify-content: center; 
+  margin: 0 auto; font-size: 32px; 
+}
+.otp-header { text-align: center; }
+.otp-header h3 { margin: 16px 0 8px; font-size: 22px; font-weight: 800; color: var(--color-text); }
+.otp-header p { margin: 0; font-size: 14px; color: var(--color-text-muted); line-height: 1.5; }
+.otp-input-section { display: flex; justify-content: center; }
+.otp-footer { display: flex; flex-direction: column; gap: 12px; }
 
 .upgrade-modal { --height: 70%; --border-radius: 24px 24px 0 0; }
 

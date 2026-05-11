@@ -2,7 +2,7 @@
   <ion-modal
     :is-open="isOpen"
     @didDismiss="$emit('update:isOpen', false)"
-    :initial-breakpoint="0.65"
+    :initial-breakpoint="1"
     :breakpoints="[0, 0.65, 0.9]"
     handle-behavior="cycle"
     class="ride-selector-modal"
@@ -120,15 +120,25 @@ async function handleBook(providerId: string) {
     if (providerId === 'Uber') {
       window.open(`uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}`, '_system')
     } else if (providerId === 'Ola') {
-      window.open(`olacabs://booking?lat=${lat}&lng=${lng}`, '_system')
+      // More compatible Ola format
+      window.open(`olacabs://booking?lat=${lat}&lng=${lng}&utm_source=homswag&utm_medium=beautician_app`, '_system')
     } else if (providerId === 'Namma Yatri') {
-      const pLat = pickup?.latitude || ''
-      const pLng = pickup?.longitude || ''
-      window.open(`nammayatri://book?pickupLat=${pLat}&pickupLng=${pLng}&dropLat=${lat}&dropLng=${lng}`, '_system')
+      // Namma Yatri standard deep link format
+      window.open(`nammayatri://booking?lat=${lat}&lng=${lng}`, '_system')
     } else if (providerId === 'Rapido') {
       window.open(`rapido://booking`, '_system')
+      setTimeout(() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_system'), 1000)
+    } else if (providerId === 'Google Maps') {
+      // Android "geo:" intent allows choosing between different map apps
+      const geoUrl = `geo:${lat},${lng}?q=${lat},${lng}(Customer+Location)`
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+      
+      // Try geo intent first, then fallback to web Google Maps
+      window.open(geoUrl, '_system')
+      setTimeout(() => window.open(googleMapsUrl, '_system'), 500)
     } else {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_system')
+      // Generic "Other" or fallback
+      window.open(`geo:${lat},${lng}?q=${lat},${lng}`, '_system')
     }
 
     emit('booked', providerId)
@@ -211,7 +221,7 @@ async function handleBook(providerId: string) {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  padding: 8px 24px 32px;
+  padding: 8px 24px 50px;
 }
 
 .ride-card {
