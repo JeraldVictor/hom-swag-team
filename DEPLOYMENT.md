@@ -72,7 +72,50 @@ This copies `dist/` into the Android project and updates any Capacitor plugins.
 
 ---
 
-## 5. Generate a Debug APK (for sharing & testing)
+## 5. Generate App Icons & Splash Screens
+
+App icons and splash screens are generated from two source images using `@capacitor/assets`.
+
+### 5a. Install the tool (first time only)
+
+```bash
+pnpm add -D @capacitor/assets
+```
+
+### 5b. Add source images
+
+Place the following files in the `resources/` folder at the project root:
+
+| File | Size | Purpose |
+|---|---|---|
+| `resources/icon-only.png` | 1024×1024 px | App launcher icon (square, no rounded corners) |
+| `resources/splash.png` | 2732×2732 px | Splash screen (logo centered, edges will be cropped) |
+
+> **Tip:** For adaptive icons (Android 8+), also add `icon-foreground.png` and `icon-background.png` at 1024×1024 px. Keep the logo within the center 66% of the canvas.
+
+### 5c. Generate assets
+
+```bash
+pnpm exec capacitor-assets generate --android
+```
+
+This writes **25 files** directly into `android/app/src/main/res/`:
+- Launcher icons in all density buckets (`mipmap-ldpi` → `mipmap-xxxhdpi`), square and round variants
+- Splash screens in all portrait and landscape density buckets
+
+### Troubleshooting — sharp native module error
+
+If you see `Cannot find module '../build/Release/sharp-darwin-arm64v8.node'`, rebuild the native binary for Apple Silicon:
+
+```bash
+pnpm exec npm rebuild sharp
+```
+
+Then re-run the generate command.
+
+---
+
+## 6. Generate a Debug APK (for sharing & testing)
 
 A **debug APK** is signed with a debug key — suitable for internal testing and sharing with QA / stakeholders.
 
@@ -98,7 +141,7 @@ android/app/build/outputs/apk/debug/app-debug.apk
 
 ---
 
-## 6. Share the debug APK
+## 7. Share the debug APK
 
 Once built, share `android/app/build/outputs/apk/debug/app-debug.apk` via:
 
@@ -120,13 +163,16 @@ pnpm install
 # 2. Build web assets for PROD
 pnpm vite build --mode prod
 
-# 3. Sync to Android
+# 3. Generate icons & splash screens (re-run whenever source images change)
+pnpm exec capacitor-assets generate --android
+
+# 4. Sync to Android
 pnpm exec cap sync android
 
-# 4. Build debug APK
+# 5. Build debug APK
 cd android && ./gradlew assembleDebug && cd ..
 
-# 5. Find the APK
+# 6. Find the APK
 open android/app/build/outputs/apk/debug/
 ```
 
@@ -141,3 +187,4 @@ open android/app/build/outputs/apk/debug/
 | Web assets not updated | Re-run `pnpm exec cap sync android` after every build |
 | App crashes on launch | Check that `.env.prod` API URLs are reachable from the device |
 | `versionCode` conflict on device | Uninstall the old APK before installing the new one |
+| `sharp` native module error | Run `pnpm exec npm rebuild sharp` then retry asset generation |
