@@ -18,6 +18,8 @@ async function takePhoto(): Promise<string> {
     resultType: CameraResultType.DataUrl,
     source: CameraSource.Camera,
     quality: 90,
+    width: 1280,
+    correctOrientation: true,
   })
 
   if (!photo.dataUrl) {
