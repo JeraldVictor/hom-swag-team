@@ -191,9 +191,13 @@ async function handleResolve(): Promise<void> {
   if (!activeAlert.value) return
   isResolving.value = true
   try {
-    const alertId = activeAlert.value.id || activeAlert.value._id
-    if (!alertId) throw new Error('Alert ID not found')
-    await resolveSos(alertId)
+    const alertId = (activeAlert.value as any)._id || (activeAlert.value as any).id
+    if (!alertId) {
+      console.warn('[SosView] No alert ID found for resolution', activeAlert.value)
+      activeAlert.value = null
+      return
+    }
+    await resolveSos(String(alertId))
     activeAlert.value = null
     showSuccess('SOS resolved and marked as safe')
   } catch (err) {
