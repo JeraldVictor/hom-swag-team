@@ -34,7 +34,9 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useAppStore } from '@/shared/stores/app'
 import { useNetwork, getIsOnline } from '@/shared/composables/useNetwork'
 import { usePermissions } from '@/shared/composables/usePermissions'
+import { useToast } from '@/shared/composables/useToast'
 import { locationTracker } from '@/shared/composables/useLocationTracker'
+import { webSocketService } from '@/shared/lib/websocket.service'
 import NoInternetView from '@/features/home/views/NoInternetView.vue'
 import PermissionSplashView from '@/features/home/views/PermissionSplashView.vue'
 import logo from '@/shared/images/HomSwagLogo.png'
@@ -51,6 +53,7 @@ const { checkAll, allGranted } = usePermissions()
 
 // Reactive store refs for the template
 const { bootPhase } = storeToRefs(appStore)
+const { showToast } = useToast()
 
 // ---------------------------------------------------------------------------
 // Boot sequence
@@ -124,6 +127,26 @@ async function setupAppStateListener() {
 
 onMounted(async () => {
   void import('@aejkatappaja/phantom-ui')
+  
+  // Listen for force logout events from the server (e.g. account deactivated/blocked)
+  webSocketService.on('force_logout', async (data: { reason?: string }) => {
+    console.warn('[App] Force logout received:', data.reason)
+    
+    // Stop tracking immediately
+    locationTracker.stop()
+    
+    // Show notification to user
+    const reasonMessage = data.reason === 'account_deactivated' 
+      ? 'Your account has been deactivated. Please contact support.'
+      : 'You have been logged out for security reasons.'
+    
+    showToast(reasonMessage, 'danger')
+    
+    // Clear session and redirect
+    await authStore.logout()
+    await router.replace('/login')
+  })
+
   await boot()
   await setupAppStateListener()
 })
