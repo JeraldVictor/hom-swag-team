@@ -129,13 +129,22 @@ export function usePermissions(): UsePermissionsReturn {
   async function requestCamera(): Promise<PermissionState> {
     if (!isNative()) return 'granted'
     try {
-      const result = await Camera.requestPermissions()
+      // Explicitly request both camera and photos (READ_MEDIA_IMAGES on Android 13+)
+      const result = await Camera.requestPermissions({ permissions: ['camera', 'photos'] })
       const state = result.camera as PermissionState
       statuses.value = { ...statuses.value, camera: state }
       return state
     } catch {
-      statuses.value = { ...statuses.value, camera: 'denied' }
-      return 'denied'
+      // Permission might have been permanently denied — recheck from OS to get real state
+      try {
+        const checked = await Camera.checkPermissions()
+        const state = checked.camera as PermissionState
+        statuses.value = { ...statuses.value, camera: state }
+        return state
+      } catch {
+        statuses.value = { ...statuses.value, camera: 'denied' }
+        return 'denied'
+      }
     }
   }
 
@@ -167,6 +176,9 @@ export function usePermissions(): UsePermissionsReturn {
       await requestLocation()
       await requestCamera()
       await requestNotifications()
+      // Re-read from the OS after all dialogs have closed — some Android versions
+      // return stale state from requestPermissions() before the system fully registers the grant.
+      await checkAll()
     } finally {
       isLoading.value = false
     }

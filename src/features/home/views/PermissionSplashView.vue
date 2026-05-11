@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { usePermissions } from '@/shared/composables/usePermissions'
 import type { PermissionState } from '@/shared/composables/usePermissions'
@@ -115,7 +115,11 @@ const emit = defineEmits<{
   (e: 'granted'): void
 }>()
 
-const { statuses, isLoading, requestAll } = usePermissions()
+const { statuses, isLoading, checkAll, requestAll } = usePermissions()
+
+// Read the real OS permission state on mount so already-granted permissions
+// are shown immediately rather than as 'unknown'.
+onMounted(() => checkAll())
 
 const requested = ref(false)
 const activeKey = ref<string | null>(null)
