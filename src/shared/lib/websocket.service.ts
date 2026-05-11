@@ -1,159 +1,131 @@
 /**
- * WebSocket Service
+ * WebSocket Service (Socket.io version)
  *
- * Manages a persistent WebSocket connection to the BFF real-time endpoint.
- * Authentication is performed by appending the access token as a `?token=`
- * query parameter in the WebSocket URL.
- *
- * Implements exponential backoff reconnection on connection loss:
- *   - Initial delay: 1 second
- *   - Doubles on each attempt
- *   - Maximum delay: 30 seconds
- *
- * Supports inbound message listeners so components can react to server-pushed
- * events (e.g. admin tracking updates, ping/pong).
+ * Manages a persistent real-time connection to the BFF endpoint using Socket.io.
+ * Handles authentication via the `auth` handshake object.
  */
 
-import type { Coordinates, WsMessage } from '@/shared/models/location.model'
+import { io, Socket } from 'socket.io-client'
+import type { Coordinates } from '@/shared/models/location.model'
 
-/** Exponential backoff configuration. */
-const BACKOFF_INITIAL_MS = 1_000
-const BACKOFF_MAX_MS = 30_000
+/** Message structure for inbound events (legacy support or generic) */
+export interface WsMessage {
+  type: string
+  [key: string]: unknown
+}
 
 type MessageListener = (message: WsMessage) => void
+type EventHandler = (data: any) => void
 
 class WebSocketService {
-  private socket: WebSocket | null = null
-  private token: string | null = null
-  private reconnectAttempt = 0
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
-  private intentionalDisconnect = false
+  private socket: Socket | null = null
   private listeners: Set<MessageListener> = new Set()
+  private eventHandlers: Map<string, Set<EventHandler>> = new Map()
 
-  /** WebSocket server URL — falls back to ws://localhost:3000 if not set. */
+  /** WebSocket server URL — falls back to http://localhost:3000 if not set. */
   private get wsUrl(): string {
-    return (import.meta.env.VITE_WS_URL as string | undefined) ?? 'ws://localhost:3000'
+    return (import.meta.env.VITE_WS_URL as string | undefined) ?? 'http://localhost:3000'
   }
 
   /**
-   * Connect to the WebSocket server, authenticating with the provided token.
-   * The token is passed as a `?token=<accessToken>` query parameter.
+   * Connect to the Socket.io server.
+   * Authentication is performed via the `auth` object in the handshake.
    *
    * @param token  The user's access token.
    */
   connect(token: string): void {
-    this.token = token
-    this.intentionalDisconnect = false
-    this.reconnectAttempt = 0
-    this._openSocket()
+    if (this.socket?.connected) return
+
+    this.socket = io(this.wsUrl, {
+      auth: { token },
+      transports: ['websocket'],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 30000,
+    })
+
+    this.socket.on('connect', () => {
+      console.log('[WebSocketService] Connected to server')
+    })
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('[WebSocketService] Disconnected:', reason)
+    })
+
+    this.socket.on('error', (err) => {
+      console.error('[WebSocketService] Error:', err)
+    })
+
+    // Legacy support for onMessage listeners (mapping Socket.io events to WsMessage if needed)
+    // For now, we'll just allow direct event listeners which is cleaner.
   }
 
   /**
-   * Disconnect from the WebSocket server and cancel any pending reconnection.
+   * Disconnect from the server.
    */
   disconnect(): void {
-    this.intentionalDisconnect = true
-    this._cancelReconnect()
-
     if (this.socket) {
-      this.socket.close()
+      this.socket.disconnect()
       this.socket = null
     }
   }
 
   /**
-   * Returns true if the socket is currently open.
+   * Returns true if the socket is currently connected.
    */
   get isConnected(): boolean {
-    return this.socket?.readyState === WebSocket.OPEN
+    return this.socket?.connected ?? false
   }
 
   /**
-   * Emit a location update message over the WebSocket connection.
-   * The message format is: `{ type: 'location', latitude, longitude }`.
+   * Emit a location update message.
    *
    * @param coords  The current GPS coordinates.
    */
   emitLocation(coords: Coordinates): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
-
-    const message = JSON.stringify({ type: 'location', ...coords })
-    this.socket.send(message)
+    if (!this.socket?.connected) return
+    this.socket.emit('location', coords)
   }
 
   /**
-   * Send any arbitrary JSON message over the WebSocket connection.
+   * Send any arbitrary event and payload.
    *
+   * @param event    Event name
    * @param payload  The message object to send.
    */
-  send(payload: Record<string, unknown>): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
-    this.socket.send(JSON.stringify(payload))
+  emit(event: string, payload: any): void {
+    if (!this.socket?.connected) return
+    this.socket.emit(event, payload)
   }
 
   /**
-   * Register a listener for inbound WebSocket messages.
+   * Register a listener for a specific Socket.io event.
    * Returns an unsubscribe function.
-   *
-   * @param listener  Called with the parsed message object on each inbound message.
+   */
+  on(event: string, handler: EventHandler): () => void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, new Set())
+    }
+    
+    this.eventHandlers.get(event)?.add(handler)
+    
+    // If socket is already initialized, attach immediately
+    this.socket?.on(event, handler)
+    
+    return () => {
+      this.eventHandlers.get(event)?.delete(handler)
+      this.socket?.off(event, handler)
+    }
+  }
+
+  /**
+   * Register a listener for inbound WebSocket messages (Legacy support).
+   * Note: This version might not be as useful with Socket.io's named events,
+   * but kept for backward compatibility if needed.
    */
   onMessage(listener: MessageListener): () => void {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
-  }
-
-  // ─── Private helpers ────────────────────────────────────────────────────────
-
-  private _openSocket(): void {
-    if (!this.token) return
-
-    const url = `${this.wsUrl}?token=${encodeURIComponent(this.token)}`
-    this.socket = new WebSocket(url)
-
-    this.socket.addEventListener('open', () => {
-      // Reset backoff on successful connection.
-      this.reconnectAttempt = 0
-    })
-
-    this.socket.addEventListener('message', (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data as string) as WsMessage
-        this.listeners.forEach((listener) => listener(data))
-      } catch {
-        // Ignore non-JSON messages
-      }
-    })
-
-    this.socket.addEventListener('close', () => {
-      if (!this.intentionalDisconnect) {
-        this._scheduleReconnect()
-      }
-    })
-
-    this.socket.addEventListener('error', () => {
-      // The 'close' event will fire after 'error', so reconnection is handled there.
-    })
-  }
-
-  private _scheduleReconnect(): void {
-    const delay = Math.min(
-      BACKOFF_INITIAL_MS * Math.pow(2, this.reconnectAttempt),
-      BACKOFF_MAX_MS,
-    )
-    this.reconnectAttempt++
-
-    this.reconnectTimer = setTimeout(() => {
-      if (!this.intentionalDisconnect) {
-        this._openSocket()
-      }
-    }, delay)
-  }
-
-  private _cancelReconnect(): void {
-    if (this.reconnectTimer !== null) {
-      clearTimeout(this.reconnectTimer)
-      this.reconnectTimer = null
-    }
   }
 }
 

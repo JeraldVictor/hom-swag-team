@@ -41,3 +41,12 @@ export interface WsMessage {
   timestamp?: number
   [key: string]: unknown
 }
+
+/**
+ * Live tracking status returned by the server.
+ */
+export interface TrackingStatus {
+  is_enabled: boolean
+  is_blocked: boolean
+  blocked_reason?: 'leave' | 'week_off' | 'block_time'
+}

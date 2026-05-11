@@ -9,6 +9,7 @@
  */
 
 import apiClient from '@/shared/lib/api'
+import { webSocketService } from '@/shared/lib/websocket.service'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,11 +54,16 @@ export async function getTrackingStatus(): Promise<TrackingStatusResponse> {
 /**
  * Push the worker's current GPS coordinates to the server.
  *
- * POST /location
+ * Prefers WebSocket emission if connected (Requirement 2.2).
+ * Falls back to REST POST /location if WebSocket is unavailable.
  *
  * HTTP 503 → feature flag disabled (caller should stop the interval).
  * HTTP 422 → worker is blocked (caller should skip the tick).
  */
 export async function pushLocation(coords: PushLocationPayload): Promise<void> {
+  if (webSocketService.isConnected) {
+    webSocketService.emitLocation(coords)
+    return
+  }
   await apiClient.post('/location', coords)
 }

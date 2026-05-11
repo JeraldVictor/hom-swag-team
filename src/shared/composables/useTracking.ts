@@ -78,8 +78,6 @@ export function useTracking(): UseTrackingReturn {
     try {
       watchId = await locationService.startWatching((coords) => {
         currentPosition.value = coords
-        // Emit over WebSocket
-        webSocketService.emitLocation(coords)
         // isConnected reflects actual socket state
         isConnected.value = webSocketService.isConnected
       }, intervalMs)

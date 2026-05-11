@@ -32,6 +32,9 @@ import type { PluginListenerHandle } from '@capacitor/core'
 import { Geolocation } from '@capacitor/geolocation'
 import { getTrackingStatus, pushLocation } from '@/shared/api/location.service'
 import { ApiError } from '@/shared/lib/api'
+import { webSocketService } from '@/shared/lib/websocket.service'
+import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
+import type { TrackingStatus } from '@/shared/models/location.model'
 
 // ---------------------------------------------------------------------------
 // Public interfaces
@@ -63,6 +66,13 @@ export function useLocationTracker(
   const isTracking = ref(false)
   let intervalId: ReturnType<typeof setInterval> | null = null
   let appStateListener: PluginListenerHandle | null = null
+  let socketUnsubscribe: (() => void) | null = null
+
+  // Current tracking status — updated via WebSocket or initial fetch
+  const currentStatus = ref<TrackingStatus>({
+    is_enabled: true,
+    is_blocked: false,
+  })
 
   // -------------------------------------------------------------------------
   // Android foreground service helpers (Requirement 2.2)
@@ -134,8 +144,9 @@ export function useLocationTracker(
 
   async function tick(): Promise<void> {
     try {
-      // Step 1 — check tracking status (feature flag + blocked duration)
-      const status = await getTrackingStatus()
+      // Step 1 — check tracking status from local reactive state (Requirement 2.2)
+      // No longer polling the API on every tick to reduce server load.
+      const status = currentStatus.value
 
       if (!status.is_enabled) {
         // Feature flag disabled for this office → stop the interval entirely
@@ -196,7 +207,33 @@ export function useLocationTracker(
 
     isTracking.value = true
 
-    // Set up Android foreground service listener (Requirement 2.2)
+    // 1. Initial status fetch + WebSocket setup
+    try {
+      // Fetch initial status to avoid waiting for the first socket message
+      const initialStatus = await getTrackingStatus()
+      currentStatus.value = initialStatus
+
+      // Connect socket if not already connected
+      const token = await Storage_Service.getString(STORAGE_KEYS.accessToken)
+      if (token) {
+        webSocketService.connect(token)
+      }
+
+      // Listen for status updates pushed from the server
+      socketUnsubscribe = webSocketService.on('tracking:status_updated', (status: TrackingStatus) => {
+        console.log('[useLocationTracker] Received status update from socket:', status)
+        currentStatus.value = status
+
+        // If status changed to disabled, stop immediately
+        if (!status.is_enabled && isTracking.value) {
+          stop()
+        }
+      })
+    } catch (err) {
+      console.warn('[useLocationTracker] Initial status fetch/socket setup failed — continuing with defaults', err)
+    }
+
+    // 2. Set up Android foreground service listener (Requirement 2.2)
     if (Capacitor.getPlatform() === 'android') {
       appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
         if (!isTracking.value) return
@@ -232,6 +269,12 @@ export function useLocationTracker(
       if (Capacitor.getPlatform() === 'android') {
         stopForegroundService()
       }
+    }
+
+    // Unsubscribe from socket events
+    if (socketUnsubscribe) {
+      socketUnsubscribe()
+      socketUnsubscribe = null
     }
 
     isTracking.value = false
