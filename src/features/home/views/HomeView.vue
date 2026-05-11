@@ -743,7 +743,7 @@ async function fetchAll(): Promise<void> {
             const seen = new Set()
             const extractedOrders: any[] = []
             
-            for (const t of d.trips) {
+            for (const t of d.trips as any[]) {
               const o = t.order_id
               if (o && typeof o === 'object' && o._id) {
                 if (!seen.has(o._id)) {

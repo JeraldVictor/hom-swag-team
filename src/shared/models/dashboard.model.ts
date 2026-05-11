@@ -17,4 +17,5 @@ export interface DashboardData {
   unread_notifications_count: number
   today_orders?: Order[]
   trips?: Trip[]
+  leave_balance?: Record<string, number>
 }

@@ -154,7 +154,7 @@ onMounted(() => {
     dateFilter.value = route.query.date as OrderDateFilter
   }
   if (route.query.status) {
-    statusFilter.value = route.query.status as OrderStatus | 'All'
+    statusFilter.value = route.query.status as OrderStatus | 'all'
   }
   fetchOrders()
 })

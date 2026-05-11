@@ -28,6 +28,8 @@ pnpm build         # Type-check + build
 pnpm test:unit     # Vitest unit tests
 pnpm test:e2e      # Cypress e2e tests
 pnpm lint          # ESLint
+ionic cap run android -l --external # Run on Android device with live reload
+ionic cap run android --external --mode prod # Run on Android device on PRODUCTION BUILD
 ```
 
 ## Feature Flags

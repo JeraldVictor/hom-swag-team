@@ -203,9 +203,16 @@ const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestCo
 // In dev mode (Vite live-reload) use an absolute URL from window.location.origin
 // so CapacitorHttp routes requests to the Vite dev server (which proxies /api
 // to the BFF). In production the full BFF URL is embedded at build time.
+const prodUrl = import.meta.env.VITE_BFF_API_URL as string | undefined
+if (!import.meta.env.DEV && (!prodUrl || !prodUrl.startsWith('http'))) {
+  throw new Error(
+    `[api] VITE_BFF_API_URL is missing or not an absolute URL ("${prodUrl}"). ` +
+    'Build with --mode prod or set a correct absolute URL in .env.prod.',
+  )
+}
 const baseURL = import.meta.env.DEV
   ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api`
-  : (import.meta.env.VITE_BFF_API_URL as string)
+  : prodUrl!
 
 const apiClient: AxiosInstance = axios.create({
   baseURL,
