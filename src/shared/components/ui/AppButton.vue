@@ -66,6 +66,18 @@ const isMuted = computed(() => props.loading || props.disabled)
 </template>
 
 <style scoped>
+ion-button {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+/* Add spacing between icon and text inside the button */
+ion-button::part(native) {
+  gap: 8px;
+}
+
 .app-btn--muted {
   opacity: 0.55;
 }

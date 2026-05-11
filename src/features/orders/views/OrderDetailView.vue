@@ -62,8 +62,10 @@
 
           <div class="hero-actions" v-if="!isCompleted">
             <ion-button expand="block" mode="ios" class="nav-btn" @click="navigateToLocation">
-              <Icon icon="lucide:navigation" slot="start" />
-              Navigate to Location
+              <div class="btn-content">
+                <Icon icon="lucide:navigation" class="btn-icon" />
+                <span>Navigate to Location</span>
+              </div>
             </ion-button>
             <div class="dual-btns">
               <ion-button fill="outline" mode="ios" class="call-btn" :href="'tel:' + order.customer?.phone">
@@ -71,7 +73,7 @@
                 Call
               </ion-button>
               <ion-button fill="outline" mode="ios" class="msg-btn" :href="'https://wa.me/' + order.customer?.phone">
-                <Icon icon="lucide:message-square" slot="start" />
+                <Icon icon="lucide:message-circle" slot="start" />
                 WhatsApp
               </ion-button>
             </div>
@@ -144,8 +146,8 @@
                 </div>
 
                 <div v-if="canUpgrade && item.type !== 'package'" class="item-actions">
-                  <ion-button fill="clear" size="small" @click="openUpgradeModal(item as any)">
-                    <Icon icon="lucide:trending-up" slot="start" />
+                  <ion-button fill="outline" size="small" class="upgrade-action-btn" @click="openUpgradeModal(item as any)">
+                    <Icon icon="lucide:arrow-up-circle" slot="start" />
                     Upgrade
                   </ion-button>
                 </div>
@@ -232,11 +234,12 @@
             <ion-button 
               v-if="canCancel && isBookingDateToday"
               expand="block" 
-              fill="clear" 
+              fill="outline" 
               color="danger" 
               class="cancel-btn"
               @click="openCancelModal"
             >
+              <Icon icon="lucide:ban" slot="start" />
               Customer Request to Cancel
             </ion-button>
           </div>
@@ -706,12 +709,56 @@ onMounted(() => fetchOrder(orderId))
 .hero-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.nav-btn { --background: var(--color-brand); --border-radius: 14px; font-weight: 700; margin: 0; height: 52px; }
-.dual-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.call-btn, .msg-btn { --border-radius: 14px; font-weight: 700; margin: 0; height: 48px; }
+.nav-btn {
+  --background: linear-gradient(135deg, var(--color-brand) 0%, #6366f1 100%);
+  --background-activated: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  --border-radius: 18px;
+  --box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
+  font-weight: 800;
+  margin: 0;
+  height: 56px;
+  text-transform: none;
+  letter-spacing: -0.2px;
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.dual-btns { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 10px; 
+}
+
+.call-btn, .msg-btn { 
+  --border-radius: 16px; 
+  --border-width: 1.5px;
+  --border-color: var(--color-border);
+  --color: var(--color-text);
+  font-weight: 700; 
+  margin: 0; 
+  height: 50px;
+  font-size: 14px;
+  text-transform: none;
+}
+
+.msg-btn {
+  --color: #25D366;
+  --border-color: rgba(37, 211, 102, 0.2);
+}
 
 .order-content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
@@ -826,8 +873,28 @@ onMounted(() => fetchOrder(orderId))
   box-shadow: 0 -8px 24px rgba(0,0,0,0.05);
 }
 
-.primary-action-btn { --background: var(--color-brand); --border-radius: 16px; height: 56px; font-weight: 800; font-size: 17px; margin: 0; }
-.cancel-btn { margin-top: 8px; font-weight: 700; }
+.primary-action-btn { 
+  --background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%);
+  --background-activated: #4338ca;
+  --border-radius: 20px; 
+  --box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3);
+  height: 60px; 
+  font-weight: 800; 
+  font-size: 17px; 
+  margin: 0; 
+  text-transform: none;
+  letter-spacing: -0.3px;
+}
+
+.cancel-btn { 
+  --border-radius: 18px;
+  --border-width: 1.5px;
+  margin-top: 12px; 
+  font-weight: 700;
+  height: 48px;
+  text-transform: none;
+  --color: var(--color-danger);
+}
 
 .error-banner { 
   margin-bottom: 12px; 
@@ -847,7 +914,29 @@ onMounted(() => fetchOrder(orderId))
 .otp-header p { margin: 8px 0 0; font-size: 14px; color: var(--color-text-muted); line-height: 1.5; }
 
 .otp-container { margin: 24px 0; }
-.otp-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+.upgrade-action-btn {
+  --border-radius: 12px;
+  --border-width: 1.5px;
+  --color: var(--color-brand);
+  --border-color: var(--color-brand);
+  font-weight: 700;
+  height: 36px;
+  text-transform: none;
+  margin: 0;
+}
+
+.otp-actions { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; 
+  margin-top: 24px; 
+}
+
+.otp-actions AppButton {
+  --border-radius: 18px;
+  height: 52px;
+  font-weight: 700;
+}
 
 /* ── Cancel Modal Styling ─────────────────────────────────────────────────── */
 

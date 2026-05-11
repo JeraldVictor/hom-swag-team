@@ -636,7 +636,16 @@ onIonViewWillEnter(fetchBookings)
   align-items: center; 
   gap: 8px;
 }
-.confirm-btn-primary { --border-radius: 18px; font-weight: 800; height: 56px; margin: 0; box-shadow: 0 8px 16px rgba(var(--color-brand-rgb), 0.2); }
+.confirm-btn-primary { 
+  --background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%);
+  --background-activated: #4338ca;
+  --border-radius: 20px; 
+  font-weight: 800; 
+  height: 60px; 
+  margin: 0; 
+  text-transform: none;
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3); 
+}
 
 /* Animations */
 .anim-fade-in { animation: fadeIn 0.4s ease-out; }
@@ -652,10 +661,13 @@ onIonViewWillEnter(fetchBookings)
 .rebook-btn {
   --border-radius: 12px;
   --border-width: 1.5px;
+  --color: var(--color-brand);
+  --border-color: var(--color-brand);
   font-weight: 800;
   text-transform: none;
-  letter-spacing: 0;
+  letter-spacing: -0.2px;
   font-size: 13px;
-  height: 36px;
+  height: 38px;
+  margin: 0;
 }
 </style>

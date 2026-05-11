@@ -1,0 +1,42 @@
+/* ==========================================================================
+   Global Styles
+   ========================================================================== */
+
+/* ── Ionic Component Spacing Overrides ───────────────────────────────────── */
+
+/**
+ * Ensure proper spacing between icons and text inside ion-button.
+ * Ionic's shadow DOM doesn't provide a gap by default.
+ */
+ion-button::part(native) {
+  gap: 8px;
+}
+
+/**
+ * Universal icon sizing/alignment inside buttons if not specified.
+ */
+ion-button Icon {
+  font-size: 1.2em;
+}
+
+/* ── Typography & Layout ────────────────────────────────────────────────── */
+
+body {
+  font-family: var(--ion-font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Utility Classes ────────────────────────────────────────────────────── */
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

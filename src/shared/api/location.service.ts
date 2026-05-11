@@ -52,15 +52,35 @@ export async function getTrackingStatus(): Promise<TrackingStatusResponse> {
 }
 
 /**
+ * Internal master switch for location tracking.
+ * This can be updated by the useLocationTracker singleton based on BFF status.
+ */
+let isTrackingMasterEnabled = true
+
+/**
+ * Update the master tracking switch.
+ * @param enabled  Whether tracking is globally enabled for this worker.
+ */
+export function setTrackingMasterStatus(enabled: boolean): void {
+  isTrackingMasterEnabled = enabled
+}
+
+/**
  * Push the worker's current GPS coordinates to the server.
  *
  * Prefers WebSocket emission if connected (Requirement 2.2).
  * Falls back to REST POST /location if WebSocket is unavailable.
  *
+ * This function respects the master tracking switch.
+ *
  * HTTP 503 → feature flag disabled (caller should stop the interval).
  * HTTP 422 → worker is blocked (caller should skip the tick).
  */
 export async function pushLocation(coords: PushLocationPayload): Promise<void> {
+  if (!isTrackingMasterEnabled) {
+    return
+  }
+
   if (webSocketService.isConnected) {
     webSocketService.emitLocation(coords)
     return

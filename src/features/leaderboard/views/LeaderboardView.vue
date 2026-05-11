@@ -27,80 +27,40 @@
         </button>
       </div>
 
-      <!-- Loading state & Leaderboard content -->
-      <template v-if="data || isLoading">
-        <phantom-ui 
-          :loading="isLoading" 
-          animation="shimmer" 
-          stagger="0.05"
-        >
-          <!-- Podium (top 3) -->
-          <div v-if="top3.length > 0 || isLoading" class="podium">
-            <!-- 2nd place -->
-            <div v-if="top3[1] || isLoading" class="podium-slot podium-slot--second">
-              <div class="podium-avatar podium-avatar--second">
-                <img v-if="top3[1]?.photo_url" :src="top3[1].photo_url" :alt="top3[1].name" class="podium-avatar__img" />
-                <span v-else class="podium-avatar__initials">{{ initials(top3[1]?.name ?? 'Placeholder') }}</span>
-              </div>
-              <p class="podium-name">{{ (top3[1]?.name ?? 'Placeholder').split(' ')[0] }}</p>
-              <p class="podium-count">{{ top3[1]?.count ?? 0 }}</p>
-              <div class="podium-block podium-block--second">
-                <span class="podium-rank">2</span>
-              </div>
+      <!-- Loading state -->
+      <template v-if="isLoading && !data">
+        <phantom-ui loading animation="shimmer" stagger="0.05">
+          <!-- Podium Skeleton -->
+          <div class="podium">
+            <div class="podium-slot podium-slot--second">
+              <div class="podium-avatar podium-avatar--second"></div>
+              <div class="podium-block podium-block--second"></div>
             </div>
-
-            <!-- 1st place -->
-            <div v-if="top3[0] || isLoading" class="podium-slot podium-slot--first">
-              <div class="podium-crown" aria-hidden="true">👑</div>
-              <div class="podium-avatar podium-avatar--first">
-                <img v-if="top3[0]?.photo_url" :src="top3[0].photo_url" :alt="top3[0].name" class="podium-avatar__img" />
-                <span v-else class="podium-avatar__initials">{{ initials(top3[0]?.name ?? 'Placeholder') }}</span>
-              </div>
-              <p class="podium-name">{{ (top3[0]?.name ?? 'Placeholder').split(' ')[0] }}</p>
-              <p class="podium-count">{{ top3[0]?.count ?? 0 }}</p>
-              <div class="podium-block podium-block--first">
-                <span class="podium-rank">1</span>
-              </div>
+            <div class="podium-slot podium-slot--first">
+              <div class="podium-avatar podium-avatar--first"></div>
+              <div class="podium-block podium-block--first"></div>
             </div>
-
-            <!-- 3rd place -->
-            <div v-if="top3[2] || isLoading" class="podium-slot podium-slot--third">
-              <div class="podium-avatar podium-avatar--third">
-                <img v-if="top3[2]?.photo_url" :src="top3[2].photo_url" :alt="top3[2].name" class="podium-avatar__img" />
-                <span v-else class="podium-avatar__initials">{{ initials(top3[2]?.name ?? 'Placeholder') }}</span>
-              </div>
-              <p class="podium-name">{{ (top3[2]?.name ?? 'Placeholder').split(' ')[0] }}</p>
-              <p class="podium-count">{{ top3[2]?.count ?? 0 }}</p>
-              <div class="podium-block podium-block--third">
-                <span class="podium-rank">3</span>
-              </div>
+            <div class="podium-slot podium-slot--third">
+              <div class="podium-avatar podium-avatar--third"></div>
+              <div class="podium-block podium-block--third"></div>
             </div>
           </div>
 
-          <!-- List rows -->
-          <div v-if="rest.length > 0 || isLoading" class="list" style="margin-top: 16px;">
-             <phantom-ui :loading="isLoading" :count="isLoading ? 5 : 1" count-gap="8">
-                <div
-                  v-for="entry in (isLoading ? [placeholderEntry] : rest)"
-                  :key="entry.user_id"
-                  class="entry-card"
-                >
-                  <span class="entry-rank">{{ entry.rank }}</span>
-                  <div class="entry-avatar">
-                    <span class="entry-avatar__initials">{{ initials(entry.name) }}</span>
-                  </div>
-                  <div class="entry-info">
-                    <p class="entry-name">{{ entry.name }}</p>
-                    <p class="entry-count">{{ entry.count }} orders</p>
-                  </div>
-                  <span v-if="entry.amount" class="entry-earnings">
-                    ₹{{ entry.amount.toLocaleString('en-IN') }}
-                  </span>
+          <!-- List Skeleton -->
+          <div class="list" style="margin-top: 16px;">
+            <phantom-ui loading count="5" count-gap="8">
+              <div class="entry-card">
+                <div class="entry-avatar"></div>
+                <div class="entry-info">
+                  <div style="height: 14px; width: 60%; background: #eee; margin-bottom: 4px;"></div>
+                  <div style="height: 10px; width: 40%; background: #eee;"></div>
                 </div>
-             </phantom-ui>
+              </div>
+            </phantom-ui>
           </div>
         </phantom-ui>
       </template>
+
 
       <!-- Error state -->
       <template v-else-if="error">

@@ -68,20 +68,27 @@
         </div>
         
         <div class="orders-list anim-list">
+          <!-- Skeleton State -->
           <phantom-ui 
-            :loading="isLoading && filteredOrders.length === 0" 
-            :count="isLoading && filteredOrders.length === 0 ? 5 : 1" 
+            v-if="isLoading && filteredOrders.length === 0" 
+            loading 
+            count="5" 
             count-gap="12"
             animation="shimmer"
             stagger="0.05"
           >
+            <OrderCard :order="placeholderOrder" />
+          </phantom-ui>
+
+          <!-- Real Content -->
+          <template v-else>
             <OrderCard
-              v-for="order in (isLoading && filteredOrders.length === 0 ? [placeholderOrder] : filteredOrders)"
-              :key="order.id ?? order._id ?? 'skeleton'"
+              v-for="order in filteredOrders"
+              :key="order.id ?? order._id"
               :order="order"
               @click="goToDetail(order.id ?? order._id ?? '')"
             />
-          </phantom-ui>
+          </template>
         </div>
 
         <!-- Infinite Scroll -->
@@ -135,7 +142,7 @@ const placeholderOrder: Order = {
   address: { street: '123 Placeholder St', city: 'Placeholder City' }
 } as Order // using as Order to satisfy the interface which has many optional but some required fields like id
 
-const statusOptions: (OrderStatus | 'All')[] = ['All', 'Confirmed', 'Started', 'Ongoing', 'Completed', 'Cancelled']
+const statusOptions: (OrderStatus | 'All')[] = ['All', 'Confirmed', 'Started', 'Ongoing', 'Completed', 'cancelled']
 
 function openMenu(): void {
   openDrawer()

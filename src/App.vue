@@ -89,6 +89,8 @@ async function finishBoot() {
     // Ensure socket is connected if we have a session
     if (authStore.accessToken) {
       webSocketService.connect(authStore.accessToken)
+      // Start background location tracking if enabled
+      void locationTracker.start()
     }
 
     if (router.currentRoute.value.path === '/login') {

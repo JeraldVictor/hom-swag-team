@@ -92,7 +92,11 @@ class WebSocketService {
    * @param coords  The current GPS coordinates.
    */
   emitLocation(coords: Coordinates): void {
-    if (!this.socket?.connected) return
+    if (!this.socket?.connected) {
+      console.warn('[WebSocketService] Cannot emit location: socket disconnected')
+      return
+    }
+    console.log('[WebSocketService] Emitting location:', coords)
     this.socket.emit('location', coords)
   }
 

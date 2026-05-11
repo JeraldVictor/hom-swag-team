@@ -30,7 +30,7 @@ import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 import type { PluginListenerHandle } from '@capacitor/core'
 import { Geolocation } from '@capacitor/geolocation'
-import { getTrackingStatus, pushLocation } from '@/shared/api/location.service'
+import { getTrackingStatus, pushLocation, setTrackingMasterStatus } from '@/shared/api/location.service'
 import { ApiError } from '@/shared/lib/api'
 import { webSocketService } from '@/shared/lib/websocket.service'
 import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
@@ -172,6 +172,7 @@ export function useLocationTracker(
 
       // Step 3 — push location to server
       try {
+        console.log('[useLocationTracker] Pushing location:', coords)
         await pushLocation(coords)
       } catch (err) {
         if (err instanceof ApiError) {
@@ -211,7 +212,9 @@ export function useLocationTracker(
     try {
       // Fetch initial status to avoid waiting for the first socket message
       const initialStatus = await getTrackingStatus()
+      console.log('[useLocationTracker] Initial status fetched:', initialStatus)
       currentStatus.value = initialStatus
+      setTrackingMasterStatus(initialStatus.is_enabled)
 
       // Connect socket if not already connected
       const token = await Storage_Service.getString(STORAGE_KEYS.accessToken)
@@ -223,6 +226,7 @@ export function useLocationTracker(
       socketUnsubscribe = webSocketService.on('tracking:status_updated', (status: TrackingStatus) => {
         console.log('[useLocationTracker] Received status update from socket:', status)
         currentStatus.value = status
+        setTrackingMasterStatus(status.is_enabled)
 
         // If status changed to disabled, stop immediately
         if (!status.is_enabled && isTracking.value) {
