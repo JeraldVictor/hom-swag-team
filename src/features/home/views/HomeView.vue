@@ -12,6 +12,9 @@
           <ion-button class="header-icon-btn" aria-label="Notifications" @click="router.push('/notifications')">
             <div class="notif-wrap">
               <Icon icon="lucide:bell" class="header-icon" />
+              <span v-if="unreadNotificationsCount > 0" class="notif-badge">
+                {{ unreadNotificationsCount }}
+              </span>
             </div>
           </ion-button>
         </ion-buttons>
@@ -54,102 +57,86 @@
       <!-- ── Dashboard content ─────────────────────────────────────────── -->
       <template v-else>
 
-        <!-- KPI strip -->
-        <div class="kpi-row anim-grid">
-          <div class="kpi-card kpi-card--brand">
-            <Icon icon="lucide:zap" class="kpi-card__icon" aria-hidden="true" />
-            <p class="kpi-card__value">{{ todayActive }}</p>
-            <p class="kpi-card__label">Active Today</p>
-          </div>
-          <div class="kpi-card kpi-card--success" @click="goTo('/orders', { date: 'today', status: 'Completed' })">
-            <Icon icon="lucide:circle-check-big" class="kpi-card__icon" aria-hidden="true" />
-            <p class="kpi-card__value">{{ todayDone }}</p>
-            <p class="kpi-card__label">Completed</p>
-          </div>
-          <div class="kpi-card kpi-card--success" @click="goTo('/orders', { date: 'past', status: 'Completed' })">
-            <Icon icon="lucide:layout-grid" class="kpi-card__icon" aria-hidden="true" />
-            <p class="kpi-card__value">{{ monthDone }}</p>
-            <p class="kpi-card__label">Month Total</p>
-          </div>
-        </div>
-
-        <!-- ── Today at a glance ──────────────────────────────────────── -->
-        <div class="section">
+        <!-- ── Dashboard (Unified Metrics) ─────────────────────────────────── -->
+        <div class="section dashboard-section">
           <div class="section-header">
-            <p class="section-title">Today at a Glance</p>
+            <p class="section-title">Today's Performance</p>
           </div>
-          <div class="glance-grid anim-grid">
-            <!-- Beautician: upcoming orders -->
-            <template v-if="isBeautician">
-                <div class="glance-card glance-card--purple press-feedback" @click="goTo('/orders', { date: 'tomorrow' })">
-                  <div class="glance-card__top">
-                    <Icon icon="lucide:clock" class="glance-card__icon" aria-hidden="true" />
-                    <span class="glance-card__count">{{ upcomingWorkload }}</span>
-                  </div>
-                  <p class="glance-card__label">Upcoming Orders</p>
-                  <p class="glance-card__sub">Tap to view</p>
-                </div>
-                <div class="glance-card glance-card--green" @click="goTo('/orders', { status: 'Completed', date: 'today' })">
-                  <div class="glance-card__top">
-                    <Icon icon="lucide:check-circle-2" class="glance-card__icon" aria-hidden="true" />
-                    <span class="glance-card__count">{{ todayDone }}</span>
-                  </div>
-                  <p class="glance-card__label">Completed Orders</p>
-                  <p class="glance-card__sub">Today</p>
-                </div>
-                <div class="glance-card glance-card--blue" @click="goTo('/orders', { status: 'Ongoing' })">
-                  <div class="glance-card__top">
-                    <Icon icon="lucide:loader" class="glance-card__icon" aria-hidden="true" />
-                    <span class="glance-card__count">{{ ongoingOrders.length }}</span>
-                  </div>
-                  <p class="glance-card__label">In Progress</p>
-                  <p class="glance-card__sub">Right now</p>
-                </div>
-                <div class="glance-card glance-card--orange" @click="goTo('/orders', { date: 'past' })">
-                  <div class="glance-card__top">
-                    <Icon icon="lucide:package" class="glance-card__icon" aria-hidden="true" />
-                    <span class="glance-card__count">{{ monthDone }}</span>
-                  </div>
-                  <p class="glance-card__label">This Month</p>
-                  <p class="glance-card__sub">Total orders</p>
-                </div>
-            </template>
 
-            <!-- Rider: upcoming trips -->
-            <template v-else>
-              <div class="glance-card glance-card--purple" @click="goTo('/trips')">
-                <div class="glance-card__top">
-                  <Icon icon="lucide:clock" class="glance-card__icon" aria-hidden="true" />
-                  <span class="glance-card__count">{{ upcomingTrips.length }}</span>
-                </div>
-                <p class="glance-card__label">Upcoming Trips</p>
-                <p class="glance-card__sub">Tap to view</p>
+          <!-- Earnings Overview -->
+          <div class="earnings-grid anim-grid">
+            <div class="earnings-main press-feedback" @click="goTo('/leaderboard')">
+              <div class="earnings-main__top">
+                <span class="earnings-main__label">Today's Earnings</span>
+                <Icon icon="lucide:trending-up" class="earnings-main__icon" />
               </div>
-              <div class="glance-card glance-card--green" @click="goTo('/trips')">
-                <div class="glance-card__top">
-                  <Icon icon="lucide:check-circle-2" class="glance-card__icon" aria-hidden="true" />
-                  <span class="glance-card__count">{{ completedTrips.length }}</span>
+              <div class="earnings-main__amount">{{ formatAmount(dashboard?.today_earnings) }}</div>
+              <div class="earnings-main__progress">
+                <div class="earnings-main__bar">
+                  <div class="earnings-main__fill" :style="{ width: `${earningsProgress}%` }" />
                 </div>
-                <p class="glance-card__label">Completed Trips</p>
-                <p class="glance-card__sub">Today</p>
+                <span class="earnings-main__target">Target: {{ formatAmountShort(DAILY_TARGET) }}</span>
               </div>
-              <div class="glance-card glance-card--blue" @click="goTo('/trips')">
-                <div class="glance-card__top">
-                  <Icon icon="lucide:navigation" class="glance-card__icon" aria-hidden="true" />
-                  <span class="glance-card__count">{{ activeTrips.length }}</span>
-                </div>
-                <p class="glance-card__label">In Progress</p>
-                <p class="glance-card__sub">Right now</p>
+            </div>
+            <div class="earnings-sub press-feedback" @click="goTo('/leaderboard')">
+              <span class="earnings-sub__label">Month Total</span>
+              <div class="earnings-sub__amount">{{ formatAmountShort(dashboard?.month_earnings) }}</div>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid anim-grid">
+            <div class="stat-card stat-card--purple" @click="goTo(isBeautician ? '/orders' : '/trips')">
+              <div class="stat-card__icon-wrap">
+                <Icon :icon="isBeautician ? 'lucide:briefcase' : 'lucide:car'" />
               </div>
-              <div class="glance-card glance-card--orange" @click="goTo('/trips')">
-                <div class="glance-card__top">
-                  <Icon icon="lucide:route" class="glance-card__icon" aria-hidden="true" />
-                  <span class="glance-card__count">{{ dashboard?.month_count ?? 0 }}</span>
-                </div>
-                <p class="glance-card__label">This Month</p>
-                <p class="glance-card__sub">Total trips</p>
+              <div class="stat-card__content">
+                <span class="stat-card__value">{{ todayActive }}</span>
+                <span class="stat-card__label">Total Today</span>
               </div>
-            </template>
+            </div>
+
+            <div class="stat-card stat-card--green" @click="goTo(isBeautician ? '/orders' : '/trips', { status: 'Completed', date: 'today' })">
+              <div class="stat-card__icon-wrap">
+                <Icon icon="lucide:check-circle-2" />
+              </div>
+              <div class="stat-card__content">
+                <span class="stat-card__value">{{ todayDone }}</span>
+                <span class="stat-card__label">Completed</span>
+              </div>
+            </div>
+
+            <div class="stat-card stat-card--red" @click="goTo(isBeautician ? '/orders' : '/trips', { status: 'Cancelled', date: 'today' })">
+              <div class="stat-card__icon-wrap">
+                <Icon icon="lucide:ban" />
+              </div>
+              <div class="stat-card__content">
+                <span class="stat-card__value">{{ dashboard?.today_cancelled_count ?? 0 }}</span>
+                <span class="stat-card__label">Cancelled</span>
+              </div>
+            </div>
+
+            <div class="stat-card stat-card--orange" @click="goTo(isBeautician ? '/orders' : '/trips', { date: 'tomorrow' })">
+              <div class="stat-card__icon-wrap">
+                <Icon icon="lucide:calendar-days" />
+              </div>
+              <div class="stat-card__content">
+                <span class="stat-card__value">{{ dashboard?.tomorrow_count ?? 0 }}</span>
+                <span class="stat-card__label">Tomorrow</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini Stats Row -->
+          <div class="mini-stats anim-grid">
+            <div class="mini-stat" @click="goTo('/leave')">
+              <Icon icon="lucide:calendar-off" class="mini-stat__icon" />
+              <span class="mini-stat__text"><b>{{ dashboard?.pending_leaves_count ?? 0 }}</b> Pending Leaves</span>
+            </div>
+            <div class="mini-stat" @click="goTo('/notifications')">
+              <Icon icon="lucide:bell-dot" class="mini-stat__icon" />
+              <span class="mini-stat__text"><b>{{ unreadNotificationsCount }}</b> Notifications</span>
+            </div>
           </div>
         </div>
 
@@ -468,8 +455,14 @@ const ongoingOrders = computed(() =>
 const completedOrders = computed(() =>
   orders.value.filter((o) => {
     const s = o.status?.toLowerCase()
-    // Count it as 'Done Today' if it was finished today, regardless of original schedule
     return s === 'completed' && isToday(o.updated_at || o.booking_info?.date)
+  })
+)
+
+const cancelledOrders = computed(() =>
+  orders.value.filter((o) => {
+    const s = o.status?.toLowerCase()
+    return (s === 'cancelled' || s === 'arrived_and_cancelled') && isToday(o.updated_at || o.booking_info?.date)
   })
 )
 
@@ -490,24 +483,34 @@ const completedTrips = computed(() =>
   })
 )
 
+const cancelledTrips = computed(() =>
+  trips.value.filter((t) => {
+    const s = t.kanban_state?.toLowerCase()
+    return s === 'cancelled' && isToday(t.updated_at ?? t.created_at)
+  })
+)
+
 // ── Computed: KPI strip ────────────────────────────────────────────────────
 
 const todayActive = computed(() => {
-  if (dashboard.value && typeof dashboard.value.todays_count === 'number') {
-    return dashboard.value.todays_count
+  if (dashboard.value && typeof dashboard.value.today_count === 'number') {
+    return dashboard.value.today_count
   }
   return isBeautician.value
     ? ongoingOrders.value.length + upcomingOrders.value.length
     : activeTrips.value.length + upcomingTrips.value.length
 })
 
-const todayDone = computed(() =>
-  isBeautician.value ? completedOrders.value.length : completedTrips.value.length
-)
+const todayDone = computed(() => {
+  if (dashboard.value && typeof dashboard.value.today_completed_count === 'number') {
+    return dashboard.value.today_completed_count
+  }
+  return isBeautician.value ? completedOrders.value.length : completedTrips.value.length
+})
 
-const monthDone = computed(() => dashboard.value?.month_count ?? 0)
+const monthDone = computed(() => dashboard.value?.month_completed_count ?? 0)
 
-const upcomingWorkload = computed(() => dashboard.value?.all_upcoming_count ?? upcomingOrders.value.length)
+const upcomingWorkload = computed(() => dashboard.value?.tomorrow_count ?? upcomingOrders.value.length)
 
 // ── Computed: next item card ───────────────────────────────────────────────
 
@@ -662,11 +665,15 @@ const todayList = computed<ListItem[]>(() => {
     return [
       ...ongoingOrders.value.map(orderToItem),
       ...upcomingOrders.value.filter(o => isToday(o.booking_info?.date)).map(orderToItem),
+      ...completedOrders.value.map(orderToItem),
+      ...cancelledOrders.value.map(orderToItem),
     ]
   }
   return [
     ...activeTrips.value.map(tripToItem),
     ...upcomingTrips.value.filter(t => isToday(t.created_at)).map(tripToItem),
+    ...completedTrips.value.map(tripToItem),
+    ...cancelledTrips.value.map(tripToItem),
   ]
 })
 
@@ -705,6 +712,8 @@ const leaveBalanceEntries = computed(() => {
     .map(([k, v]) => ({ key: k, value: v as number, label: labelMap[k] ?? k }))
 })
 
+const unreadNotificationsCount = computed(() => dashboard.value?.unread_notifications_count ?? 0)
+
 // ── Fetch ──────────────────────────────────────────────────────────────────
 
 async function fetchAll(): Promise<void> {
@@ -723,8 +732,14 @@ async function fetchAll(): Promise<void> {
         .then((d) => {
           console.log('[HomeView] Dashboard data received:', d)
           dashboard.value = d
-          // If we have trips with order data, use them as a fallback/initial set for orders
-          if (uType === 'beautician' && d.trips?.length > 0 && orders.value.length === 0) {
+          
+          // Priority 1: Use today_orders if available
+          if (d.today_orders && d.today_orders.length > 0) {
+            console.log('[HomeView] Using today_orders from dashboard:', d.today_orders.length)
+            orders.value = d.today_orders
+          } 
+          // Priority 2: Extract from trips if available
+          else if (d.trips && d.trips.length > 0) {
             const seen = new Set()
             const extractedOrders: any[] = []
             
@@ -739,7 +754,7 @@ async function fetchAll(): Promise<void> {
             }
             
             if (extractedOrders.length > 0) {
-              console.log('[HomeView] Extracted deduplicated orders:', extractedOrders.length)
+              console.log('[HomeView] Extracted deduplicated orders from trips:', extractedOrders.length)
               orders.value = extractedOrders
             }
           }
@@ -845,6 +860,25 @@ watch([isBeautician, isRider], ([newB, newR]) => {
   justify-content: center;
 }
 
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-error);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 1.5px solid var(--color-background);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
 .home-content {
   --background: var(--color-background);
 }
@@ -915,52 +949,6 @@ watch([isBeautician, isRider], ([newB, newR]) => {
   color: #fff;
 }
 
-/* ── KPI strip ───────────────────────────────────────────────────────────── */
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.kpi-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 14px 4px 12px;
-  border-right: 1px solid var(--color-border);
-  gap: 2px;
-}
-
-.kpi-card:last-child { border-right: none; }
-
-.kpi-card__icon {
-  font-size: 18px;
-  margin-bottom: 2px;
-}
-
-.kpi-card--brand  .kpi-card__icon { color: var(--color-brand); }
-.kpi-card--success .kpi-card__icon { color: var(--color-success); }
-.kpi-card--warning .kpi-card__icon { color: var(--color-warning); }
-.kpi-card--info   .kpi-card__icon { color: var(--color-info); }
-
-.kpi-card__value {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: 800;
-  color: var(--color-text);
-  line-height: 1;
-}
-
-.kpi-card__label {
-  margin: 0;
-  font-size: 10px;
-  color: var(--color-text-muted);
-  font-weight: 500;
-  text-align: center;
-}
-
 /* ── Sections ────────────────────────────────────────────────────────────── */
 .section { padding: 16px 16px 0; }
 
@@ -995,60 +983,191 @@ watch([isBeautician, isRider], ([newB, newR]) => {
   padding: 0;
 }
 
-/* ── Glance grid ─────────────────────────────────────────────────────────── */
-.glance-grid {
+/* ── Dashboard (Unified) ─────────────────────────────────────────────────── */
+.dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+/* Earnings Grid */
+.earnings-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+
+.earnings-main {
+  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-hero-dark) 100%);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 8px 24px rgba(var(--color-brand-rgb, 124, 58, 237), 0.25);
+}
+
+.earnings-main__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.earnings-main__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+.earnings-main__icon { font-size: 16px; opacity: 0.9; }
+
+.earnings-main__amount {
+  font-size: 28px;
+  font-weight: 900;
+  margin: 4px 0 12px;
+}
+
+.earnings-main__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.earnings-main__bar {
+  height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.earnings-main__fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.earnings-main__target {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.7;
+  text-align: right;
+}
+
+.earnings-sub {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.earnings-sub__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.earnings-sub__amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-brand);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.stat-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.14s ease, border-color 0.14s ease;
+}
+
+.stat-card:active {
+  transform: scale(0.96);
+  border-color: var(--color-brand);
+}
+
+.stat-card__icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.stat-card--purple .stat-card__icon-wrap { background: var(--color-brand-pale); color: var(--color-brand); }
+.stat-card--green  .stat-card__icon-wrap { background: var(--color-success-bg); color: var(--color-success); }
+.stat-card--red    .stat-card__icon-wrap { background: var(--color-error-bg);   color: var(--color-error); }
+.stat-card--orange .stat-card__icon-wrap { background: var(--color-warning-bg); color: var(--color-warning); }
+
+.stat-card__content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card__value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.stat-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* Mini Stats */
+.mini-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-.glance-card {
-  border-radius: var(--radius-xl);
-  padding: 14px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.14s ease, box-shadow 0.14s ease;
-}
-
-.glance-card:active {
-  transform: scale(0.94);
-  opacity: 0.88;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.glance-card--purple { background: linear-gradient(135deg, #7c3aed 0%, #9d5cf6 100%); }
-.glance-card--green  { background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); }
-.glance-card--blue   { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); }
-.glance-card--orange { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); }
-
-.glance-card__top {
+.mini-stat {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 8px;
+  background: var(--color-background);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 8px 12px;
+  cursor: pointer;
 }
 
-.glance-card__icon { font-size: 20px; color: rgba(255,255,255,0.8); }
+.mini-stat:active { opacity: 0.7; }
 
-.glance-card__count {
-  font-size: var(--font-size-3xl);
-  font-weight: 800;
-  color: #fff;
-  line-height: 1;
+.mini-stat__icon { font-size: 14px; color: var(--color-text-muted); }
+
+.mini-stat__text {
+  font-size: 11px;
+  color: var(--color-text-secondary);
 }
 
-.glance-card__label {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: #fff;
-}
-
-.glance-card__sub {
-  margin: 2px 0 0;
-  font-size: var(--font-size-xs);
-  color: rgba(255,255,255,0.7);
-}
+.mini-stat__text b { color: var(--color-text); font-weight: 700; }
 
 /* ── Next card ───────────────────────────────────────────────────────────── */
 .next-card {

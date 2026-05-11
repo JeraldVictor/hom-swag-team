@@ -1,21 +1,20 @@
 /**
  * Dashboard summary data returned by GET /dashboard
  */
+import type { Order } from './order.model'
+import type { Trip } from './trip.model'
+
 export interface DashboardData {
-  /** Total orders/trips today */
-  today_count?: number
-  /** Total completed this month */
-  month_count?: number
-  /** Earnings today */
-  today_earnings?: number
-  /** Earnings this month */
-  month_earnings?: number
-  /** Upcoming orders/trips */
-  upcoming?: unknown[]
-  /** Recent activity */
-  recent?: unknown[]
-  /** Leave balance summary */
-  leave_balance?: Record<string, number>
-  /** Any additional fields from the API */
-  [key: string]: unknown
+  today: string
+  today_count: number
+  today_completed_count: number
+  today_cancelled_count: number
+  tomorrow_count: number
+  month_completed_count: number
+  today_earnings: number
+  month_earnings: number
+  pending_leaves_count: number
+  unread_notifications_count: number
+  today_orders?: Order[]
+  trips?: Trip[]
 }
