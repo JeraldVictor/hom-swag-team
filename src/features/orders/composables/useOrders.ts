@@ -48,7 +48,7 @@ export function useOrders() {
     if (dateFilter.value === 'today') dateParam = todayStr
     else if (dateFilter.value === 'tomorrow') dateParam = tomorrowStr
 
-    const statusParam = (statusFilter.value === 'All' || statusFilter.value === 'Cancelled') ? undefined : statusFilter.value.toLowerCase()
+    const statusParam = (statusFilter.value === 'All' || statusFilter.value === 'cancelled') ? undefined : statusFilter.value.toLowerCase()
 
     try {
       const res = await getOrders(page, limit, statusParam, dateParam)
@@ -107,10 +107,11 @@ export function useOrders() {
       
       // Status filter
       if (!allowedStatuses.includes(s)) return false
-      if (statusFilter.value === 'Cancelled') {
+      if (statusFilter.value === 'cancelled') {
         const isAnyCancelled = s === 'cancelled' || s === 'arrived_and_cancelled' || s === 'cancelled_and_refunded'
         if (!isAnyCancelled) return false
-      } else if (statusFilter.value !== 'All' && s !== statusFilter.value.toLowerCase()) {
+      }
+ else if (statusFilter.value !== 'All' && s !== statusFilter.value.toLowerCase()) {
         return false
       }
       

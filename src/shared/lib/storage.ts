@@ -26,6 +26,7 @@ export const STORAGE_KEYS = {
   onboardingComplete: 'onboardingComplete',
   lastActiveTab: 'lastActiveTab',
   pushNotificationToken: 'pushNotificationToken',
+  pendingOrderEdits: 'pendingOrderEdits',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

@@ -92,6 +92,15 @@
             <div class="card-header">
               <Icon icon="lucide:shopping-bag" class="header-icon" />
               <h3>Services & Items</h3>
+              <AppButton 
+                v-if="canUpgrade" 
+                variant="outline" 
+                size="sm" 
+                class="ms-auto"
+                @click="router.push(`/orders/${orderId}/edit`)"
+              >
+                Add / Edit Items
+              </AppButton>
             </div>
             <div class="line-items">
               <div v-for="item in order.products" :key="item.product_id" class="line-item">

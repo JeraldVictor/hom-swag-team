@@ -97,6 +97,7 @@ export interface OrderProduct {
     title: string
     price?: number
   }[]
+  selected_package_items?: string[] // Array of product IDs
   selected_free_items?: {
     order_free_item_id?: string
     product_id: string

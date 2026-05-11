@@ -13,11 +13,19 @@ import type { PaginatedResponse } from '@/shared/models/pagination.model'
  * GET /products
  */
 export async function getProducts(
-  page?: number,
-  limit?: number,
+  params?: {
+    page?: number
+    limit?: number
+    main_menu_id?: string
+    category_id?: string
+    sub_category_id?: string
+    search_query?: string
+    is_active?: boolean
+    beautician_only?: boolean
+  }
 ): Promise<PaginatedResponse<Product>> {
   const response = await apiClient.get<{ data: PaginatedResponse<Product> }>('/products', {
-    params: { page, limit },
+    params,
   })
   return response.data.data
 }

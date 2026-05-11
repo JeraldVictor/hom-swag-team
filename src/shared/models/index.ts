@@ -48,7 +48,10 @@ export type {
 export type { LocationPayload, Coordinates, PlaceResult, WsMessage, WsMessageType } from './location.model'
 
 // Product models
-export type { Product } from './product.model'
+export type { Product, ProductOption } from './product.model'
+
+// Menu models
+export type { MainMenu, Category, SubCategory, MenuResponse } from './menu.model'
 
 // Pagination models
 export type { PaginatedResponse } from './pagination.model'

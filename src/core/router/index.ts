@@ -51,6 +51,16 @@ const routes: Array<RouteRecordRaw> = [
         name: 'OrderDetail',
         component: () => import('@/features/orders/views/OrderDetailView.vue'),
       },
+      {
+        path: 'orders/:id/edit',
+        name: 'OrderEdit',
+        component: () => import('@/features/orders/views/OrderEditView.vue'),
+      },
+      {
+        path: 'orders/:id/preview',
+        name: 'OrderPreview',
+        component: () => import('@/features/orders/views/OrderPreviewView.vue'),
+      },
 
       // Trips (rider)
       {
