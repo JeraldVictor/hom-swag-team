@@ -270,42 +270,6 @@
           </div>
         </div>
 
-        <!-- ── Earnings insight ───────────────────────────────────────── -->
-        <div class="section">
-          <p class="section-title">Earnings Overview</p>
-          <div class="earnings-card">
-            <div class="earnings-card__row">
-              <div class="earnings-card__item">
-                <p class="earnings-card__label">Today</p>
-                <p class="earnings-card__amount">{{ formatAmount(dashboard?.today_earnings) }}</p>
-              </div>
-              <div class="earnings-card__divider" />
-              <div class="earnings-card__item">
-                <p class="earnings-card__label">This Week</p>
-                <p class="earnings-card__amount">{{ formatAmount(dashboard?.week_earnings as number | undefined) }}</p>
-              </div>
-              <div class="earnings-card__divider" />
-              <div class="earnings-card__item">
-                <p class="earnings-card__label">This Month</p>
-                <p class="earnings-card__amount earnings-card__amount--highlight">
-                  {{ formatAmount(dashboard?.month_earnings) }}
-                </p>
-              </div>
-            </div>
-            <!-- Progress bar: today vs daily target -->
-            <div v-if="earningsProgress > 0" class="earnings-progress">
-              <div class="earnings-progress__bar">
-                <div
-                  class="earnings-progress__fill"
-                  :style="{ width: `${Math.min(earningsProgress, 100)}%` }"
-                />
-              </div>
-              <p class="earnings-progress__label">
-                {{ Math.round(earningsProgress) }}% of daily target
-              </p>
-            </div>
-          </div>
-        </div>
 
         <!-- ── Leave balance ──────────────────────────────────────────── -->
         <div v-if="leaveBalanceEntries.length > 0" class="section">
@@ -516,22 +480,25 @@ const todayLabel = computed(() =>
 
 const todayStr = formatISTDateShort(new Date().toISOString())
 
-function isToday(iso?: string): boolean {
+function isToday(iso?: string | Date): boolean {
   if (!iso) return false
-  return formatISTDateShort(iso) === todayStr
+  const dateStr = typeof iso === 'string' ? iso : iso.toISOString()
+  const istDate = formatISTDateShort(dateStr)
+  return istDate === todayStr
 }
 
 const upcomingOrders = computed(() =>
   orders.value.filter((o) => {
     const s = o.status?.toLowerCase()
-    return s === 'confirmed'
+    // Include both confirmed and pending for upcoming
+    return s === 'confirmed' || s === 'pending' || s === 'assigned'
   })
 )
 
 const ongoingOrders = computed(() =>
   orders.value.filter((o) => {
     const s = o.status?.toLowerCase()
-    return s === 'started' || s === 'ongoing'
+    return s === 'started' || s === 'ongoing' || s === 'arrived' || s === 'in_progress'
   })
 )
 
@@ -682,7 +649,7 @@ function tripToItem(t: Trip): ListItem {
       label: 'Navigate',
       icon: 'lucide:navigation',
       variant: 'info',
-      handler: () => openNavigationMenu(t.pickup_location.latitude, t.pickup_location.longitude, t.customer_name),
+      handler: () => openNavigationMenu(t.pickup_location.latitude, t.pickup_location.longitude, t.customer_name ?? 'Customer'),
     })
   }
   if (s === 'Trip Started') {
@@ -696,7 +663,7 @@ function tripToItem(t: Trip): ListItem {
       label: 'Navigate',
       icon: 'lucide:navigation',
       variant: 'info',
-      handler: () => openNavigationMenu(t.drop_location.latitude, t.drop_location.longitude, t.customer_name),
+      handler: () => openNavigationMenu(t.drop_location.latitude, t.drop_location.longitude, t.customer_name ?? 'Customer'),
     })
   }
 
@@ -763,26 +730,43 @@ const leaveBalanceEntries = computed(() => {
 // ── Fetch ──────────────────────────────────────────────────────────────────
 
 async function fetchAll(): Promise<void> {
+  console.log('[HomeView] Fetching all dashboard data...')
   isLoading.value = true
   try {
-    const calls: Promise<unknown>[] = [getDashboard().then((d) => { dashboard.value = d }).catch(() => {})]
+    const calls: Promise<unknown>[] = [
+      getDashboard()
+        .then((d) => {
+          console.log('[HomeView] Dashboard data received:', d)
+          dashboard.value = d
+        })
+        .catch((err) => console.error('[HomeView] Failed to fetch dashboard:', err))
+    ]
 
     if (isBeautician.value) {
       calls.push(
-        getOrders(1, 20).then((res) => {
-          orders.value = Array.isArray(res) ? res : (res.data ?? [])
-        }).catch(() => {}),
+        getOrders(1, 100).then((res) => { // Increased limit to 100 for better coverage
+          const list = Array.isArray(res) ? res : (res.data ?? [])
+          console.log('[HomeView] Orders received:', list.length)
+          orders.value = list
+        }).catch((err) => console.error('[HomeView] Failed to fetch orders:', err)),
         getComplaints().then((list) => {
+          console.log('[HomeView] Complaints received:', list.length)
           hasComplaints.value = list.length > 0
-        }).catch(() => {}),
+        }).catch((err) => console.error('[HomeView] Failed to fetch complaints:', err)),
       )
     } else {
       calls.push(
-        getTrips(1, 20).then((list) => { trips.value = list }).catch(() => {}),
+        getTrips(1, 100).then((list) => {
+          console.log('[HomeView] Trips received:', list.length)
+          trips.value = list
+        }).catch((err) => console.error('[HomeView] Failed to fetch trips:', err)),
       )
     }
 
     await Promise.all(calls)
+    console.log('[HomeView] All data fetched successfully')
+  } catch (err) {
+    console.error('[HomeView] Global fetch error:', err)
   } finally {
     isLoading.value = false
   }
@@ -1535,7 +1519,7 @@ onIonViewWillEnter(() => {
 /* Left accent stripe by status */
 .today-card--active  { border-left: 4px solid var(--color-info); }
 .today-card--pending { border-left: 4px solid var(--color-warning); }
-.today-card--done    { border-left: 4px solid var(--color-success); border-opacity: 0.5; }
+.today-card--done    { border-left: 4px solid rgba(var(--color-success-rgb, 34, 197, 94), 0.5); }
 .today-card--cancelled { border-left: 4px solid var(--color-error); }
 
 .today-card__header {
