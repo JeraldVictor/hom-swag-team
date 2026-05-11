@@ -1,6 +1,40 @@
-import { IonicVue } from '@ionic/vue'
+import {
+  IonicVue,
+  IonApp,
+  IonRouterOutlet,
+  IonPage,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonButton,
+  IonTitle,
+  IonTabs,
+  IonTabBar,
+  IonTabButton,
+  IonLabel,
+  IonFooter,
+  IonRefresher,
+  IonRefresherContent,
+  IonList,
+  IonItem,
+  IonInput,
+  IonCheckbox,
+  IonBadge,
+  IonModal,
+  IonNote,
+  IonSearchbar,
+  IonSegment,
+  IonSegmentButton,
+  IonSpinner,
+  IonTextarea,
+  IonAvatar,
+  IonCard,
+  IonIcon,
+} from '@ionic/vue'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
+import { Icon } from '@iconify/vue'
 import App from './App.vue'
 import router from './core/router'
 
@@ -40,6 +74,45 @@ import './core/theme/global.css'
 import '@aejkatappaja/phantom-ui/ssr.css'
 
 const app = createApp(App).use(IonicVue).use(createPinia()).use(router)
+app.component('Icon', Icon)
+
+const ionicComponents = [
+  IonApp,
+  IonRouterOutlet,
+  IonPage,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonButton,
+  IonTitle,
+  IonTabs,
+  IonTabBar,
+  IonTabButton,
+  IonLabel,
+  IonFooter,
+  IonRefresher,
+  IonRefresherContent,
+  IonList,
+  IonItem,
+  IonInput,
+  IonCheckbox,
+  IonBadge,
+  IonModal,
+  IonNote,
+  IonSearchbar,
+  IonSegment,
+  IonSegmentButton,
+  IonSpinner,
+  IonTextarea,
+  IonAvatar,
+  IonCard,
+  IonIcon,
+]
+
+for (const component of ionicComponents) {
+  app.component(component.name, component)
+}
 
 // Mount regardless of whether the initial navigation succeeded or was aborted.
 // A rejected isReady() (e.g. guard returning false on cold start) must not
