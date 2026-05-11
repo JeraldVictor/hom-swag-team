@@ -97,8 +97,10 @@ export function useOrders() {
       const s = o.status?.toLowerCase()
       const isCompleted = s === 'completed' || s === 'arrived_and_cancelled' || s === 'cancelled' || s === 'cancelled_and_refunded'
 
+      const isActive = s === 'ongoing' || s === 'started' || s === 'on going'
+      
       // Filter by tab
-      if (dateFilter.value === 'today' && !isToday) return false
+      if (dateFilter.value === 'today' && !isToday && !isActive) return false
       if (dateFilter.value === 'tomorrow' && !isTomorrow) return false
       if (dateFilter.value === 'past' && !isPast) return false
       

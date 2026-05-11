@@ -192,7 +192,6 @@ const leaveItems: NavItem[] = [
 /** Account section */
 const accountItems: NavItem[] = [
   { label: 'Profile', icon: 'lucide:user', route: '/profile' },
-  { label: 'Active Sessions', icon: 'lucide:monitor-smartphone', route: '/sessions' },
   { label: 'Support & Feedback', icon: 'lucide:life-buoy', route: '/support' },
 ]
 

@@ -62,9 +62,6 @@ export type { Notification, NotificationsResponse } from './notification.model'
 // Complaint models
 export type { Complaint } from './complaint.model'
 
-// Session models
-export type { Session } from './session.model'
-
 // Support models
 export type { SupportBody, SupportTicket, SupportCategory } from './support.model'
 

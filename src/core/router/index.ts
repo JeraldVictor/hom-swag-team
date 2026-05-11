@@ -109,13 +109,6 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/complaints/views/ComplaintsView.vue'),
       },
 
-      // Sessions (both roles)
-      {
-        path: 'sessions',
-        name: 'Sessions',
-        component: () => import('@/features/sessions/views/SessionsView.vue'),
-      },
-
       // Support & Feedback (both roles)
       {
         path: 'support',

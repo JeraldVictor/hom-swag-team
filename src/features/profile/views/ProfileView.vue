@@ -142,13 +142,6 @@
       <div class="section">
         <p class="section-title">Account</p>
         <div class="links-card">
-          <button class="link-row" @click="goTo('/sessions')">
-            <span class="link-row__icon-wrap">
-              <Icon icon="lucide:monitor-smartphone" aria-hidden="true" />
-            </span>
-            <span class="link-row__label">Active Sessions</span>
-            <Icon icon="lucide:chevron-right" class="link-row__chevron" aria-hidden="true" />
-          </button>
           <button class="link-row" @click="goTo('/support')">
             <span class="link-row__icon-wrap">
               <Icon icon="lucide:life-buoy" aria-hidden="true" />
