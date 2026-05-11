@@ -377,7 +377,7 @@ import { OtpInput } from '@/features/auth'
 import { createExternalBooking } from '@/shared/api'
 import { useToast } from '@/shared/composables'
 import type { OrderProduct } from '@/shared/models'
-import { formatISTDate } from '@/shared/lib/datetime'
+import { formatISTDate, getTodayIST } from '@/shared/lib/datetime'
 import RideSelectorModal from '@/shared/components/business/RideSelectorModal.vue'
 
 const route = useRoute()
@@ -463,10 +463,7 @@ const isSelfieStep = computed(() => {
 
 const isBookingDateToday = computed(() => {
   if (!order.value?.booking_info?.date) return false
-  const today = new Date()
-  // Simple YYYY-MM-DD comparison in IST
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(today)
-  return order.value.booking_info.date === todayStr
+  return order.value.booking_info.date === getTodayIST()
 })
 
 // ── Methods ────────────────────────────────────────────────────────────────

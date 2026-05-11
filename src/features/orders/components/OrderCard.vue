@@ -25,6 +25,7 @@ import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import AppBadge from '@/shared/components/ui/AppBadge.vue'
 import type { Order } from '@/shared/models'
+import { formatISTDate } from '@/shared/lib/datetime'
 
 const props = defineProps<{ order: Order }>()
 const emit = defineEmits<{ (e: 'click'): void }>()
@@ -50,7 +51,7 @@ const address = computed(() => {
 const formattedDate = computed(() => {
   const d = props.order.booking_info?.date ?? props.order.service_date ?? props.order.created_at
   if (!d) return ''
-  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatISTDate(d)
 })
 </script>
 
