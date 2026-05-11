@@ -7,9 +7,7 @@
         </ion-buttons>
         <ion-title>Order #{{ order?.order_number || '...' }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button v-if="order && !isCompleted" @click="handleRefresh">
-            <Icon icon="lucide:refresh-cw" :class="{ 'spin': isLoading }" />
-          </ion-button>
+          <AppButton v-if="order && !isCompleted" variant="clear" icon-only icon="lucide:refresh-cw" @click="handleRefresh" :class="{ 'spin': isLoading }" />
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -24,7 +22,7 @@
         <Icon icon="lucide:alert-circle" class="error-icon" />
         <h3>Something went wrong</h3>
         <p>{{ error }}</p>
-        <ion-button fill="outline" @click="handleRefresh">Retry</ion-button>
+        <AppButton variant="outline" icon="lucide:refresh-cw" @click="handleRefresh">Retry</AppButton>
       </div>
 
       <template v-else-if="order">
@@ -61,21 +59,16 @@
           </div>
 
           <div class="hero-actions" v-if="!isCompleted">
-            <ion-button expand="block" mode="ios" class="nav-btn" @click="navigateToLocation">
-              <div class="btn-content">
-                <Icon icon="lucide:navigation" class="btn-icon" />
-                <span>Navigate to Location</span>
-              </div>
-            </ion-button>
+            <AppButton expand="block" size="lg" icon="lucide:navigation" class="nav-btn-custom" @click="navigateToLocation">
+              Navigate to Location
+            </AppButton>
             <div class="dual-btns">
-              <ion-button fill="outline" mode="ios" class="call-btn" :href="'tel:' + order.customer?.phone">
-                <Icon icon="lucide:phone" slot="start" />
+              <AppButton variant="outline" icon="lucide:phone" :href="'tel:' + order.customer?.phone">
                 Call
-              </ion-button>
-              <ion-button fill="outline" mode="ios" class="msg-btn" :href="'https://wa.me/' + order.customer?.phone">
-                <Icon icon="lucide:message-circle" slot="start" />
+              </AppButton>
+              <AppButton variant="outline" icon="lucide:message-circle" :href="'https://wa.me/' + order.customer?.phone">
                 WhatsApp
-              </ion-button>
+              </AppButton>
             </div>
           </div>
         </div>
@@ -146,10 +139,9 @@
                 </div>
 
                 <div v-if="canUpgrade && item.type !== 'package'" class="item-actions">
-                  <ion-button fill="outline" size="small" class="upgrade-action-btn" @click="openUpgradeModal(item as any)">
-                    <Icon icon="lucide:arrow-up-circle" slot="start" />
+                  <AppButton variant="outline" size="sm" icon="lucide:arrow-up" @click="openUpgradeModal(item as any)">
                     Upgrade
-                  </ion-button>
+                  </AppButton>
                 </div>
               </div>
             </div>
@@ -215,33 +207,34 @@
 
           <!-- Main Actions -->
           <div v-else class="main-actions">
-            <ion-button 
+            <AppButton 
               v-if="nextActionLabel"
-              expand="block" 
-              class="primary-action-btn"
-              :disabled="isUpdating || !isBookingDateToday"
+              expand="block"
+              size="lg"
+              :loading="isUpdating"
+              :disabled="!isBookingDateToday"
+              :icon="isSelfieStep ? 'lucide:camera' : undefined"
               @click="handleMainAction"
+              class="primary-action-btn-custom"
             >
-              <ion-spinner v-if="isUpdating" name="crescent" slot="start" />
-              <Icon v-if="isSelfieStep" icon="lucide:camera" slot="start" />
               {{ nextActionLabel }}
-            </ion-button>
+            </AppButton>
             
             <div class="date-restriction-tip" v-if="!isBookingDateToday && !isCompleted && order" style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin: 8px 0; padding: 8px; background: var(--color-surface); border-radius: 8px;">
               Note: You can only start or update this order on the scheduled date ({{ order.booking_info?.date }}).
             </div>
-
-            <ion-button 
+ 
+            <AppButton 
               v-if="canCancel && isBookingDateToday"
-              expand="block" 
-              fill="outline" 
+              expand="block"
+              variant="outline"
               color="danger" 
-              class="cancel-btn"
+              icon="lucide:ban"
               @click="openCancelModal"
+              style="margin-top: 12px;"
             >
-              <Icon icon="lucide:ban" slot="start" />
               Customer Request to Cancel
-            </ion-button>
+            </AppButton>
           </div>
         </div>
       </template>
@@ -253,7 +246,7 @@
         <ion-toolbar>
           <ion-title>Upgrade Service</ion-title>
           <ion-buttons slot="end">
-            <ion-button @click="showUpgradeModal = false">Close</ion-button>
+            <AppButton variant="clear" @click="showUpgradeModal = false">Close</AppButton>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -292,9 +285,7 @@
         <ion-toolbar>
           <ion-title>Cancel Order</ion-title>
           <ion-buttons slot="end">
-            <ion-button @click="showCancelModal = false">
-              <Icon icon="lucide:x" />
-            </ion-button>
+            <AppButton variant="clear" icon-only icon="lucide:x" @click="showCancelModal = false" />
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -712,53 +703,28 @@ onMounted(() => fetchOrder(orderId))
   gap: 10px;
 }
 
-.nav-btn {
+.nav-btn-custom {
   --background: linear-gradient(135deg, var(--color-brand) 0%, #6366f1 100%);
   --background-activated: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-  --border-radius: 18px;
   --box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
-  font-weight: 800;
-  margin: 0;
-  height: 56px;
-  text-transform: none;
-  letter-spacing: -0.2px;
-}
-
-.btn-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.btn-icon {
-  font-size: 20px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 
 .dual-btns { 
   display: grid; 
   grid-template-columns: 1fr 1fr; 
-  gap: 10px; 
+  gap: 12px; 
 }
 
-.call-btn, .msg-btn { 
-  --border-radius: 16px; 
-  --border-width: 1.5px;
-  --border-color: var(--color-border);
-  --color: var(--color-text);
-  font-weight: 700; 
-  margin: 0; 
-  height: 50px;
-  font-size: 14px;
-  text-transform: none;
+.primary-action-btn-custom {
+  --background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%);
+  --box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3);
 }
 
-.msg-btn {
-  --color: #25D366;
-  --border-color: rgba(37, 211, 102, 0.2);
+.cancel-btn-custom {
+  margin-top: 12px;
 }
+
+.item-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 
 .order-content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
@@ -776,61 +742,6 @@ onMounted(() => fetchOrder(orderId))
 
 .address-text { margin: 0; font-size: 15px; line-height: 1.6; color: var(--color-text-secondary); font-weight: 500; }
 
-.inline-icon { font-size: 14px; vertical-align: middle; margin-right: 2px; }
-.ms-2 { margin-left: 8px; }
-
-.package-duration {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: var(--color-info-bg);
-  color: var(--color-info-text);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.item-sub-list {
-  margin-top: 10px;
-  padding-left: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sub-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-  font-weight: 600;
-}
-
-.sub-item-icon { font-size: 12px; color: var(--color-brand); }
-
-.free-items {
-  margin-top: 8px;
-  border-top: 1px solid var(--color-background);
-  padding-top: 8px;
-}
-
-.free-text { color: var(--color-success); font-weight: 800; }
-
-.order-notes { 
-  margin: 16px 0 0; 
-  padding: 12px; 
-  background: #fffbeb; 
-  border-radius: 12px; 
-  font-size: 13px; 
-  color: #92400e; 
-  display: flex; 
-  gap: 8px; 
-  font-weight: 600;
-}
-
 .line-items { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
 .line-item { 
   padding-bottom: 16px; 
@@ -843,9 +754,6 @@ onMounted(() => fetchOrder(orderId))
 .item-qty { margin: 4px 0 0; font-size: 13px; color: var(--color-text-muted); font-weight: 500; }
 .item-total { margin: 0; font-size: 15px; font-weight: 800; color: var(--color-text); }
 
-.item-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
-.item-actions ion-button { --padding-start: 0; --padding-end: 0; height: 32px; font-size: 12px; font-weight: 700; }
-
 .order-summary-footer {
   padding-top: 16px;
   border-top: 2px solid var(--color-background);
@@ -855,13 +763,7 @@ onMounted(() => fetchOrder(orderId))
 }
 
 .summary-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); }
-.summary-row.discount { color: var(--color-success); }
 .summary-row.total { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--color-border); font-size: 18px; font-weight: 800; color: var(--color-text); }
-
-.payment-card { display: flex; flex-direction: column; }
-.payment-method { font-size: 14px; color: var(--color-text-secondary); }
-
-/* ── Action Footer ───────────────────────────────────────────────────────── */
 
 .action-footer {
   position: sticky;
@@ -871,71 +773,7 @@ onMounted(() => fetchOrder(orderId))
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -8px 24px rgba(0,0,0,0.05);
-}
-
-.primary-action-btn { 
-  --background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%);
-  --background-activated: #4338ca;
-  --border-radius: 20px; 
-  --box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3);
-  height: 60px; 
-  font-weight: 800; 
-  font-size: 17px; 
-  margin: 0; 
-  text-transform: none;
-  letter-spacing: -0.3px;
-}
-
-.cancel-btn { 
-  --border-radius: 18px;
-  --border-width: 1.5px;
-  margin-top: 12px; 
-  font-weight: 700;
-  height: 48px;
-  text-transform: none;
-  --color: var(--color-danger);
-}
-
-.error-banner { 
-  margin-bottom: 12px; 
-  padding: 10px; 
-  background: var(--color-danger-pale); 
-  color: var(--color-danger); 
-  border-radius: 8px; 
-  font-size: 13px; 
-  font-weight: 600; 
-  text-align: center;
-}
-
-.otp-verification { padding: 8px 0; }
-.otp-header { text-align: center; margin-bottom: 24px; }
-.otp-icon { font-size: 40px; color: var(--color-brand); margin-bottom: 12px; }
-.otp-header h3 { margin: 0; font-size: 20px; font-weight: 800; color: var(--color-text); }
-.otp-header p { margin: 8px 0 0; font-size: 14px; color: var(--color-text-muted); line-height: 1.5; }
-
-.otp-container { margin: 24px 0; }
-.upgrade-action-btn {
-  --border-radius: 12px;
-  --border-width: 1.5px;
-  --color: var(--color-brand);
-  --border-color: var(--color-brand);
-  font-weight: 700;
-  height: 36px;
-  text-transform: none;
-  margin: 0;
-}
-
-.otp-actions { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 12px; 
-  margin-top: 24px; 
-}
-
-.otp-actions AppButton {
-  --border-radius: 18px;
-  height: 52px;
-  font-weight: 700;
+  z-index: 100;
 }
 
 /* ── Cancel Modal Styling ─────────────────────────────────────────────────── */

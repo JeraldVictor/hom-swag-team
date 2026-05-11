@@ -162,9 +162,9 @@
         <div v-if="nextItem" class="section">
           <div class="section-header">
             <p class="section-title">{{ isBeautician ? 'Next Order' : 'Next Trip' }}</p>
-            <button class="section-link" @click="goTo(isBeautician ? '/orders' : '/trips')">
-              View all <Icon icon="lucide:arrow-right" />
-            </button>
+            <AppButton variant="clear" size="sm" @click="goTo(isBeautician ? '/orders' : '/trips')">
+              View all <Icon icon="lucide:arrow-right" style="margin-left: 4px;" />
+            </AppButton>
           </div>
           <div class="next-card" @click="goToDetail(nextItem)">
             <div class="next-card__accent" />

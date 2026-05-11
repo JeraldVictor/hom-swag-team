@@ -7,9 +7,7 @@
         </ion-buttons>
         <ion-title>External Rides</ion-title>
         <ion-buttons slot="end">
-          <ion-button aria-label="Add external booking" @click="openCreateModal()">
-            <Icon icon="lucide:plus" class="header-icon" />
-          </ion-button>
+          <AppButton variant="clear" icon-only icon="lucide:plus" @click="openCreateModal" />
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -45,9 +43,9 @@
           </div>
           <p class="empty-state__title">No external rides logged</p>
           <p class="empty-state__text">Tap + to log a ride for today's orders.</p>
-          <ion-button fill="outline" shape="round" class="mt-16" @click="openCreateModal()">
+          <AppButton variant="outline" @click="openCreateModal" class="mt-16">
             Log First Ride
-          </ion-button>
+          </AppButton>
         </div>
       </template>
 
@@ -76,10 +74,9 @@
               </p>
               
               <div class="booking-card__actions">
-                <ion-button fill="outline" size="small" mode="ios" class="rebook-btn" @click.stop="openRideSelector(booking)">
-                  <Icon icon="lucide:navigation" slot="start" />
+                <AppButton variant="outline" size="sm" icon="lucide:navigation" @click.stop="openRideSelector(booking)">
                   Re-book
-                </ion-button>
+                </AppButton>
               </div>
             </div>
           </div>
@@ -113,9 +110,7 @@
         <div class="modal-header">
           <div class="modal-header__top">
             <h2 class="modal-title">{{ step === 1 ? 'Select Order' : 'Ride Details' }}</h2>
-            <ion-button fill="clear" @click="closeModal" class="close-btn">
-              <Icon icon="lucide:x" />
-            </ion-button>
+            <AppButton variant="clear" icon-only icon="lucide:x" @click="closeModal" />
           </div>
           <div class="step-indicator">
             <div class="step-dots">
@@ -228,19 +223,12 @@
               {{ error }}
             </p>
             
-            <ion-button
-              expand="block"
-              mode="ios"
-              :disabled="isSubmitting || !form.cost || !form.provider"
-              class="confirm-btn-primary"
-              @click="handleSubmit"
-            >
-              <ion-spinner v-if="isSubmitting" name="crescent" slot="start" />
-              Confirm & Book on {{ form.provider !== 'Other' ? form.provider : 'App' }}
-            </ion-button>
-            <ion-button fill="clear" color="medium" @click="step = 1">
+            <AppButton expand="block" size="lg" :loading="isSubmitting" @click="handleSubmit" class="confirm-btn-custom">
+              Confirm & Save
+            </AppButton>
+            <AppButton variant="clear" @click="step = 1" style="margin-top: 12px;">
               Back to Order Selection
-            </ion-button>
+            </AppButton>
           </div>
         </div>
       </ion-content>
@@ -261,7 +249,7 @@ import { Geolocation } from '@capacitor/geolocation'
 import { Icon } from '@iconify/vue'
 import { getExternalBookings, createExternalBooking, getOrders } from '@/shared/api'
 import { useToast } from '@/shared/composables'
-import { AppBadge } from '@/shared/components/ui'
+import { AppBadge, AppButton } from '@/shared/components/ui'
 import { formatISTDateShort } from '@/shared/lib/datetime'
 import type { Order } from '@/shared/models'
 import RideSelectorModal from '@/shared/components/business/RideSelectorModal.vue'
@@ -511,18 +499,6 @@ onIonViewWillEnter(fetchBookings)
   gap: 4px;
 }
 
-.booking-card__actions ion-button {
-  --padding-start: 8px;
-  --padding-end: 8px;
-  --color: var(--color-text-muted);
-  height: 36px;
-  margin: 0;
-}
-
-.booking-card__actions ion-button:active {
-  --color: var(--color-brand);
-}
-
 .ola-dot-xs {
   width: 14px;
   height: 14px;
@@ -545,7 +521,7 @@ onIonViewWillEnter(fetchBookings)
 .modal-header { padding: 24px 24px 16px; background: var(--color-surface); }
 .modal-header__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .modal-title { margin: 0; font-size: 24px; font-weight: 900; color: var(--color-text); letter-spacing: -0.5px; }
-.close-btn { --padding-start: 0; --padding-end: 0; margin: 0; color: var(--color-text-muted); }
+.close-btn { color: var(--color-text-muted); }
 
 .step-indicator { display: flex; align-items: center; gap: 12px; }
 .step-dots { display: flex; gap: 6px; }
@@ -636,15 +612,10 @@ onIonViewWillEnter(fetchBookings)
   align-items: center; 
   gap: 8px;
 }
-.confirm-btn-primary { 
+.confirm-btn-custom { 
   --background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%);
   --background-activated: #4338ca;
-  --border-radius: 20px; 
-  font-weight: 800; 
-  height: 60px; 
-  margin: 0; 
-  text-transform: none;
-  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3); 
+  --box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3); 
 }
 
 /* Animations */
@@ -657,17 +628,4 @@ onIonViewWillEnter(fetchBookings)
 @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
 .mt-16 { margin-top: 16px; }
-
-.rebook-btn {
-  --border-radius: 12px;
-  --border-width: 1.5px;
-  --color: var(--color-brand);
-  --border-color: var(--color-brand);
-  font-weight: 800;
-  text-transform: none;
-  letter-spacing: -0.2px;
-  font-size: 13px;
-  height: 38px;
-  margin: 0;
-}
 </style>
