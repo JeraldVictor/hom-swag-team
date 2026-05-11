@@ -39,9 +39,8 @@ export async function uploadExternalBookingProof(
   formData: FormData,
 ): Promise<ExternalBooking> {
   const response = await apiClient.post<{ data: ExternalBooking }>(
-    `/external-bookings/${id}/proof`,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    `/external-bookings/${String(id)}/proof`,
+    formData
   )
   return response.data.data
 }

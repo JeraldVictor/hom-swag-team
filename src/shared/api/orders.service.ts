@@ -104,9 +104,8 @@ export async function uploadArrivalSelfie(
   formData: FormData,
 ): Promise<Order> {
   const response = await apiClient.post<{ data: Order }>(
-    `/orders/${id}/arrival-selfie`,
+    `/orders/${String(id)}/arrival-selfie`,
     formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
   )
   return response.data.data
 }
@@ -120,9 +119,8 @@ export async function uploadCompletionProof(
   formData: FormData,
 ): Promise<Order> {
   const response = await apiClient.post<{ data: Order }>(
-    `/orders/${id}/completion-proof`,
+    `/orders/${String(id)}/completion-proof`,
     formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
   )
   return response.data.data
 }

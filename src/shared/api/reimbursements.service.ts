@@ -38,9 +38,8 @@ export async function uploadReimbursementProof(
   formData: FormData,
 ): Promise<Reimbursement> {
   const response = await apiClient.post<{ data: Reimbursement }>(
-    `/reimbursements/${id}/proof`,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    `/reimbursements/${String(id)}/proof`,
+    formData
   )
   return response.data.data
 }

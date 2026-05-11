@@ -30,9 +30,7 @@ export async function updateProfile(data: Partial<UserProfile> & Record<string, 
  * POST /profile/photo
  */
 export async function uploadProfilePhoto(formData: FormData): Promise<UserProfile> {
-  const response = await apiClient.post<{ data: UserProfile }>('/profile/photo', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const response = await apiClient.post<{ data: UserProfile }>('/profile/photo', formData)
   return response.data.data
 }
 
@@ -45,9 +43,8 @@ export async function uploadProfileDocument(
   formData: FormData,
 ): Promise<ProfileDocument> {
   const response = await apiClient.post<{ data: ProfileDocument }>(
-    `/profile/documents/${type}`,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    `/profile/documents/${String(type)}`,
+    formData
   )
   return response.data.data
 }

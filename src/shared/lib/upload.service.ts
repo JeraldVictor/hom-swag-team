@@ -40,9 +40,6 @@ class UploadServiceClass {
     formData.append('file', file)
 
     const response = await apiClient.post<{ data: { url: string } }>(endpoint, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -73,9 +70,6 @@ class UploadServiceClass {
     }
 
     const response = await apiClient.post<{ data: { urls: string[] } }>(endpoint, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
