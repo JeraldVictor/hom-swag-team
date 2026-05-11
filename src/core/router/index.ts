@@ -197,14 +197,9 @@ router.beforeEach(async (to) => {
     return
   }
 
-  // Block all navigation when the device is offline.
-  // App.vue renders the NoInternetView overlay, so we simply cancel the
-  // navigation — the user will see the overlay and can retry.
-  const { getIsOnline } = await import('@/shared/composables/useNetwork')
-  if (!getIsOnline()) {
-    return false
-  }
-
+  // NOTE: Offline gating is handled by the NoInternetView overlay in App.vue.
+  // Do NOT block navigation here — a false navigator.onLine on Android cold
+  // start would abort the initial navigation and leave a blank screen.
   // Auth guard
   const { Storage_Service, STORAGE_KEYS } = await import('@/shared/lib/storage')
   const accessToken = await Storage_Service.getString(STORAGE_KEYS.accessToken)

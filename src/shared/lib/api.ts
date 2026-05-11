@@ -12,7 +12,8 @@
  */
 
 import axios from 'axios'
-import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
+import type { AxiosAdapter, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import { Capacitor, CapacitorHttp } from '@capacitor/core'
 import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
 
 // ---------------------------------------------------------------------------
@@ -121,16 +122,144 @@ async function performRefresh(instance: AxiosInstance): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Custom Axios adapter — CapacitorHttp.request() (native only)
+// ---------------------------------------------------------------------------
+//
+// Axios v1.7+ passes a `Request` object to `window.fetch` in its built-in
+// fetch adapter. CapacitorHttp's global fetch patch only handles the
+// (url: string, init: object) overload, so it fails silently (status 0).
+// Calling CapacitorHttp.request() directly bypasses the patch entirely and
+// is the officially recommended approach for Capacitor + Axios.
+
+const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
+  // Build the full absolute URL — Axios keeps baseURL and path separate in config
+  const base = (config.baseURL ?? '').replace(/\/$/, '')
+  const path = (config.url ?? '').replace(/^([^/])/, '/$1')
+  let url = base + path
+  // Append serialised query params if present
+  if (config.params) {
+    const qs = new URLSearchParams(config.params as Record<string, string>).toString()
+    if (qs) url += (url.includes('?') ? '&' : '?') + qs
+  }
+  const method = (config.method ?? 'GET').toUpperCase()
+
+  // Flatten AxiosHeaders → plain Record<string, string>
+  const headers: Record<string, string> = {}
+  if (config.headers) {
+    for (const [key, value] of Object.entries(config.headers)) {
+      if (typeof value === 'string' || typeof value === 'number') {
+        headers[key] = String(value)
+      }
+    }
+  }
+
+  // Axios serialises the body to a JSON string via transformRequest.
+  // CapacitorHttp expects an object for JSON payloads — parse it back.
+  let data: unknown = config.data
+  if (typeof data === 'string' && headers['Content-Type']?.includes('application/json')) {
+    try { data = JSON.parse(data) } catch { /* leave as-is */ }
+  }
+
+  let nativeResponse: Awaited<ReturnType<typeof CapacitorHttp.request>>
+  try {
+    nativeResponse = await CapacitorHttp.request({ url, method, headers, data })
+  } catch (e) {
+    const err = Object.assign(new Error((e as Error)?.message ?? 'Network Error'), {
+      code: 'ERR_NETWORK',
+      config,
+      isAxiosError: true,
+    })
+    return Promise.reject(err)
+  }
+
+  const response: AxiosResponse = {
+    data: nativeResponse.data,
+    status: nativeResponse.status,
+    statusText: String(nativeResponse.status),
+    headers: nativeResponse.headers ?? {},
+    config,
+    request: {},
+  }
+
+  // Mirror Axios's settle() logic: resolve if validateStatus passes, else reject
+  const { validateStatus } = config
+  if (!validateStatus || validateStatus(nativeResponse.status)) {
+    return response
+  }
+  return Promise.reject(
+    Object.assign(new Error(`Request failed with status code ${nativeResponse.status}`), {
+      code: 'ERR_BAD_RESPONSE',
+      config,
+      response,
+      isAxiosError: true,
+    }),
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Axios instance
 // ---------------------------------------------------------------------------
 
+// In dev mode (Vite live-reload) use an absolute URL from window.location.origin
+// so CapacitorHttp routes requests to the Vite dev server (which proxies /api
+// to the BFF). In production the full BFF URL is embedded at build time.
+const baseURL = import.meta.env.DEV
+  ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api`
+  : (import.meta.env.VITE_BFF_API_URL as string)
+
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BFF_API_URL as string,
+  baseURL,
   timeout: 15_000,
   headers: {
     'X-Client-Type': 'field',
   },
+  // On native, use the direct CapacitorHttp adapter instead of Axios's built-in
+  // fetch adapter. Axios v1.7+ passes a `Request` object to window.fetch, which
+  // CapacitorHttp's global patch does not support (fails with status 0).
+  ...(Capacitor.isNativePlatform() ? { adapter: capacitorHttpAdapter } : {}),
 })
+
+// ---------------------------------------------------------------------------
+// Dev-only API logger — request + response/error
+// ---------------------------------------------------------------------------
+
+if (import.meta.env.DEV) {
+  // Request logger
+  apiClient.interceptors.request.use((config) => {
+    const method = (config.method ?? 'GET').toUpperCase()
+    const url = `${config.baseURL ?? ''}${config.url ?? ''}`
+    console.debug(`[API ▶] ${method} ${url}`)
+    if (config.params && Object.keys(config.params).length)
+      console.debug('[API ▶] params:', config.params)
+    if (config.data)
+      console.debug('[API ▶] body:', config.data)
+    ;(config as unknown as Record<string, unknown>).__t = Date.now()
+    return config
+  })
+
+  // Response logger
+  apiClient.interceptors.response.use(
+    (response) => {
+      const method = (response.config.method ?? 'GET').toUpperCase()
+      const url = `${response.config.baseURL ?? ''}${response.config.url ?? ''}`
+      const ms = Date.now() - ((response.config as unknown as Record<string, unknown>).__t as number ?? Date.now())
+      console.debug(`[API ✅] ${method} ${url} — ${response.status} (${ms}ms)`)
+      console.debug('[API ✅] response:', response.data)
+      return response
+    },
+    (error) => {
+      const config = error.config ?? {}
+      const method = (config.method ?? 'GET').toUpperCase()
+      const url = `${config.baseURL ?? ''}${config.url ?? ''}`
+      const status = error.response?.status ?? 0
+      const ms = Date.now() - ((config as unknown as Record<string, unknown>).__t as number ?? Date.now())
+      console.error(`[API ❌] ${method} ${url} — ${status} (${ms}ms)`)
+      if (error.response?.data) console.error('[API ❌] error response:', error.response.data)
+      else console.error('[API ❌] error:', error.message)
+      return Promise.reject(error)
+    },
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Request interceptor — attach Bearer token + proactive refresh

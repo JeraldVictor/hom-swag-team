@@ -21,7 +21,10 @@ export interface UseNetworkReturn {
 // Module-level singleton so all callers share the same reactive state
 // ---------------------------------------------------------------------------
 
-const isOnline = ref<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true)
+// On Android native, navigator.onLine is unreliable during cold start — the
+// WebView reports false before the network stack is ready. Default to true
+// so the boot sequence isn't blocked; the real state is synced in onMounted.
+const isOnline = ref<boolean>(true)
 
 let listenerCount = 0
 
