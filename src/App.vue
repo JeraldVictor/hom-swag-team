@@ -85,8 +85,15 @@ async function finishBoot() {
   appStore.setBootPhase('ready')
 
   const restored = await authStore.restoreSession()
-  if (restored && router.currentRoute.value.path === '/login') {
-    await router.replace('/home')
+  if (restored) {
+    // Ensure socket is connected if we have a session
+    if (authStore.accessToken) {
+      webSocketService.connect(authStore.accessToken)
+    }
+
+    if (router.currentRoute.value.path === '/login') {
+      await router.replace('/home')
+    }
   }
 }
 

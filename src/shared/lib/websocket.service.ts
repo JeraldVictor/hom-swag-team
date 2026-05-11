@@ -36,12 +36,24 @@ class WebSocketService {
   connect(token: string): void {
     if (this.socket?.connected) return
 
+    // If we're already connecting/connected with a different socket, clean it up
+    if (this.socket) {
+      this.socket.disconnect()
+    }
+
     this.socket = io(this.wsUrl, {
       auth: { token },
       transports: ['websocket'],
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 30000,
+    })
+
+    // Re-attach all existing event handlers to the new socket instance
+    this.eventHandlers.forEach((handlers, event) => {
+      handlers.forEach((handler) => {
+        this.socket?.on(event, handler)
+      })
     })
 
     this.socket.on('connect', () => {
@@ -55,9 +67,6 @@ class WebSocketService {
     this.socket.on('error', (err) => {
       console.error('[WebSocketService] Error:', err)
     })
-
-    // Legacy support for onMessage listeners (mapping Socket.io events to WsMessage if needed)
-    // For now, we'll just allow direct event listeners which is cleaner.
   }
 
   /**
