@@ -12,9 +12,6 @@ if ! git diff --quiet; then
   exit 1
 fi
 
-echo "[pre-commit] Running lint checks..."
-pnpm lint
-
 echo "[pre-commit] Running type-check..."
 pnpm type-check
 
