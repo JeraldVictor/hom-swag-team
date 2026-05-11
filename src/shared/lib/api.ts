@@ -213,10 +213,17 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'X-Client-Type': 'field',
   },
-  // On native, use the direct CapacitorHttp adapter instead of Axios's built-in
-  // fetch adapter. Axios v1.7+ passes a `Request` object to window.fetch, which
-  // CapacitorHttp's global patch does not support (fails with status 0).
-  ...(Capacitor.isNativePlatform() ? { adapter: capacitorHttpAdapter } : {}),
+  // On native, use the direct CapacitorHttp adapter for JSON/plain requests.
+  // For multipart (FormData), fall back to the default adapter (XHR/Fetch)
+  // because CapacitorHttp.request does not support FormData objects.
+  adapter: (config) => {
+    if (Capacitor.isNativePlatform() && !(config.data instanceof FormData)) {
+      return capacitorHttpAdapter(config)
+    }
+    // Use Axios's default adapter logic
+    const defaultAdapter = axios.getAdapter(axios.defaults.adapter)
+    return defaultAdapter(config)
+  },
 })
 
 // ---------------------------------------------------------------------------
