@@ -10,7 +10,17 @@
     "preview": "vite preview",
     "test:e2e": "cypress run",
     "test:unit": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "biome format .",
+    "format:write": "biome format . --write",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "type-check": "vue-tsc --noEmit",
+    "precommit:verify": "sh ./scripts/precommit-verify.sh",
+    "prepare": "simple-git-hooks"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm precommit:verify"
   },
   "dependencies": {
     "@aejkatappaja/phantom-ui": "^0.10.1",
@@ -37,8 +47,10 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.3.11",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "8.3.1",
+    "simple-git-hooks": "^2.13.1",
     "@types/google.maps": "3.58.1",
     "@types/node": "^25.6.0",
     "@vitejs/plugin-legacy": "^5.4.3",

@@ -10,8 +10,8 @@
  * router guard to block navigation when the device is offline.
  */
 
-import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 
 // ---------------------------------------------------------------------------
 // Types

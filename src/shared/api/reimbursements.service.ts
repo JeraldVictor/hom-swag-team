@@ -35,7 +35,7 @@ export async function createReimbursement(body: ReimbursementBody): Promise<Reim
  */
 export async function uploadReimbursementProof(
   id: string | number,
-  formData: FormData,
+  formData: FormData
 ): Promise<Reimbursement> {
   const response = await apiClient.post<{ data: Reimbursement }>(
     `/reimbursements/${String(id)}/proof`,

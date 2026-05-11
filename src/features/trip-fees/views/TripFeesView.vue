@@ -124,15 +124,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonContent, IonRefresher, IonRefresherContent, IonButton,
-  onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { onIonViewWillEnter } from '@ionic/vue'
+import { onMounted, ref } from 'vue'
 import { getTripFeesReport } from '@/shared/api'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
 import type { TripFeesReport } from '@/shared/models'
 
 const report = ref<TripFeesReport | null>(null)
@@ -147,7 +141,11 @@ const fromDate = ref(firstOfMonth.toISOString().split('T')[0])
 const toDate = ref(todayStr)
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 async function fetchReport(): Promise<void> {

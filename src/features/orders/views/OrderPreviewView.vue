@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { alertController, loadingController, toastController } from '@ionic/vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-  IonContent, IonFooter, IonModal, IonSpinner, loadingController, toastController, alertController
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { AppButton, AppBadge } from '@/shared/components/ui'
-import { OtpInput } from '@/features/auth'
-import { getOrder, updateOrder, generateServiceOtp, verifyServiceOtp } from '@/shared/api/orders.service'
-import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
+  generateServiceOtp,
+  getOrder,
+  updateOrder,
+  verifyServiceOtp,
+} from '@/shared/api/orders.service'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { Order } from '@/shared/models'
 
 interface CartItem {
@@ -47,7 +46,7 @@ const oldTotal = computed(() => order.value?.total || 0)
 const newSubtotal = computed(() => {
   return newCartItems.value.reduce((sum, item) => {
     const optionsTotal = (item.selected_options || []).reduce((s, o) => s + o.price, 0)
-    return sum + ((item.price + optionsTotal) * item.quantity)
+    return sum + (item.price + optionsTotal) * item.quantity
   }, 0)
 })
 
@@ -62,10 +61,11 @@ async function fetchOrderData() {
     isLoading.value = true
     const data = await getOrder(orderId)
     order.value = data
-    
-    const allEdits = await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits) || {}
+
+    const allEdits =
+      (await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits)) || {}
     newCartItems.value = allEdits[orderId] || []
-    
+
     if (newCartItems.value.length === 0 && data.products) {
       // If no edits found, maybe they came here directly or session cleared
       router.replace(`/orders/${orderId}/edit`)
@@ -87,15 +87,15 @@ async function updateQuantity(productId: string, delta: number) {
       message: `Are you sure you want to remove ${item.title}?`,
       buttons: [
         { text: 'Cancel', role: 'cancel' },
-        { 
-          text: 'Remove', 
+        {
+          text: 'Remove',
           role: 'destructive',
           handler: () => {
             newCartItems.value = newCartItems.value.filter(i => i.product_id !== productId)
             persistEdits()
-          }
-        }
-      ]
+          },
+        },
+      ],
     })
     await alert.present()
     return
@@ -111,10 +111,11 @@ async function updateQuantity(productId: string, delta: number) {
 }
 
 async function persistEdits() {
-  const allEdits = await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits) || {}
+  const allEdits =
+    (await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits)) || {}
   allEdits[orderId] = newCartItems.value
   await Storage_Service.setJSON(STORAGE_KEYS.pendingOrderEdits, allEdits)
-  
+
   if (newCartItems.value.length === 0) {
     router.replace(`/orders/${orderId}/edit`)
   }
@@ -123,15 +124,15 @@ async function persistEdits() {
 async function handleGenerateOtp() {
   const loader = await loadingController.create({ message: 'Generating OTP...' })
   await loader.present()
-  
+
   try {
     await generateServiceOtp(orderId)
     showOtpModal.value = true
-  } catch (err) {
+  } catch (_err) {
     const toast = await toastController.create({
       message: 'Failed to generate OTP. Please try again.',
       duration: 2000,
-      color: 'danger'
+      color: 'danger',
     })
     await toast.present()
   } finally {
@@ -141,37 +142,40 @@ async function handleGenerateOtp() {
 
 async function handleVerifyAndSubmit() {
   if (otpValue.value.length !== 6) return
-  
+
   isVerifying.value = true
   try {
     // 1. Verify OTP
     await verifyServiceOtp(orderId, { otp: otpValue.value })
-    
+
     // 2. Submit order changes
     const productsToUpdate = newCartItems.value.map(item => ({
       product_id: item.product_id,
       quantity: item.quantity,
       title: item.title,
       price: item.price,
-      total: (item.price + (item.selected_options || []).reduce((s, o) => s + o.price, 0)) * item.quantity,
+      total:
+        (item.price + (item.selected_options || []).reduce((s, o) => s + o.price, 0)) *
+        item.quantity,
       selected_options: item.selected_options,
-      selected_package_items: item.selected_package_items
+      selected_package_items: item.selected_package_items,
     }))
-    
+
     await updateOrder(orderId, { products: productsToUpdate })
-    
+
     // 3. Cleanup
-    const allEdits = await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits) || {}
+    const allEdits =
+      (await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits)) || {}
     delete allEdits[orderId]
     await Storage_Service.setJSON(STORAGE_KEYS.pendingOrderEdits, allEdits)
-    
+
     showOtpModal.value = false
-    
+
     const toast = await toastController.create({
       message: 'Order updated and confirmed successfully!',
       duration: 2000,
       color: 'success',
-      position: 'top'
+      position: 'top',
     })
     await toast.present()
     router.replace(`/orders/${orderId}`)
@@ -180,7 +184,7 @@ async function handleVerifyAndSubmit() {
     const toast = await toastController.create({
       message: 'Invalid OTP or update failed. Please try again.',
       duration: 2000,
-      color: 'danger'
+      color: 'danger',
     })
     await toast.present()
   } finally {

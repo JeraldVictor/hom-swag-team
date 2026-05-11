@@ -9,8 +9,8 @@
  * so this works correctly on iOS and Android without a native plugin.
  */
 
-import { ref, readonly, onMounted, onUnmounted } from 'vue'
 import type { Ref } from 'vue'
+import { onMounted, onUnmounted, readonly, ref } from 'vue'
 
 export interface UseNetworkReturn {
   /** True when the device has an active internet connection. */

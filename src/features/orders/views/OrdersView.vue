@@ -104,33 +104,26 @@
 </template>
 
 <script setup lang="ts">
+import { onIonViewWillEnter } from '@ionic/vue'
 import { onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
-  IonRefresher, IonRefresherContent, onIonViewWillEnter,
-  IonSegment, IonSegmentButton, IonLabel,
-  IonInfiniteScroll, IonInfiniteScrollContent,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { useOrders, type OrderDateFilter } from '../composables/useOrders'
-import OrderCard from '../components/OrderCard.vue'
-import type { Order, OrderStatus } from '@/shared/models'
+import { useRoute, useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables'
+import type { Order, OrderStatus } from '@/shared/models'
+import { type OrderDateFilter, useOrders } from '../composables/useOrders'
 
 const router = useRouter()
 const route = useRoute()
-const { 
-  filteredOrders, 
-  isLoading, 
-  error, 
-  fetchOrders, 
+const {
+  filteredOrders,
+  isLoading,
+  error,
+  fetchOrders,
   refresh,
   loadMore,
   statusFilter,
   dateFilter,
   currentPage,
-  totalPages
+  totalPages,
 } = useOrders()
 const { openDrawer } = useDrawer()
 const placeholderOrder: Order = {
@@ -139,10 +132,17 @@ const placeholderOrder: Order = {
   status: 'Confirmed',
   customer: { full_name: 'Placeholder Name', phone: '1234567890' },
   booking_info: { date: '2024-01-01', timing: '10:00 AM - 12:00 PM' },
-  address: { street: '123 Placeholder St', city: 'Placeholder City' }
+  address: { street: '123 Placeholder St', city: 'Placeholder City' },
 } as Order // using as Order to satisfy the interface which has many optional but some required fields like id
 
-const statusOptions: (OrderStatus | 'all')[] = ['all', 'Confirmed', 'Started', 'Ongoing', 'Completed', 'cancelled']
+const statusOptions: (OrderStatus | 'all')[] = [
+  'all',
+  'Confirmed',
+  'Started',
+  'Ongoing',
+  'Completed',
+  'cancelled',
+]
 
 function openMenu(): void {
   openDrawer()

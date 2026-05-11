@@ -4,15 +4,15 @@
  * Composable for leave request management: list, create, cancel, balance.
  */
 
-import { ref, readonly } from 'vue'
 import type { Ref } from 'vue'
+import { readonly, ref } from 'vue'
 import {
-  getLeaveRequests,
-  createLeaveRequest,
   cancelLeaveRequest,
+  createLeaveRequest,
   getLeaveBalance,
+  getLeaveRequests,
 } from '@/shared/api'
-import type { LeaveRequest, LeaveRequestBody, LeaveBalance } from '@/shared/models'
+import type { LeaveBalance, LeaveRequest, LeaveRequestBody } from '@/shared/models'
 
 export function useLeave() {
   const requests = ref<LeaveRequest[]>([])
@@ -62,7 +62,7 @@ export function useLeave() {
     error.value = null
     try {
       await cancelLeaveRequest(id)
-      const idx = requests.value.findIndex((r) => r.id === id || r._id === id)
+      const idx = requests.value.findIndex(r => r.id === id || r._id === id)
       if (idx !== -1) requests.value.splice(idx, 1)
       return true
     } catch (err) {

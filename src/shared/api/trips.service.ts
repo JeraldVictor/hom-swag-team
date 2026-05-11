@@ -12,8 +12,8 @@
  */
 
 import apiClient from '@/shared/lib/api'
-import type { Trip, TripKanbanState, RawTrip } from '@/shared/models/trip.model'
 import type { Coordinates } from '@/shared/models/location.model'
+import type { RawTrip, Trip, TripKanbanState } from '@/shared/models/trip.model'
 
 // ── Normalization helpers ──────────────────────────────────────────────────
 
@@ -33,10 +33,8 @@ function geoJsonToCoords(geo: { coordinates: [number, number] }): Coordinates {
 function normalizeTrip(raw: RawTrip): Trip {
   const orderId = raw.order_id
 
-  const customerName =
-    typeof orderId === 'object' ? orderId.customer?.full_name : undefined
-  const orderNumber =
-    typeof orderId === 'object' ? orderId.order_number : undefined
+  const customerName = typeof orderId === 'object' ? orderId.customer?.full_name : undefined
+  const orderNumber = typeof orderId === 'object' ? orderId.order_number : undefined
 
   return {
     id: raw._id,
@@ -66,10 +64,9 @@ function normalizeTrip(raw: RawTrip): Trip {
  * returns a plain array or a paginated envelope.
  */
 export async function getTrips(page?: number, limit?: number): Promise<Trip[]> {
-  const response = await apiClient.get<{ data: RawTrip[] | { data: RawTrip[] } }>(
-    '/trips',
-    { params: { page, limit } },
-  )
+  const response = await apiClient.get<{ data: RawTrip[] | { data: RawTrip[] } }>('/trips', {
+    params: { page, limit },
+  })
 
   const payload = response.data.data
 
@@ -101,7 +98,7 @@ export async function getTrip(id: string | number): Promise<Trip> {
  */
 export async function updateTripStatus(
   id: string | number,
-  kanbanState: TripKanbanState,
+  kanbanState: TripKanbanState
 ): Promise<Trip> {
   const response = await apiClient.patch<{ data: RawTrip }>(`/trips/${id}/kanban-state`, {
     kanban_state: kanbanState,
@@ -115,7 +112,7 @@ export async function updateTripStatus(
  */
 export async function confirmCustomerLocation(
   id: string | number,
-  body: { latitude: number; longitude: number; address?: string },
+  body: { latitude: number; longitude: number; address?: string }
 ): Promise<Trip> {
   const response = await apiClient.patch<{ data: RawTrip }>(`/trips/${id}/confirm-location`, body)
   return normalizeTrip(response.data.data)
@@ -127,7 +124,7 @@ export async function confirmCustomerLocation(
  */
 export async function updateRiderSelfRideStatus(
   id: string | number,
-  isSelfRide: boolean,
+  isSelfRide: boolean
 ): Promise<Trip> {
   const response = await apiClient.patch<{ data: RawTrip }>(`/trips/${id}/self-ride`, {
     is_self_ride: isSelfRide,

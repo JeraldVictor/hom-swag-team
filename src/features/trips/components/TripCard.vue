@@ -54,11 +54,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Icon } from '@iconify/vue'
 import { formatISTTime } from '@/shared/lib/datetime'
-import type { Trip } from '@/shared/models/trip.model'
 import type { Coordinates } from '@/shared/models/location.model'
-import TripStatusBadge from './TripStatusBadge.vue'
+import type { Trip } from '@/shared/models/trip.model'
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -70,9 +68,7 @@ const props = defineProps<Props>()
 
 // ── Emits ──────────────────────────────────────────────────────────────────
 
-const emit = defineEmits<{
-  (e: 'click'): void
-}>()
+const emit = defineEmits<(e: 'click') => void>()
 
 // ── Computed ───────────────────────────────────────────────────────────────
 

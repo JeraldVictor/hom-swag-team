@@ -13,11 +13,11 @@
  * it ends or the component unmounts.
  */
 
-import { ref, readonly, onUnmounted } from 'vue'
 import type { Ref } from 'vue'
-import { webSocketService } from '@/shared/lib/websocket.service'
+import { onUnmounted, readonly, ref } from 'vue'
 import { locationService } from '@/shared/lib/location.service'
-import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
+import { webSocketService } from '@/shared/lib/websocket.service'
 import type { Coordinates } from '@/shared/models/location.model'
 
 export interface UseTrackingReturn {
@@ -76,7 +76,7 @@ export function useTracking(): UseTrackingReturn {
 
     // 3. Start GPS watch
     try {
-      watchId = await locationService.startWatching((coords) => {
+      watchId = await locationService.startWatching(coords => {
         currentPosition.value = coords
         // isConnected reflects actual socket state
         isConnected.value = webSocketService.isConnected

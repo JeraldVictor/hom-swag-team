@@ -16,7 +16,9 @@ export async function getNotifications(params?: {
   page?: string | null
   limit?: string | null
 }): Promise<NotificationsResponse> {
-  const response = await apiClient.get<{ data: NotificationsResponse }>('/notifications', { params })
+  const response = await apiClient.get<{ data: NotificationsResponse }>('/notifications', {
+    params,
+  })
   // API may return { data: Notification[] } or { data: { data: Notification[], unread_count } }
   const raw = response.data.data
   if (Array.isArray(raw)) {

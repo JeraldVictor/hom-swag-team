@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { IonInput, IonLabel, IonNote } from '@ionic/vue'
-
-const props = withDefaults(
+withDefaults(
   defineProps<{
     modelValue?: string | number | null
     label?: string
@@ -22,9 +20,7 @@ const props = withDefaults(
   }
 )
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: string | number | null): void
-}>()
+const emit = defineEmits<(e: 'update:modelValue', value: string | number | null) => void>()
 
 function onIonInput(event: CustomEvent) {
   emit('update:modelValue', event.detail.value ?? null)

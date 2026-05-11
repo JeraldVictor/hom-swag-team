@@ -14,12 +14,12 @@
  *   'granted' | 'denied' | 'prompt' | 'prompt-with-rationale'
  */
 
-import { ref, computed, readonly } from 'vue'
-import type { Ref } from 'vue'
-import { Geolocation } from '@capacitor/geolocation'
 import { Camera } from '@capacitor/camera'
-import { LocalNotifications } from '@capacitor/local-notifications'
 import { Capacitor } from '@capacitor/core'
+import { Geolocation } from '@capacitor/geolocation'
+import { LocalNotifications } from '@capacitor/local-notifications'
+import type { Ref } from 'vue'
+import { computed, readonly, ref } from 'vue'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -96,7 +96,9 @@ export function usePermissions(): UsePermissionsReturn {
       const [locationResult, cameraResult, notifResult] = await Promise.all([
         Geolocation.checkPermissions().catch(() => ({ location: 'unknown' as PermissionState })),
         Camera.checkPermissions().catch(() => ({ camera: 'unknown' as PermissionState })),
-        LocalNotifications.checkPermissions().catch(() => ({ display: 'unknown' as PermissionState })),
+        LocalNotifications.checkPermissions().catch(() => ({
+          display: 'unknown' as PermissionState,
+        })),
       ])
 
       statuses.value = {

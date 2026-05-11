@@ -17,8 +17,6 @@
 </template>
 
 <script setup lang="ts">
-import { IonPage, IonContent } from '@ionic/vue'
-import { Icon } from '@iconify/vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()

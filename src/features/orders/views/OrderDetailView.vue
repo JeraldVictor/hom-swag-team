@@ -384,24 +384,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { alertController, toastController } from '@ionic/vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useNavigation } from '@/shared/composables/useNavigation'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonContent, IonButton, IonSpinner, IonModal, IonLabel, IonTextarea,
-  toastController, alertController,
-} from '@ionic/vue'
-import { Geolocation } from '@capacitor/geolocation'
-import { Icon } from '@iconify/vue'
-import { useOrderDetail } from '../composables/useOrderDetail'
-import { AppBadge, AppButton } from '@/shared/components/ui'
-import { OtpInput } from '@/features/auth'
-import { createExternalBooking } from '@/shared/api'
 import { useToast } from '@/shared/composables'
-import type { OrderProduct } from '@/shared/models'
+import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, getTodayIST } from '@/shared/lib/datetime'
-import RideSelectorModal from '@/shared/components/business/RideSelectorModal.vue'
+import type { OrderProduct } from '@/shared/models'
+import { useOrderDetail } from '../composables/useOrderDetail'
 
 const route = useRoute()
 const router = useRouter()
@@ -420,10 +410,8 @@ const {
   advanceStatus,
   uploadSelfie,
   cancelAfterArrival,
-  verifyOtp,
   upgradeProduct,
   getUpgradableProducts,
-  navigateToCustomer,
 } = useOrderDetail()
 
 // ── UI State ───────────────────────────────────────────────────────────────
@@ -444,7 +432,12 @@ const { openNavigationMenu } = useNavigation()
 
 const customerInitials = computed(() => {
   const name = order.value?.customer?.full_name || order.value?.customer?.name || '?'
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 })
 
 const formattedDate = computed(() => {
@@ -503,8 +496,8 @@ async function presentConfirm(header: string, message: string) {
     mode: 'ios',
     buttons: [
       { text: 'No', role: 'cancel' },
-      { text: 'Yes', role: 'confirm' }
-    ]
+      { text: 'Yes', role: 'confirm' },
+    ],
   })
   await alert.present()
   const { role } = await alert.onDidDismiss()
@@ -513,20 +506,25 @@ async function presentConfirm(header: string, message: string) {
 
 async function handleMainAction() {
   const s = order.value?.status?.toLowerCase()
-  const label = nextActionLabel.value
-  
+
   if (s === 'confirmed') {
     // Confirmed -> Ongoing (Start to Customer)
-    const confirmed = await presentConfirm('Start to Customer', 'Are you sure you want to start moving to the customer location?')
+    const confirmed = await presentConfirm(
+      'Start to Customer',
+      'Are you sure you want to start moving to the customer location?'
+    )
     if (!confirmed) return
     await advanceStatus()
   } else if (s === 'ongoing') {
     // Ongoing -> Started (Reached Customer + Selfie + OTP)
     if (!order.value?.arrival_selfie) {
       // For selfie, maybe the camera is enough of a confirmation, but user asked for "all"
-      const confirmed = await presentConfirm('Take Selfie', 'Are you ready to take the arrival selfie?')
+      const confirmed = await presentConfirm(
+        'Take Selfie',
+        'Are you ready to take the arrival selfie?'
+      )
       if (!confirmed) return
-      
+
       const uploaded = await uploadSelfie()
       if (uploaded) {
         showOtpInput.value = true
@@ -536,7 +534,10 @@ async function handleMainAction() {
     }
   } else {
     // Started -> Completed (Complete Service)
-    const confirmed = await presentConfirm('Complete Service', 'Have you finished all services? This will mark the order as completed.')
+    const confirmed = await presentConfirm(
+      'Complete Service',
+      'Have you finished all services? This will mark the order as completed.'
+    )
     if (!confirmed) return
     await advanceStatus()
   }
@@ -544,10 +545,13 @@ async function handleMainAction() {
 
 async function handleVerifyOtp() {
   if (otpValue.value.length !== 6) return
-  
-  const confirmed = await presentConfirm('Verify OTP', 'Are you sure you want to verify the OTP and start the service?')
+
+  const confirmed = await presentConfirm(
+    'Verify OTP',
+    'Are you sure you want to verify the OTP and start the service?'
+  )
   if (!confirmed) return
-  
+
   // Requirement: Transition to 'started' using OTP
   // We use advanceStatus here because it calls the status update endpoint which handles OTP verification and state transition in one go.
   await advanceStatus(undefined, otpValue.value)
@@ -558,7 +562,7 @@ async function handleVerifyOtp() {
       message: 'Service started successfully!',
       duration: 2000,
       color: 'success',
-      position: 'top'
+      position: 'top',
     })
     await toast.present()
   }
@@ -574,7 +578,7 @@ async function handleCancel() {
     const toast = await toastController.create({
       message: 'Please provide a reason for cancellation.',
       duration: 2000,
-      color: 'warning'
+      color: 'warning',
     })
     await toast.present()
     return
@@ -584,17 +588,14 @@ async function handleCancel() {
     const toast = await toastController.create({
       message: 'Please enter the 6-digit cancellation OTP.',
       duration: 2000,
-      color: 'warning'
+      color: 'warning',
     })
     await toast.present()
     return
   }
 
   // API Trigger
-  await cancelAfterArrival(
-    cancelReason.value,
-    otpValue.value
-  )
+  await cancelAfterArrival(cancelReason.value, otpValue.value)
 
   if (!error.value) {
     showCancelModal.value = false
@@ -604,7 +605,7 @@ async function handleCancel() {
       message: 'Order cancelled successfully',
       duration: 2000,
       color: 'success',
-      position: 'top'
+      position: 'top',
     })
     await toast.present()
   }
@@ -626,19 +627,19 @@ async function openUpgradeModal(item: OrderProduct) {
 
 async function handleUpgrade(newProduct: any) {
   if (!selectedItem.value || !order.value) return
-  
+
   await upgradeProduct({
     order_product_id: selectedItem.value.order_product_id || '',
-    new_product_id: String(newProduct._id || newProduct.id)
+    new_product_id: String(newProduct._id || newProduct.id),
   })
-  
+
   showUpgradeModal.value = false
   if (!error.value) {
     const toast = await toastController.create({
       message: `${newProduct.title || newProduct.name} added to order!`,
       duration: 2000,
       color: 'success',
-      position: 'top'
+      position: 'top',
     })
     await toast.present()
   }
@@ -652,15 +653,15 @@ async function navigateToLocation() {
     return
   }
   await openNavigationMenu(
-    Number(addr.latitude), 
-    Number(addr.longitude), 
+    Number(addr.latitude),
+    Number(addr.longitude),
     order.value.customer?.full_name || 'Customer'
   )
 }
 
 async function copyAddress() {
   if (!fullAddress.value) return
-  
+
   const text = fullAddress.value
   try {
     // 1. Try modern API
@@ -669,20 +670,20 @@ async function copyAddress() {
       showSuccess('Address copied to clipboard')
       return
     }
-    
+
     // 2. Fallback for non-secure / older mobile contexts
-    const textArea = document.createElement("textarea")
+    const textArea = document.createElement('textarea')
     textArea.value = text
-    textArea.style.position = "fixed"
-    textArea.style.left = "-9999px"
-    textArea.style.top = "0"
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-9999px'
+    textArea.style.top = '0'
     document.body.appendChild(textArea)
     textArea.focus()
     textArea.select()
-    
+
     const successful = document.execCommand('copy')
     document.body.removeChild(textArea)
-    
+
     if (successful) {
       showSuccess('Address copied')
     } else {

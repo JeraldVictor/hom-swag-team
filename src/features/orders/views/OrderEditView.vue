@@ -1,19 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, reactive } from 'vue'
+import { alertController } from '@ionic/vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-  IonContent, IonSearchbar, IonSegment, IonSegmentButton, IonLabel,
-  IonFooter, loadingController, toastController, alertController
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { AppButton, AppBadge } from '@/shared/components/ui'
-import PackageSelectionModal from '../components/PackageSelectionModal.vue'
-import { getOrder, updateOrder } from '@/shared/api/orders.service'
-import { getProducts } from '@/shared/api/products.service'
 import { getMenu } from '@/shared/api/menu.service'
-import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
-import type { Order, Product, MainMenu, ProductOption } from '@/shared/models'
+import { getOrder } from '@/shared/api/orders.service'
+import { getProducts } from '@/shared/api/products.service'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
+import type { MainMenu, Order, Product, ProductOption } from '@/shared/models'
 
 interface CartItem {
   product_id: string
@@ -39,12 +32,11 @@ const activeMenuId = ref<string>('all')
 const searchQuery = ref('')
 const products = ref<Product[]>([])
 const isLoading = ref(false)
-const isUpdating = ref(false)
 
 // Package selection modal state
 const selectionModal = reactive({
   isOpen: false,
-  productId: ''
+  productId: '',
 })
 
 // Local cart state - maps product_id to cart item
@@ -55,7 +47,7 @@ const cartItems = computed(() => Object.values(cartMap))
 const subtotal = computed(() => {
   return cartItems.value.reduce((sum, item) => {
     const optionsTotal = (item.selected_options || []).reduce((s, o) => s + o.price, 0)
-    return sum + ((item.price + optionsTotal) * item.quantity)
+    return sum + (item.price + optionsTotal) * item.quantity
   }, 0)
 })
 
@@ -64,13 +56,15 @@ const totalQuantity = computed(() => {
 })
 
 async function saveToStorage() {
-  const allEdits = await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits) || {}
+  const allEdits =
+    (await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits)) || {}
   allEdits[orderId] = cartItems.value
   await Storage_Service.setJSON(STORAGE_KEYS.pendingOrderEdits, allEdits)
 }
 
 async function loadFromStorage() {
-  const allEdits = await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits) || {}
+  const allEdits =
+    (await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits)) || {}
   const savedItems = allEdits[orderId]
   if (savedItems && Array.isArray(savedItems)) {
     savedItems.forEach(item => {
@@ -82,7 +76,8 @@ async function loadFromStorage() {
 }
 
 async function clearFromStorage() {
-  const allEdits = await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits) || {}
+  const allEdits =
+    (await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits)) || {}
   delete allEdits[orderId]
   await Storage_Service.setJSON(STORAGE_KEYS.pendingOrderEdits, allEdits)
 }
@@ -92,10 +87,10 @@ async function fetchOrderData() {
     isLoading.value = true
     const data = await getOrder(orderId)
     order.value = data
-    
+
     // Check if we have pending changes in storage
     const hasSaved = await loadFromStorage()
-    
+
     // If no saved changes, initialize cart from order products
     if (!hasSaved && data.products) {
       data.products.forEach(p => {
@@ -108,9 +103,9 @@ async function fetchOrderData() {
           selected_options: p.selected_options?.map(o => ({
             product_option_id: o.product_option_id,
             title: o.title,
-            price: o.price || 0
+            price: o.price || 0,
           })),
-          selected_package_items: p.selected_package_items
+          selected_package_items: p.selected_package_items,
         }
       })
     }
@@ -137,15 +132,15 @@ async function fetchProducts() {
       limit: 100,
       is_active: true,
     }
-    
+
     if (activeMenuId.value !== 'all') {
       params.main_menu_id = activeMenuId.value
     }
-    
+
     if (searchQuery.value) {
       params.search_query = searchQuery.value
     }
-    
+
     const response = await getProducts(params)
     products.value = response.data
   } catch (err) {
@@ -157,7 +152,7 @@ async function fetchProducts() {
 
 function handleAddClick(product: Product) {
   const pid = String(product._id || product.id)
-  
+
   // If it's a package or has options, show selection modal
   if (product.type === 'package' || (product.options && product.options.length > 0)) {
     selectionModal.productId = pid
@@ -168,7 +163,11 @@ function handleAddClick(product: Product) {
   }
 }
 
-function onSelectionConfirm(data: { product: Product, selectedOptions: ProductOption[], selectedPackageItems: string[] }) {
+function onSelectionConfirm(data: {
+  product: Product
+  selectedOptions: ProductOption[]
+  selectedPackageItems: string[]
+}) {
   const pid = String(data.product._id || data.product.id)
   const existing = cartMap[pid]
 
@@ -180,16 +179,16 @@ function onSelectionConfirm(data: { product: Product, selectedOptions: ProductOp
       quantity: 1,
       title: data.product.name || data.product.title || '',
       price: data.product.min_price,
-      image: data.product.image_url || (data.product.images?.[0]?.url),
+      image: data.product.image_url || data.product.images?.[0]?.url,
       selected_options: data.selectedOptions.map(o => ({
         product_option_id: String(o._id || o.id || o.product_option_id),
         title: o.title,
-        price: o.price
+        price: o.price,
       })),
-      selected_package_items: data.selectedPackageItems
+      selected_package_items: data.selectedPackageItems,
     }
   }
-  
+
   saveToStorage()
   selectionModal.isOpen = false
 }
@@ -197,7 +196,7 @@ function onSelectionConfirm(data: { product: Product, selectedOptions: ProductOp
 function addToCart(product: Product) {
   const pid = String(product._id || product.id)
   const existing = cartMap[pid]
-  
+
   if (existing) {
     existing.quantity++
   } else {
@@ -206,7 +205,7 @@ function addToCart(product: Product) {
       quantity: 1,
       title: product.name || product.title || '',
       price: product.min_price,
-      image: product.image_url || (product.images?.[0]?.url)
+      image: product.image_url || product.images?.[0]?.url,
     }
   }
   saveToStorage()
@@ -240,16 +239,16 @@ async function handleDiscard() {
     message: 'Are you sure you want to discard all pending changes to this order?',
     buttons: [
       { text: 'No', role: 'cancel' },
-      { 
-        text: 'Yes, Discard', 
+      {
+        text: 'Yes, Discard',
         role: 'destructive',
         handler: async () => {
           await clearFromStorage()
           for (const key in cartMap) delete cartMap[key]
           await fetchOrderData() // Reload original products
-        }
-      }
-    ]
+        },
+      },
+    ],
   })
   await alert.present()
 }
@@ -263,7 +262,6 @@ onMounted(() => {
 watch([activeMenuId, searchQuery], () => {
   fetchProducts()
 })
-
 </script>
 
 <template>

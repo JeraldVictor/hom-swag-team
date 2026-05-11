@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import { IonBadge } from '@ionic/vue'
 import { computed } from 'vue'
 
-type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'brand' | 'neutral' | 'default' | 'danger'
+type BadgeVariant =
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info'
+  | 'brand'
+  | 'neutral'
+  | 'default'
+  | 'danger'
 
 const props = withDefaults(
   defineProps<{

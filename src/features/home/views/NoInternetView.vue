@@ -28,18 +28,15 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Icon } from '@iconify/vue'
 
-const emit = defineEmits<{
-  (e: 'retry'): void
-}>()
+const emit = defineEmits<(e: 'retry') => void>()
 
 const isChecking = ref(false)
 
 async function retry() {
   isChecking.value = true
   // Give the browser a moment to re-evaluate connectivity
-  await new Promise((resolve) => setTimeout(resolve, 800))
+  await new Promise(resolve => setTimeout(resolve, 800))
   isChecking.value = false
   emit('retry')
 }

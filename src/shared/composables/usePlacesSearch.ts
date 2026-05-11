@@ -9,10 +9,10 @@
  *   - Direct lat/lng input (parsed and returned as-is)
  */
 
-import { ref, readonly } from 'vue'
 import type { Ref } from 'vue'
+import { readonly, ref } from 'vue'
 import { loadGoogleMaps } from '@/shared/lib/google-maps'
-import type { Coordinates, PlaceResult } from '@/shared/models/location.model'
+import type { PlaceResult } from '@/shared/models/location.model'
 
 export interface UsePlacesSearchReturn {
   /** Current search query string */
@@ -26,7 +26,9 @@ export interface UsePlacesSearchReturn {
   /** Fetch autocomplete suggestions for the current query */
   fetchSuggestions(): Promise<void>
   /** Resolve a prediction to a full PlaceResult with coordinates */
-  selectPrediction(prediction: google.maps.places.AutocompletePrediction): Promise<PlaceResult | null>
+  selectPrediction(
+    prediction: google.maps.places.AutocompletePrediction
+  ): Promise<PlaceResult | null>
   /** Parse a "lat,lng" string and return a PlaceResult */
   parseLatLng(input: string): PlaceResult | null
   /** Clear suggestions */
@@ -77,11 +79,11 @@ export function usePlacesSearch(): UsePlacesSearchReturn {
       error.value = null
       try {
         await ensureServices()
-        const response = await autocompleteService!.getPlacePredictions({
+        const response = await autocompleteService?.getPlacePredictions({
           input: q,
           types: ['geocode', 'establishment'],
         })
-        suggestions.value = response.predictions
+        suggestions.value = response?.predictions || []
       } catch (err) {
         error.value = err instanceof Error ? err.message : 'Failed to fetch suggestions'
         suggestions.value = []
@@ -92,15 +94,15 @@ export function usePlacesSearch(): UsePlacesSearchReturn {
   }
 
   async function selectPrediction(
-    prediction: google.maps.places.AutocompletePrediction,
+    prediction: google.maps.places.AutocompletePrediction
   ): Promise<PlaceResult | null> {
     isLoading.value = true
     error.value = null
     try {
       await ensureServices()
 
-      const result = await geocoder!.geocode({ placeId: prediction.place_id })
-      const location = result.results[0]?.geometry?.location
+      const result = await geocoder?.geocode({ placeId: prediction.place_id })
+      const location = result?.results[0]?.geometry?.location
 
       if (!location) {
         error.value = 'Could not resolve coordinates for this place'
@@ -136,7 +138,7 @@ export function usePlacesSearch(): UsePlacesSearchReturn {
     const latitude = parseFloat(match[1])
     const longitude = parseFloat(match[2])
 
-    if (isNaN(latitude) || isNaN(longitude)) return null
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) return null
     if (latitude < -90 || latitude > 90) return null
     if (longitude < -180 || longitude > 180) return null
 

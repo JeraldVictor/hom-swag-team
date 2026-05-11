@@ -6,8 +6,8 @@
  */
 
 import { ref } from 'vue'
-import { getWeeklyOffRequests, createWeeklyOffRequest, cancelWeeklyOffRequest } from '@/shared/api'
-import type { WeeklyOffRequest, WeeklyOffCreateBody } from '@/shared/models'
+import { cancelWeeklyOffRequest, createWeeklyOffRequest, getWeeklyOffRequests } from '@/shared/api'
+import type { WeeklyOffCreateBody, WeeklyOffRequest } from '@/shared/models'
 
 export function useWeeklyOff() {
   const requests = ref<WeeklyOffRequest[]>([])
@@ -48,7 +48,7 @@ export function useWeeklyOff() {
     error.value = null
     try {
       await cancelWeeklyOffRequest(id)
-      requests.value = requests.value.filter((r) => (r.id ?? r._id) !== id)
+      requests.value = requests.value.filter(r => (r.id ?? r._id) !== id)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to cancel weekly off request'

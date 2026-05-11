@@ -11,10 +11,10 @@
  *   // Call initMap() after the element is mounted
  */
 
-import { ref, readonly } from 'vue'
 import type { Ref } from 'vue'
-import { loadGoogleMaps } from '@/shared/lib/google-maps'
+import { readonly, ref } from 'vue'
 import { FEATURES } from '@/shared/lib/feature-flags'
+import { loadGoogleMaps } from '@/shared/lib/google-maps'
 import type { Coordinates } from '@/shared/models/location.model'
 
 export interface MapMarkerOptions {
@@ -195,7 +195,7 @@ export function useGoogleMaps(): UseGoogleMapsReturn {
     if (!map.value || coordsList.length === 0) return
 
     const bounds = new google.maps.LatLngBounds()
-    coordsList.forEach((c) => bounds.extend({ lat: c.latitude, lng: c.longitude }))
+    coordsList.forEach(c => bounds.extend({ lat: c.latitude, lng: c.longitude }))
     map.value.fitBounds(bounds, 60) // 60px padding
   }
 

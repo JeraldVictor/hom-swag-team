@@ -35,7 +35,6 @@
 
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
-import { Icon } from '@iconify/vue'
 import { useGoogleMaps } from '@/shared/composables/useGoogleMaps'
 import { FEATURES } from '@/shared/lib/feature-flags'
 import type { Coordinates } from '@/shared/models/location.model'
@@ -90,9 +89,7 @@ onMounted(async () => {
   if (!mapsEnabled) return
 
   await initMap({
-    center: props.center
-      ? { lat: props.center.latitude, lng: props.center.longitude }
-      : undefined,
+    center: props.center ? { lat: props.center.latitude, lng: props.center.longitude } : undefined,
     zoom: props.zoom,
   })
 
@@ -113,7 +110,7 @@ watch(() => props.pickup, updateMarkers)
 watch(() => props.drop, updateMarkers)
 watch(
   () => props.livePosition,
-  (pos) => {
+  pos => {
     if (pos) {
       setMarker('live', {
         position: pos,
@@ -124,11 +121,14 @@ watch(
     } else {
       removeMarker('live')
     }
-  },
+  }
 )
-watch(() => props.showRoute, async (show) => {
-  if (show) await updateRoute()
-})
+watch(
+  () => props.showRoute,
+  async show => {
+    if (show) await updateRoute()
+  }
+)
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -170,9 +170,7 @@ async function updateRoute(): Promise<void> {
 
 async function retry(): Promise<void> {
   await initMap({
-    center: props.center
-      ? { lat: props.center.latitude, lng: props.center.longitude }
-      : undefined,
+    center: props.center ? { lat: props.center.latitude, lng: props.center.longitude } : undefined,
     zoom: props.zoom,
   })
   if (isLoaded.value && map.value) {

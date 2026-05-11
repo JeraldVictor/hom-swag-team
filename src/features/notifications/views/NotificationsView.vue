@@ -73,13 +73,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonBackButton, IonContent, IonRefresher, IonRefresherContent,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { getNotifications, markNotificationRead, markAllNotificationsRead } from '@/shared/api'
+import { computed, onMounted, ref } from 'vue'
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from '@/shared/api'
 import { useToast } from '@/shared/composables'
 import type { Notification } from '@/shared/models'
 
@@ -88,7 +83,7 @@ const { showError, showSuccess } = useToast()
 const notifications = ref<Notification[]>([])
 const isLoading = ref(false)
 
-const hasUnread = computed(() => notifications.value.some((n) => !n.is_read))
+const hasUnread = computed(() => notifications.value.some(n => !n.is_read))
 
 async function fetchNotifications(): Promise<void> {
   isLoading.value = true
@@ -120,7 +115,7 @@ async function handleRead(notif: Notification): Promise<void> {
 async function handleMarkAll(): Promise<void> {
   try {
     await markAllNotificationsRead()
-    notifications.value.forEach((n) => (n.is_read = true))
+    notifications.value.forEach(n => (n.is_read = true))
     showSuccess('All notifications marked as read')
   } catch (err) {
     showError(err instanceof Error ? err.message : 'Failed to mark all read')

@@ -8,8 +8,8 @@
  * the admin can track the rider/beautician in real time.
  */
 
-import { ref, readonly } from 'vue'
 import type { Ref } from 'vue'
+import { readonly, ref } from 'vue'
 import { locationService } from '@/shared/lib/location.service'
 import { webSocketService } from '@/shared/lib/websocket.service'
 import type { Coordinates } from '@/shared/models/location.model'
@@ -74,7 +74,7 @@ export function useGeolocation(): UseGeolocationReturn {
 
     error.value = null
     try {
-      watchId = await locationService.startWatching((coords) => {
+      watchId = await locationService.startWatching(coords => {
         currentPosition.value = coords
         // Emit over WebSocket for real-time admin tracking
         webSocketService.emitLocation(coords)

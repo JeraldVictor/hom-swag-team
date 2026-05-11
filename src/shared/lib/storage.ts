@@ -124,7 +124,7 @@ class StorageServiceClass {
       return null
     }
     const parsed = Number(value)
-    return isNaN(parsed) ? null : parsed
+    return Number.isNaN(parsed) ? null : parsed
   }
 
   // -------------------------------------------------------------------------
@@ -159,9 +159,7 @@ class StorageServiceClass {
    * Remove all keys defined in `STORAGE_KEYS`.
    */
   async clearAll(): Promise<void> {
-    await Promise.all(
-      Object.values(STORAGE_KEYS).map((key) => Preferences.remove({ key }))
-    )
+    await Promise.all(Object.values(STORAGE_KEYS).map(key => Preferences.remove({ key })))
   }
 }
 

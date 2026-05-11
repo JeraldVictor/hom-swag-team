@@ -5,7 +5,7 @@
  * Handles authentication via the `auth` handshake object.
  */
 
-import { io, Socket } from 'socket.io-client'
+import { io, type Socket } from 'socket.io-client'
 import type { Coordinates } from '@/shared/models/location.model'
 
 /** Message structure for inbound events (legacy support or generic) */
@@ -51,7 +51,7 @@ class WebSocketService {
 
     // Re-attach all existing event handlers to the new socket instance
     this.eventHandlers.forEach((handlers, event) => {
-      handlers.forEach((handler) => {
+      handlers.forEach(handler => {
         this.socket?.on(event, handler)
       })
     })
@@ -60,11 +60,11 @@ class WebSocketService {
       console.log('[WebSocketService] Connected to server')
     })
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', reason => {
       console.log('[WebSocketService] Disconnected:', reason)
     })
 
-    this.socket.on('error', (err) => {
+    this.socket.on('error', err => {
       console.error('[WebSocketService] Error:', err)
     })
   }
@@ -119,12 +119,12 @@ class WebSocketService {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set())
     }
-    
+
     this.eventHandlers.get(event)?.add(handler)
-    
+
     // If socket is already initialized, attach immediately
     this.socket?.on(event, handler)
-    
+
     return () => {
       this.eventHandlers.get(event)?.delete(handler)
       this.socket?.off(event, handler)

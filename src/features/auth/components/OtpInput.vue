@@ -6,7 +6,7 @@
  * Handles auto-advance, backspace navigation, and paste.
  * Emits `update:modelValue` with the composed 6-char string.
  */
-import { ref, watch, nextTick } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -33,7 +33,7 @@ const inputRefs = ref<HTMLInputElement[]>([])
 // Sync external modelValue → internal digits
 watch(
   () => props.modelValue,
-  (val) => {
+  val => {
     const chars = (val ?? '').split('').slice(0, 6)
     digits.value = [...chars, ...Array(6).fill('')].slice(0, 6)
   },

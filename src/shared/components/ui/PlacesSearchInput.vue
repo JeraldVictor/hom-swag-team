@@ -87,8 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
-import { Icon } from '@iconify/vue'
+import { computed, ref, watch } from 'vue'
 import { usePlacesSearch } from '@/shared/composables/usePlacesSearch'
 import type { PlaceResult } from '@/shared/models/location.model'
 
@@ -123,16 +122,23 @@ const emit = defineEmits<{
 const isFocused = ref(false)
 const inputEl = ref<HTMLInputElement | null>(null)
 
-const { query, suggestions, isLoading, fetchSuggestions, selectPrediction, parseLatLng, clearSuggestions } =
-  usePlacesSearch()
+const {
+  query,
+  suggestions,
+  isLoading,
+  fetchSuggestions,
+  selectPrediction,
+  parseLatLng,
+  clearSuggestions,
+} = usePlacesSearch()
 
 // Sync modelValue → query on mount / prop change
 watch(
   () => props.modelValue,
-  (val) => {
+  val => {
     if (val !== query.value) query.value = val
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 // Detect if the current query looks like a lat,lng pair
@@ -158,7 +164,7 @@ function handleBlur(): void {
 }
 
 async function selectPredictionItem(
-  prediction: google.maps.places.AutocompletePrediction,
+  prediction: google.maps.places.AutocompletePrediction
 ): Promise<void> {
   const place = await selectPrediction(prediction)
   if (place) {

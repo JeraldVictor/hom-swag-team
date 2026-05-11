@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { IonSpinner } from '@ionic/vue'
 import { computed } from 'vue'
 
 const props = withDefaults(
   defineProps<{
     size?: 'sm' | 'md' | 'lg'
-    name?: 'bubbles' | 'circles' | 'circular' | 'crescent' | 'dots' | 'lines' | 'lines-sharp' | 'lines-small'
+    name?:
+      | 'bubbles'
+      | 'circles'
+      | 'circular'
+      | 'crescent'
+      | 'dots'
+      | 'lines'
+      | 'lines-sharp'
+      | 'lines-small'
   }>(),
   {
     size: 'md',

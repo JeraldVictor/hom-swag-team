@@ -12,12 +12,12 @@
  * - Clear all auth state and storage on logout (also revokes server-side token)
  */
 
-import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
+import { computed, ref } from 'vue'
+import { locationTracker } from '@/shared/composables/useLocationTracker'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { AuthResponse } from '@/shared/models/auth.model'
 import type { UserProfile, UserType } from '@/shared/models/user.model'
-import { locationTracker } from '@/shared/composables/useLocationTracker'
 
 const VALID_USER_TYPES: UserType[] = ['rider', 'beautician']
 
@@ -48,12 +48,13 @@ export const useAuthStore = defineStore('auth', () => {
    * Returns `true` if a valid session was restored, `false` otherwise.
    */
   async function restoreSession(): Promise<boolean> {
-    const [storedAccessToken, storedRefreshToken, storedProfile, storedUserType] = await Promise.all([
-      Storage_Service.getString(STORAGE_KEYS.accessToken),
-      Storage_Service.getString(STORAGE_KEYS.refreshToken),
-      Storage_Service.getJSON<UserProfile>(STORAGE_KEYS.userProfile),
-      Storage_Service.getString(STORAGE_KEYS.userType),
-    ])
+    const [storedAccessToken, storedRefreshToken, storedProfile, storedUserType] =
+      await Promise.all([
+        Storage_Service.getString(STORAGE_KEYS.accessToken),
+        Storage_Service.getString(STORAGE_KEYS.refreshToken),
+        Storage_Service.getJSON<UserProfile>(STORAGE_KEYS.userProfile),
+        Storage_Service.getString(STORAGE_KEYS.userType),
+      ])
 
     if (storedAccessToken && storedRefreshToken && storedProfile) {
       accessToken.value = storedAccessToken
@@ -76,7 +77,11 @@ export const useAuthStore = defineStore('auth', () => {
    * Throws an error and clears any stored tokens if the type is invalid.
    */
   async function login(authResponse: AuthResponse): Promise<void> {
-    const { accessToken: newAccessToken, refreshToken: newRefreshToken, user: authUser } = authResponse
+    const {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: authUser,
+    } = authResponse
 
     // Validate user_type before persisting anything
     if (!VALID_USER_TYPES.includes(authUser.user_type)) {

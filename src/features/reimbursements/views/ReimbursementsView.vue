@@ -138,19 +138,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonBackButton,
-  IonContent, IonRefresher, IonRefresherContent, IonModal, IonSpinner,
-  onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { onIonViewWillEnter } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
-import { useAuthStore, useUserTypeStore } from '@/shared/stores'
-import { getReimbursements, createReimbursement } from '@/shared/api'
+import { onMounted, ref } from 'vue'
+import { createReimbursement, getReimbursements } from '@/shared/api'
 import { useToast } from '@/shared/composables'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
 import type { Reimbursement, ReimbursementStatus, ReimbursementType } from '@/shared/models'
+import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 
 const authStore = useAuthStore()
 const userTypeStore = useUserTypeStore()
@@ -203,7 +197,11 @@ function travelTypeLabel(type: ReimbursementType): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 function openProofUpload(item: Reimbursement): void {

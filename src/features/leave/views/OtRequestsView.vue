@@ -116,22 +116,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonBackButton,
-  IonContent, IonRefresher, IonRefresherContent, IonModal, IonSpinner,
-  onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { useOtRequests } from '../composables/useOtRequests'
+import { onIonViewWillEnter } from '@ionic/vue'
+import { onMounted, ref } from 'vue'
 import { useToast } from '@/shared/composables'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
 import type { OtRequestStatus } from '@/shared/models'
+import { useOtRequests } from '../composables/useOtRequests'
 
 const { showSuccess, showError } = useToast()
 const {
-  requests, isLoading, isSubmitting, isCancelling, error,
-  fetchRequests, submitRequest, cancelRequest,
+  requests,
+  isLoading,
+  isSubmitting,
+  isCancelling,
+  error,
+  fetchRequests,
+  submitRequest,
+  cancelRequest,
 } = useOtRequests()
 
 const showForm = ref(false)
@@ -159,8 +159,10 @@ function statusVariant(status: OtRequestStatus): 'success' | 'warning' | 'error'
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   })
 }
 

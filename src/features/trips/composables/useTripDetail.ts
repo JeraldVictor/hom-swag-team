@@ -6,8 +6,8 @@
  * in progress and stops it when completed.
  */
 
-import { ref, readonly, computed } from 'vue'
 import type { Ref } from 'vue'
+import { computed, readonly, ref } from 'vue'
 import { getTrip, updateTripStatus } from '@/shared/api/trips.service'
 import type { Trip, TripKanbanState } from '@/shared/models/trip.model'
 
@@ -46,11 +46,11 @@ export function useTripDetail(): UseTripDetailReturn {
   const isUpdating = ref(false)
 
   const isInProgress = computed(() =>
-    trip.value ? IN_PROGRESS_STATES.includes(trip.value.kanban_state) : false,
+    trip.value ? IN_PROGRESS_STATES.includes(trip.value.kanban_state) : false
   )
 
   const isCompleted = computed(() =>
-    trip.value ? COMPLETED_STATES.includes(trip.value.kanban_state) : false,
+    trip.value ? COMPLETED_STATES.includes(trip.value.kanban_state) : false
   )
 
   async function fetchTrip(id: string | number): Promise<void> {

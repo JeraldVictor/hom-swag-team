@@ -5,7 +5,7 @@
  */
 
 import apiClient from '@/shared/lib/api'
-import type { UserProfile, ProfileDocument } from '@/shared/models/user.model'
+import type { ProfileDocument, UserProfile } from '@/shared/models/user.model'
 
 /**
  * Fetch the authenticated field worker's profile.
@@ -20,7 +20,9 @@ export async function getProfile(): Promise<UserProfile> {
  * Update the authenticated field worker's profile fields.
  * PATCH /profile
  */
-export async function updateProfile(data: Partial<UserProfile> & Record<string, unknown>): Promise<UserProfile> {
+export async function updateProfile(
+  data: Partial<UserProfile> & Record<string, unknown>
+): Promise<UserProfile> {
   const response = await apiClient.patch<{ data: UserProfile }>('/profile', data)
   return response.data.data
 }
@@ -40,7 +42,7 @@ export async function uploadProfilePhoto(formData: FormData): Promise<UserProfil
  */
 export async function uploadProfileDocument(
   type: string,
-  formData: FormData,
+  formData: FormData
 ): Promise<ProfileDocument> {
   const response = await apiClient.post<{ data: ProfileDocument }>(
     `/profile/documents/${String(type)}`,

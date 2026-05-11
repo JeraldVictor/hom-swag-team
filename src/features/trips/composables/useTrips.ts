@@ -4,8 +4,8 @@
  * Composable for fetching and managing the rider's trip list.
  */
 
-import { ref, readonly } from 'vue'
 import type { Ref } from 'vue'
+import { readonly, ref } from 'vue'
 import { getTrips } from '@/shared/api/trips.service'
 import type { Trip } from '@/shared/models/trip.model'
 

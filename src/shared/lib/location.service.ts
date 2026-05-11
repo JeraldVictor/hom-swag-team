@@ -7,8 +7,8 @@
  */
 
 import { Geolocation } from '@capacitor/geolocation'
-import type { Coordinates } from '@/shared/models/location.model'
 import { pushLocation } from '@/shared/api/location.service'
+import type { Coordinates } from '@/shared/models/location.model'
 
 /** Maximum watch interval in milliseconds (30 seconds). */
 export const MAX_WATCH_INTERVAL_MS = 30_000
@@ -45,13 +45,11 @@ class LocationService {
    */
   async startWatching(
     callback: (coords: Coordinates) => void,
-    intervalMs?: number,
+    intervalMs?: number
   ): Promise<string> {
     // Clamp the interval to the maximum allowed value.
     const clampedInterval =
-      intervalMs !== undefined
-        ? Math.min(intervalMs, MAX_WATCH_INTERVAL_MS)
-        : MAX_WATCH_INTERVAL_MS
+      intervalMs !== undefined ? Math.min(intervalMs, MAX_WATCH_INTERVAL_MS) : MAX_WATCH_INTERVAL_MS
 
     const watchId = await Geolocation.watchPosition(
       {
@@ -79,7 +77,7 @@ class LocationService {
         } catch {
           // Silently swallow API errors — location tracking must not crash.
         }
-      },
+      }
     )
 
     return watchId

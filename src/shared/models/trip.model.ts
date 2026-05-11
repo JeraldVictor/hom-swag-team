@@ -30,21 +30,23 @@ export interface RawTrip {
   _id: string
   office_id: string
   rider_id: string
-  order_id: {
-    _id: string
-    order_number: string
-    status: string
-    customer?: {
-      full_name: string
-      email?: string
-      phone?: string
-    }
-    booking_info?: {
-      timing?: string
-      date?: string
-      surge_amount?: number
-    }
-  } | string
+  order_id:
+    | {
+        _id: string
+        order_number: string
+        status: string
+        customer?: {
+          full_name: string
+          email?: string
+          phone?: string
+        }
+        booking_info?: {
+          timing?: string
+          date?: string
+          surge_amount?: number
+        }
+      }
+    | string
   pickup_location: GeoJsonPoint
   drop_location: GeoJsonPoint
   status: string

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { IonCard } from '@ionic/vue'
 import { computed } from 'vue'
-import { spacing, radius } from '@/core/theme/index'
+import { radius, spacing } from '@/core/theme/index'
 
 const props = withDefaults(
   defineProps<{
@@ -13,9 +12,9 @@ const props = withDefaults(
     borderRadius?: string
   }>(),
   {
-    padding: spacing[4],      // 16px
+    padding: spacing[4], // 16px
     elevation: 1,
-    borderRadius: radius.lg,  // 12px
+    borderRadius: radius.lg, // 12px
   }
 )
 

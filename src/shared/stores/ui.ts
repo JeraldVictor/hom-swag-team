@@ -5,8 +5,8 @@
  * Uses Composition API style with defineStore.
  */
 
-import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
 // ---------------------------------------------------------------------------
 // Types

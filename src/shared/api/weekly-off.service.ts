@@ -6,14 +6,16 @@
  */
 
 import apiClient from '@/shared/lib/api'
-import type { WeeklyOffRequest, WeeklyOffCreateBody } from '@/shared/models/weekly-off.model'
+import type { WeeklyOffCreateBody, WeeklyOffRequest } from '@/shared/models/weekly-off.model'
 
 /**
  * Fetch all weekly off requests for the authenticated field worker.
  * GET /weekly-off-requests
  */
 export async function getWeeklyOffRequests(): Promise<WeeklyOffRequest[]> {
-  const response = await apiClient.get<{ data: WeeklyOffRequest[] | { data: WeeklyOffRequest[] } }>('/weekly-off-requests')
+  const response = await apiClient.get<{ data: WeeklyOffRequest[] | { data: WeeklyOffRequest[] } }>(
+    '/weekly-off-requests'
+  )
   const raw = response.data.data
   if (Array.isArray(raw)) return raw
   return (raw as { data: WeeklyOffRequest[] }).data ?? []

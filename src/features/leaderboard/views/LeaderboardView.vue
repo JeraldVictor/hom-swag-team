@@ -219,20 +219,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonContent, IonRefresher, IonRefresherContent, IonButton,
-  onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { storeToRefs } from 'pinia'
-import { useUserTypeStore } from '@/shared/stores'
+import { onIonViewWillEnter } from '@ionic/vue'
+import { computed, onMounted, ref } from 'vue'
 import { getLeaderboard } from '@/shared/api'
-import type { LeaderboardData, LeaderboardEntry, LeaderboardPeriod } from '@/shared/models'
-
-const userTypeStore = useUserTypeStore()
-const { isBeautician } = storeToRefs(userTypeStore)
+import type { LeaderboardData, LeaderboardPeriod } from '@/shared/models'
 
 const data = ref<LeaderboardData | null>(null)
 const isLoading = ref(false)
@@ -247,17 +237,13 @@ const periods: { value: LeaderboardPeriod; label: string }[] = [
 
 const top3 = computed(() => data.value?.entries.slice(0, 3) ?? [])
 const rest = computed(() => data.value?.entries.slice(3) ?? [])
-const placeholderEntry: LeaderboardEntry = {
-  user_id: 'skeleton',
-  name: 'Placeholder Name',
-  count: 0,
-  rank: 4,
-  amount: 0,
-  is_self: false
-}
 
 function initials(name: string): string {
-  return name.split(' ').slice(0, 2).map((n) => n[0]?.toUpperCase() ?? '').join('')
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map(n => n[0]?.toUpperCase() ?? '')
+    .join('')
 }
 
 async function fetchLeaderboard(): Promise<void> {

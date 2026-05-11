@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { IonAvatar } from '@ionic/vue'
 import { computed, ref } from 'vue'
 import { colors } from '@/core/theme/index'
 
@@ -22,9 +21,7 @@ const imgError = ref(false)
 
 const showImage = computed(() => !!props.imageUrl && !imgError.value)
 
-const sizeValue = computed(() =>
-  typeof props.size === 'number' ? `${props.size}px` : props.size
-)
+const sizeValue = computed(() => (typeof props.size === 'number' ? `${props.size}px` : props.size))
 
 const avatarStyle = computed(() => ({
   width: sizeValue.value,

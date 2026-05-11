@@ -6,8 +6,8 @@
  * so multiple API operations on the same component don't share state.
  */
 
-import { ref } from 'vue'
 import type { Ref } from 'vue'
+import { ref } from 'vue'
 
 export interface UseApiReturn {
   /** True while the async function is executing. */

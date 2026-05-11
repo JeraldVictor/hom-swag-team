@@ -1,5 +1,5 @@
-export { default as OrdersView } from './views/OrdersView.vue'
-export { default as OrderDetailView } from './views/OrderDetailView.vue'
 export { default as OrderCard } from './components/OrderCard.vue'
-export { useOrders } from './composables/useOrders'
 export { useOrderDetail } from './composables/useOrderDetail'
+export { useOrders } from './composables/useOrders'
+export { default as OrderDetailView } from './views/OrderDetailView.vue'
+export { default as OrdersView } from './views/OrdersView.vue'

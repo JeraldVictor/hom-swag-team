@@ -21,7 +21,9 @@ export async function createSupportTicket(body: SupportBody): Promise<SupportTic
  * GET /support
  */
 export async function getSupportTickets(): Promise<SupportTicket[]> {
-  const response = await apiClient.get<{ data: SupportTicket[] | { data: SupportTicket[] } }>('/support')
+  const response = await apiClient.get<{ data: SupportTicket[] | { data: SupportTicket[] } }>(
+    '/support'
+  )
   const raw = response.data.data
   if (Array.isArray(raw)) return raw
   return (raw as { data: SupportTicket[] }).data ?? []

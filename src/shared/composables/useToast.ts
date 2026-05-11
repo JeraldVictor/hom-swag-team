@@ -19,7 +19,7 @@ const DEFAULT_DURATION = 3000
 async function showToast(
   message: string,
   color?: string,
-  duration: number = DEFAULT_DURATION,
+  duration: number = DEFAULT_DURATION
 ): Promise<void> {
   const toast = await toastController.create({
     message,

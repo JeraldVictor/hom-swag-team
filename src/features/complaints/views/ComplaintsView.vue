@@ -84,14 +84,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonContent, IonRefresher, IonRefresherContent, IonButton,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { onMounted, ref } from 'vue'
 import { getComplaints } from '@/shared/api'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
 import type { Complaint } from '@/shared/models'
 
 const complaints = ref<Complaint[]>([])
@@ -127,7 +121,9 @@ function statusVariant(status: string): 'success' | 'warning' | 'error' | 'info'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   })
 }
 

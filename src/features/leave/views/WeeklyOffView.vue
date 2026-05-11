@@ -126,21 +126,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonBackButton,
-  IonContent, IonRefresher, IonRefresherContent, IonModal, IonSpinner,
-  onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { useWeeklyOff } from '../composables/useWeeklyOff'
+import { onIonViewWillEnter } from '@ionic/vue'
+import { onMounted, ref } from 'vue'
 import { useToast } from '@/shared/composables'
 import type { DayOfWeek } from '@/shared/models'
+import { useWeeklyOff } from '../composables/useWeeklyOff'
 
 const { showSuccess, showError } = useToast()
 const {
-  requests, isLoading, isSubmitting, isCancelling, error,
-  fetchRequests, submitRequest, cancelRequest,
+  requests,
+  isLoading,
+  isSubmitting,
+  isCancelling,
+  error,
+  fetchRequests,
+  submitRequest,
+  cancelRequest,
 } = useWeeklyOff()
 
 const showForm = ref(false)
@@ -173,8 +174,10 @@ function dayLabel(day: DayOfWeek | string): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   })
 }
 

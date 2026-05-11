@@ -84,11 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonContent, IonButton, IonSpinner,
-} from '@ionic/vue'
+import { onMounted, ref } from 'vue'
 import { createSupportTicket, getSupportTickets } from '@/shared/api'
 import { useToast } from '@/shared/composables'
 import type { SupportCategory, SupportTicket } from '@/shared/models'
@@ -137,7 +133,9 @@ function formatCategory(cat: SupportCategory): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   })
 }
 

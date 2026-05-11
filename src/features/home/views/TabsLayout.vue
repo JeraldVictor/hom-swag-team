@@ -39,18 +39,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-  IonPage,
-  IonTabs,
-  IonTabBar,
-  IonTabButton,
-  IonLabel,
-  IonRouterOutlet,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { useUserTypeStore } from '@/shared/stores'
 import { storeToRefs } from 'pinia'
-import AppDrawer from '@/shared/components/ui/AppDrawer.vue'
+import { useUserTypeStore } from '@/shared/stores'
 
 const userTypeStore = useUserTypeStore()
 const { isBeautician, isRider } = storeToRefs(userTypeStore)

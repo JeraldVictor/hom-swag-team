@@ -5,25 +5,23 @@
  */
 
 import apiClient from '@/shared/lib/api'
-import type { Product } from '@/shared/models/product.model'
 import type { PaginatedResponse } from '@/shared/models/pagination.model'
+import type { Product } from '@/shared/models/product.model'
 
 /**
  * Fetch a paginated list of products from the catalogue.
  * GET /products
  */
-export async function getProducts(
-  params?: {
-    page?: number
-    limit?: number
-    main_menu_id?: string
-    category_id?: string
-    sub_category_id?: string
-    search_query?: string
-    is_active?: boolean
-    beautician_only?: boolean
-  }
-): Promise<PaginatedResponse<Product>> {
+export async function getProducts(params?: {
+  page?: number
+  limit?: number
+  main_menu_id?: string
+  category_id?: string
+  sub_category_id?: string
+  search_query?: string
+  is_active?: boolean
+  beautician_only?: boolean
+}): Promise<PaginatedResponse<Product>> {
   const response = await apiClient.get<{ data: PaginatedResponse<Product> }>('/products', {
     params,
   })

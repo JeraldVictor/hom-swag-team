@@ -218,28 +218,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { onIonViewWillEnter } from '@ionic/vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonContent, IonRefresher, IonRefresherContent, IonModal, IonSpinner,
-  onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { useDrawer, useToast } from '@/shared/composables'
+import type { LeaveDuration, LeaveRequest, LeaveType } from '@/shared/models'
 import { useLeave } from '../composables/useLeave'
-import { useToast } from '@/shared/composables'
-import { useAuthStore } from '@/shared/stores'
-import { useUserTypeStore } from '@/shared/stores'
-import { useDrawer } from '@/shared/composables'
-import { storeToRefs } from 'pinia'
-import type { LeaveType, LeaveDuration, LeaveRequest } from '@/shared/models'
 
 const router = useRouter()
 const { showSuccess, showError } = useToast()
-const authStore = useAuthStore()
-const userTypeStore = useUserTypeStore()
-const { user: _user } = storeToRefs(authStore)
-const { userType: _userType } = storeToRefs(userTypeStore)
 const { openDrawer } = useDrawer()
 
 function openMenu(): void {
@@ -247,8 +234,16 @@ function openMenu(): void {
 }
 
 const {
-  requests, balance, isLoading, isSubmitting, isCancelling, error,
-  fetchRequests, fetchBalance, submitRequest, cancelRequest,
+  requests,
+  balance,
+  isLoading,
+  isSubmitting,
+  isCancelling,
+  error,
+  fetchRequests,
+  fetchBalance,
+  submitRequest,
+  cancelRequest,
 } = useLeave()
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -258,21 +253,36 @@ const todayStr = new Date().toISOString().split('T')[0]
 type LeaveKind = 'paid_leave' | 'sick_leave' | 'loss_of_pay'
 
 const REQUEST_TYPES: { value: LeaveKind; label: string; sub: string; icon: string }[] = [
-  { value: 'paid_leave',  label: 'Paid Leave',    sub: 'Use your paid leave balance',  icon: 'lucide:umbrella' },
-  { value: 'sick_leave',  label: 'Sick Leave',    sub: 'Not feeling well? Take a day', icon: 'lucide:thermometer' },
-  { value: 'loss_of_pay', label: 'Loss of Pay',   sub: 'Unpaid leave request',         icon: 'lucide:minus-circle' },
+  {
+    value: 'paid_leave',
+    label: 'Paid Leave',
+    sub: 'Use your paid leave balance',
+    icon: 'lucide:umbrella',
+  },
+  {
+    value: 'sick_leave',
+    label: 'Sick Leave',
+    sub: 'Not feeling well? Take a day',
+    icon: 'lucide:thermometer',
+  },
+  {
+    value: 'loss_of_pay',
+    label: 'Loss of Pay',
+    sub: 'Unpaid leave request',
+    icon: 'lucide:minus-circle',
+  },
 ]
 
 const DURATIONS: { value: LeaveDuration; label: string }[] = [
-  { value: 'full_day',    label: 'Full Day' },
-  { value: 'first_half',  label: 'First Half' },
+  { value: 'full_day', label: 'Full Day' },
+  { value: 'first_half', label: 'First Half' },
   { value: 'second_half', label: 'Second Half' },
 ]
 
 // ── State ──────────────────────────────────────────────────────────────────
 
-const showForm    = ref(false)
-const step        = ref<1 | 2>(1)
+const showForm = ref(false)
+const step = ref<1 | 2>(1)
 const submitError = ref<string | null>(null)
 
 const form = ref({
@@ -288,8 +298,8 @@ const sortedRequests = computed(() =>
   [...requests.value].sort((a, b) => b.date.localeCompare(a.date))
 )
 
-const selectedTypeLabel = computed(() =>
-  REQUEST_TYPES.find((t) => t.value === form.value.leaveType)?.label ?? ''
+const selectedTypeLabel = computed(
+  () => REQUEST_TYPES.find(t => t.value === form.value.leaveType)?.label ?? ''
 )
 
 const reasonPlaceholder = computed(() => {
@@ -333,8 +343,10 @@ function statusLabel(status: string): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   })
 }
 

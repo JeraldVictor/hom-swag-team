@@ -37,15 +37,11 @@ function openDirections(lat: number, lng: number, label?: string): void {
 
   if (isIOS()) {
     // Apple Maps deep-link
-    const destination = label
-      ? encodeURIComponent(label)
-      : `${lat},${lng}`
+    const destination = label ? encodeURIComponent(label) : `${lat},${lng}`
     url = `maps://?daddr=${destination}&dirflg=d`
   } else {
     // Google Maps universal URL (works on Android, web, and as a fallback)
-    const destination = label
-      ? encodeURIComponent(label)
-      : `${lat},${lng}`
+    const destination = label ? encodeURIComponent(label) : `${lat},${lng}`
     url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`
   }
 

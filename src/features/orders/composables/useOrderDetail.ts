@@ -1,16 +1,16 @@
-import { ref, readonly, computed } from 'vue'
+import { computed, readonly, ref } from 'vue'
 import {
-  getOrder,
-  updateOrderStatus,
   generateServiceOtp,
-  verifyServiceOtp,
-  upgradeOrderProduct,
-  updateOrder,
+  getOrder,
   getUpgradableProducts,
+  updateOrder,
+  updateOrderStatus,
+  upgradeOrderProduct,
   uploadArrivalSelfie,
+  verifyServiceOtp,
 } from '@/shared/api'
-import type { Order, UpgradeProductBody, OrderProduct, OrderStatus } from '@/shared/models'
-import { useDirections, useCamera } from '@/shared/composables'
+import { useCamera, useDirections } from '@/shared/composables'
+import type { Order, OrderProduct, UpgradeProductBody } from '@/shared/models'
 
 /** Helper to convert base64 data URL to Blob */
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -64,9 +64,7 @@ export function useOrderDetail() {
     return NEXT_LABEL[order.value.status] ?? null
   })
 
-  const isCompleted = computed(() =>
-    order.value?.status?.toLowerCase() === 'completed'
-  )
+  const isCompleted = computed(() => order.value?.status?.toLowerCase() === 'completed')
 
   const canUpgrade = computed(() => {
     const s = order.value?.status?.toLowerCase()
@@ -94,10 +92,10 @@ export function useOrderDetail() {
     error.value = null
     try {
       const id = order.value._id || order.value.id
-      order.value = await updateOrderStatus(id, { 
-        status: next, 
+      order.value = await updateOrderStatus(id, {
+        status: next,
         status_reason: reason,
-        otp 
+        otp,
       })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update status'
@@ -134,14 +132,14 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      const nextStatus: 'cancelled' | 'arrived_and_cancelled' = 
+      const nextStatus: 'cancelled' | 'arrived_and_cancelled' =
         order.value.status.toLowerCase() === 'confirmed' ? 'cancelled' : 'arrived_and_cancelled'
-        
+
       const id = order.value._id || order.value.id
       order.value = await updateOrderStatus(id, {
         status: nextStatus,
         status_reason: reason,
-        otp
+        otp,
       })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to cancel order'
@@ -197,7 +195,10 @@ export function useOrderDetail() {
     }
   }
 
-  async function updateOrderDetails(updates: { products?: OrderProduct[]; status_reason?: string }): Promise<void> {
+  async function updateOrderDetails(updates: {
+    products?: OrderProduct[]
+    status_reason?: string
+  }): Promise<void> {
     if (!order.value) return
     isUpdating.value = true
     error.value = null

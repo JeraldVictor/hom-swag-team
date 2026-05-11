@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { IonButton, IonSpinner } from '@ionic/vue'
 import { computed } from 'vue'
-import { Icon } from '@iconify/vue'
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline' | 'clear'
 type Size = 'sm' | 'md' | 'lg'
@@ -27,9 +25,7 @@ const props = withDefaults(
   }
 )
 
-const emit = defineEmits<{
-  (e: 'click', event: MouseEvent): void
-}>()
+const emit = defineEmits<(e: 'click', event: MouseEvent) => void>()
 
 /** Map AppButton variant → Ionic color / fill */
 const ionColor = computed(() => {
@@ -43,8 +39,6 @@ const ionFill = computed<'solid' | 'outline' | 'clear'>(() => {
   if (props.variant === 'ghost' || props.variant === 'clear') return 'clear'
   return 'solid'
 })
-
-const isMuted = computed(() => props.loading || props.disabled)
 </script>
 
 <template>

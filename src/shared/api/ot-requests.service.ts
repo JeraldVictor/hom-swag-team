@@ -13,7 +13,9 @@ import type { OtRequest, OtRequestCreateBody } from '@/shared/models/ot-request.
  * GET /ot-requests
  */
 export async function getOtRequests(): Promise<OtRequest[]> {
-  const response = await apiClient.get<{ data: OtRequest[] | { data: OtRequest[] } }>('/ot-requests')
+  const response = await apiClient.get<{ data: OtRequest[] | { data: OtRequest[] } }>(
+    '/ot-requests'
+  )
   const raw = response.data.data
   if (Array.isArray(raw)) return raw
   return (raw as { data: OtRequest[] }).data ?? []

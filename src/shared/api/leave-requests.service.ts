@@ -6,7 +6,11 @@
  */
 
 import apiClient from '@/shared/lib/api'
-import type { LeaveRequest, LeaveRequestBody, LeaveBalance } from '@/shared/models/leave-request.model'
+import type {
+  LeaveBalance,
+  LeaveRequest,
+  LeaveRequestBody,
+} from '@/shared/models/leave-request.model'
 
 /**
  * Fetch all leave requests for the authenticated field worker.

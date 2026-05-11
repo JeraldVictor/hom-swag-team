@@ -11,10 +11,16 @@
  * - ApiError for non-2xx responses and success:false payloads
  */
 
-import axios from 'axios'
-import type { AxiosAdapter, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { Capacitor, CapacitorHttp } from '@capacitor/core'
-import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
+import type {
+  AxiosAdapter,
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios'
+import axios from 'axios'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 
 // ---------------------------------------------------------------------------
 // ApiError
@@ -111,7 +117,7 @@ async function performRefresh(instance: AxiosInstance): Promise<string> {
   // The BFF wraps the token pair in a `data` envelope: { success, message, data: { accessToken, refreshToken } }
   const response = await instance.post<{ data: { accessToken: string; refreshToken: string } }>(
     '/auth/refresh',
-    { refresh_token: storedRefreshToken },
+    { refresh_token: storedRefreshToken }
   )
 
   const { accessToken, refreshToken } = response.data.data
@@ -157,7 +163,11 @@ const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestCo
   // CapacitorHttp expects an object for JSON payloads — parse it back.
   let data: unknown = config.data
   if (typeof data === 'string' && headers['Content-Type']?.includes('application/json')) {
-    try { data = JSON.parse(data) } catch { /* leave as-is */ }
+    try {
+      data = JSON.parse(data)
+    } catch {
+      /* leave as-is */
+    }
   }
 
   let nativeResponse: Awaited<ReturnType<typeof CapacitorHttp.request>>
@@ -192,7 +202,7 @@ const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestCo
       config,
       response,
       isAxiosError: true,
-    }),
+    })
   )
 }
 
@@ -207,7 +217,7 @@ const prodUrl = import.meta.env.VITE_BFF_API_URL as string | undefined
 if (!import.meta.env.DEV && (!prodUrl || !prodUrl.startsWith('http'))) {
   throw new Error(
     `[api] VITE_BFF_API_URL is missing or not an absolute URL ("${prodUrl}"). ` +
-    'Build with --mode prod or set a correct absolute URL in .env.prod.',
+      'Build with --mode prod or set a correct absolute URL in .env.prod.'
   )
 }
 const baseURL = import.meta.env.DEV
@@ -223,7 +233,7 @@ const apiClient: AxiosInstance = axios.create({
   // On native, use the direct CapacitorHttp adapter for JSON/plain requests.
   // For multipart (FormData), fall back to the default adapter (XHR/Fetch)
   // because CapacitorHttp.request does not support FormData objects.
-  adapter: (config) => {
+  adapter: config => {
     if (Capacitor.isNativePlatform() && !(config.data instanceof FormData)) {
       return capacitorHttpAdapter(config)
     }
@@ -239,39 +249,41 @@ const apiClient: AxiosInstance = axios.create({
 
 if (import.meta.env.DEV) {
   // Request logger
-  apiClient.interceptors.request.use((config) => {
+  apiClient.interceptors.request.use(config => {
     const method = (config.method ?? 'GET').toUpperCase()
     const url = `${config.baseURL ?? ''}${config.url ?? ''}`
     console.debug(`[API ▶] ${method} ${url}`)
     if (config.params && Object.keys(config.params).length)
       console.debug('[API ▶] params:', config.params)
-    if (config.data)
-      console.debug('[API ▶] body:', config.data)
+    if (config.data) console.debug('[API ▶] body:', config.data)
     ;(config as unknown as Record<string, unknown>).__t = Date.now()
     return config
   })
 
   // Response logger
   apiClient.interceptors.response.use(
-    (response) => {
+    response => {
       const method = (response.config.method ?? 'GET').toUpperCase()
       const url = `${response.config.baseURL ?? ''}${response.config.url ?? ''}`
-      const ms = Date.now() - ((response.config as unknown as Record<string, unknown>).__t as number ?? Date.now())
+      const ms =
+        Date.now() -
+        (((response.config as unknown as Record<string, unknown>).__t as number) ?? Date.now())
       console.debug(`[API ✅] ${method} ${url} — ${response.status} (${ms}ms)`)
       console.debug('[API ✅] response:', response.data)
       return response
     },
-    (error) => {
+    error => {
       const config = error.config ?? {}
       const method = (config.method ?? 'GET').toUpperCase()
       const url = `${config.baseURL ?? ''}${config.url ?? ''}`
       const status = error.response?.status ?? 0
-      const ms = Date.now() - ((config as unknown as Record<string, unknown>).__t as number ?? Date.now())
+      const ms =
+        Date.now() - (((config as unknown as Record<string, unknown>).__t as number) ?? Date.now())
       console.error(`[API ❌] ${method} ${url} — ${status} (${ms}ms)`)
       if (error.response?.data) console.error('[API ❌] error response:', error.response.data)
       else console.error('[API ❌] error:', error.message)
       return Promise.reject(error)
-    },
+    }
   )
 }
 
@@ -315,7 +327,7 @@ apiClient.interceptors.request.use(
 
     return config
   },
-  (error) => Promise.reject(error),
+  error => Promise.reject(error)
 )
 
 // ---------------------------------------------------------------------------
@@ -323,7 +335,7 @@ apiClient.interceptors.request.use(
 // ---------------------------------------------------------------------------
 
 apiClient.interceptors.response.use(
-  (response) => {
+  response => {
     // Treat `success: false` in the response body as an error
     const data = response.data as Record<string, unknown> | null
     if (data && typeof data === 'object' && data.success === false) {
@@ -332,7 +344,7 @@ apiClient.interceptors.response.use(
     }
     return response
   },
-  async (error) => {
+  async error => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
 
     // Handle 401 — attempt one token refresh then retry
@@ -344,7 +356,8 @@ apiClient.interceptors.response.use(
         try {
           const newToken = await enqueueRequest()
           if (originalRequest.headers) {
-            (originalRequest.headers as Record<string, string>)['Authorization'] = `Bearer ${newToken}`
+            const headers = originalRequest.headers as Record<string, string>
+            headers.Authorization = `Bearer ${newToken}`
           }
           return apiClient(originalRequest)
         } catch (queueError) {
@@ -359,7 +372,8 @@ apiClient.interceptors.response.use(
         drainQueue(newToken)
 
         if (originalRequest.headers) {
-          (originalRequest.headers as Record<string, string>)['Authorization'] = `Bearer ${newToken}`
+          const headers = originalRequest.headers as Record<string, string>
+          headers.Authorization = `Bearer ${newToken}`
         }
         return apiClient(originalRequest)
       } catch {
@@ -387,7 +401,7 @@ apiClient.interceptors.response.use(
 
     // Network / timeout errors
     return Promise.reject(new ApiError(0, error.message ?? 'Network error'))
-  },
+  }
 )
 
 export default apiClient

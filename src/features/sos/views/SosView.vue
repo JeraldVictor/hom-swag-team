@@ -91,18 +91,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
-  IonContent, IonButton, IonSpinner,
-  onIonViewWillEnter, onIonViewDidLeave,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { onIonViewDidLeave, onIonViewWillEnter } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
-import { useAuthStore, useUserTypeStore } from '@/shared/stores'
-import { triggerSos, getLatestSos, resolveSos } from '@/shared/api'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { getLatestSos, resolveSos, triggerSos } from '@/shared/api'
 import { useToast } from '@/shared/composables'
 import type { SosAlert } from '@/shared/models'
+import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 
 const authStore = useAuthStore()
 const userTypeStore = useUserTypeStore()
@@ -146,7 +141,7 @@ function stopPolling(): void {
 }
 
 // Start/stop polling whenever activeAlert changes
-watch(activeAlert, (alert) => {
+watch(activeAlert, alert => {
   if (alert && alert.status !== 'resolved') {
     startPolling()
   } else {

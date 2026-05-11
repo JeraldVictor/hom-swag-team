@@ -55,10 +55,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { IonModal, IonSpinner } from '@ionic/vue'
-import { Icon } from '@iconify/vue'
 import { Geolocation } from '@capacitor/geolocation'
+import { ref } from 'vue'
 import { createExternalBooking } from '@/shared/api'
 
 interface Props {
@@ -79,22 +77,22 @@ const providers = [
   { id: 'Namma Yatri', icon: 'lucide:navigation-2', type: 'Auto' },
   { id: 'Rapido', icon: 'lucide:bike', type: 'Bike / Auto' },
   { id: 'Google Maps', icon: 'lucide:map', type: 'Navigation' },
-  { id: 'Other', icon: 'lucide:more-horizontal', type: 'Generic' }
+  { id: 'Other', icon: 'lucide:more-horizontal', type: 'Generic' },
 ]
 
 async function handleBook(providerId: string) {
   isOpening.value = true
-  
+
   try {
     const { lat, lng } = props.destination
-    
+
     // 1. Get current location for tracking & pickup intent
-    let pickup: { latitude: number; longitude: number } | undefined = undefined
+    let pickup: { latitude: number; longitude: number } | undefined
     try {
       const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true })
       pickup = {
         latitude: position.coords.latitude,
-        longitude: position.coords.longitude
+        longitude: position.coords.longitude,
       }
     } catch (e) {
       console.warn('Geo failed', e)
@@ -112,30 +110,43 @@ async function handleBook(providerId: string) {
           service_date: new Date().toISOString().split('T')[0],
           pickup_location: pickup,
           drop_location: { latitude: lat, longitude: lng },
-          service_description: `Booked via ${providerId}`
+          service_description: `Booked via ${providerId}`,
         })
       } catch (e) {
-         console.error('Silent log failed', e)
+        console.error('Silent log failed', e)
       }
     }
 
     // 3. Open Intent
     if (providerId === 'Uber') {
-      window.open(`uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}`, '_system')
+      window.open(
+        `uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}`,
+        '_system'
+      )
     } else if (providerId === 'Ola') {
       // More compatible Ola format
-      window.open(`olacabs://booking?lat=${lat}&lng=${lng}&utm_source=homswag&utm_medium=beautician_app`, '_system')
+      window.open(
+        `olacabs://booking?lat=${lat}&lng=${lng}&utm_source=homswag&utm_medium=beautician_app`,
+        '_system'
+      )
     } else if (providerId === 'Namma Yatri') {
       // Namma Yatri standard deep link format
       window.open(`nammayatri://booking?lat=${lat}&lng=${lng}`, '_system')
     } else if (providerId === 'Rapido') {
       window.open(`rapido://booking`, '_system')
-      setTimeout(() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_system'), 1000)
+      setTimeout(
+        () =>
+          window.open(
+            `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+            '_system'
+          ),
+        1000
+      )
     } else if (providerId === 'Google Maps') {
       // Android "geo:" intent allows choosing between different map apps
       const geoUrl = `geo:${lat},${lng}?q=${lat},${lng}(Customer+Location)`
       const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
-      
+
       // Try geo intent first, then fallback to web Google Maps
       window.open(geoUrl, '_system')
       setTimeout(() => window.open(googleMapsUrl, '_system'), 500)
@@ -145,13 +156,12 @@ async function handleBook(providerId: string) {
     }
 
     emit('booked', providerId)
-    
+
     // Brief delay for UX before closing
     setTimeout(() => {
       isOpening.value = false
       emit('update:isOpen', false)
     }, 1000)
-
   } catch (err) {
     console.error('Ride booking failed', err)
     isOpening.value = false

@@ -325,19 +325,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonContent, IonRefresher, IonRefresherContent, IonModal, IonSpinner,
-  onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { onIonViewWillEnter } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
-import { useAuthStore, useUserTypeStore } from '@/shared/stores'
-import { useToast, useDrawer } from '@/shared/composables'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { getProfile, updateProfile, uploadProfilePhoto } from '@/shared/api'
-import type { UserProfile, ProfileDocument } from '@/shared/models'
+import { useDrawer, useToast } from '@/shared/composables'
+import type { ProfileDocument, UserProfile } from '@/shared/models'
+import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -374,28 +369,26 @@ interface DocSlot {
 
 // Common docs for both roles
 const COMMON_DOCS = [
-  { type: 'aadhaar',      label: 'Aadhaar Card',    icon: 'lucide:id-card' },
-  { type: 'pan',          label: 'PAN Card',         icon: 'lucide:credit-card' },
-  { type: 'bank_account', label: 'Bank Account',     icon: 'lucide:landmark' },
+  { type: 'aadhaar', label: 'Aadhaar Card', icon: 'lucide:id-card' },
+  { type: 'pan', label: 'PAN Card', icon: 'lucide:credit-card' },
+  { type: 'bank_account', label: 'Bank Account', icon: 'lucide:landmark' },
 ]
 
 // Beautician-only docs
-const BEAUTICIAN_DOCS = [
-  { type: 'portfolio',    label: 'Portfolio Photos', icon: 'lucide:image' },
-]
+const BEAUTICIAN_DOCS = [{ type: 'portfolio', label: 'Portfolio Photos', icon: 'lucide:image' }]
 
 // Rider-only docs
 const RIDER_DOCS = [
   { type: 'driving_licence', label: 'Driving Licence', icon: 'lucide:car' },
-  { type: 'puc',             label: 'PUC Certificate',  icon: 'lucide:shield-check' },
-  { type: 'insurance',       label: 'Insurance',        icon: 'lucide:shield' },
-  { type: 'rc_book',         label: 'RC Book',          icon: 'lucide:file-text' },
+  { type: 'puc', label: 'PUC Certificate', icon: 'lucide:shield-check' },
+  { type: 'insurance', label: 'Insurance', icon: 'lucide:shield' },
+  { type: 'rc_book', label: 'RC Book', icon: 'lucide:file-text' },
 ]
 
 const documentSlots = computed<DocSlot[]>(() => {
   const roleDocs = isBeautician.value ? BEAUTICIAN_DOCS : isRider.value ? RIDER_DOCS : []
-  return [...COMMON_DOCS, ...roleDocs].map((def) => {
-    const uploaded = profile.value.documents?.find((d) => d.type === def.type)
+  return [...COMMON_DOCS, ...roleDocs].map(def => {
+    const uploaded = profile.value.documents?.find(d => d.type === def.type)
     return {
       ...def,
       uploaded: !!uploaded?.url,
@@ -409,18 +402,22 @@ const documentSlots = computed<DocSlot[]>(() => {
 
 const initials = computed(() => {
   const name = profile.value.name ?? ''
-  return name.split(' ').slice(0, 2).map((n) => n[0]?.toUpperCase() ?? '').join('')
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map(n => n[0]?.toUpperCase() ?? '')
+    .join('')
 })
 
-const roleLabel = computed(() => isBeautician.value ? 'Beautician' : 'Rider')
+const roleLabel = computed(() => (isBeautician.value ? 'Beautician' : 'Rider'))
 
 // ── Edit state ─────────────────────────────────────────────────────────────
 
-const showEdit   = ref(false)
-const isSaving   = ref(false)
-const saveError  = ref<string | null>(null)
+const showEdit = ref(false)
+const isSaving = ref(false)
+const saveError = ref<string | null>(null)
 const photoPreview = ref<string | null>(null)
-const photoFile    = ref<File | null>(null)
+const photoFile = ref<File | null>(null)
 
 const editForm = ref({
   name: '',
@@ -433,17 +430,17 @@ const editForm = ref({
 
 function openEdit(): void {
   editForm.value = {
-    name:                    profile.value.name ?? '',
-    email:                   profile.value.email ?? '',
-    date_of_birth:           profile.value.date_of_birth ?? '',
-    address:                 profile.value.address ?? '',
-    emergency_contact_name:  profile.value.emergency_contact_name ?? '',
+    name: profile.value.name ?? '',
+    email: profile.value.email ?? '',
+    date_of_birth: profile.value.date_of_birth ?? '',
+    address: profile.value.address ?? '',
+    emergency_contact_name: profile.value.emergency_contact_name ?? '',
     emergency_contact_phone: profile.value.emergency_contact_phone ?? '',
   }
   photoPreview.value = null
-  photoFile.value    = null
-  saveError.value    = null
-  showEdit.value     = true
+  photoFile.value = null
+  saveError.value = null
+  showEdit.value = true
 }
 
 // ── Photo handling ─────────────────────────────────────────────────────────
@@ -461,7 +458,7 @@ function onPhotoSelected(event: Event): void {
 
 function removePhoto(): void {
   photoPreview.value = null
-  photoFile.value    = null
+  photoFile.value = null
   // When wired to API: also call DELETE /profile/photo
 }
 
@@ -477,10 +474,10 @@ function onDocSelected(event: Event, type: string): void {
 
   // Optimistically update the local documents list
   const existing = profile.value.documents ?? []
-  const idx = existing.findIndex((d) => d.type === type)
+  const idx = existing.findIndex(d => d.type === type)
   const newDoc: ProfileDocument = {
     type,
-    label: documentSlots.value.find((s) => s.type === type)?.label ?? type,
+    label: documentSlots.value.find(s => s.type === type)?.label ?? type,
     url: URL.createObjectURL(file),
     mime_type: file.type,
     uploaded_at: new Date().toISOString(),
@@ -532,8 +529,10 @@ async function handleSave(): Promise<void> {
     if (editForm.value.email) updates.email = editForm.value.email
     if (editForm.value.date_of_birth) updates.date_of_birth = editForm.value.date_of_birth
     if (editForm.value.address) updates.address = editForm.value.address
-    if (editForm.value.emergency_contact_name) updates.emergency_contact_name = editForm.value.emergency_contact_name
-    if (editForm.value.emergency_contact_phone) updates.emergency_contact_phone = editForm.value.emergency_contact_phone
+    if (editForm.value.emergency_contact_name)
+      updates.emergency_contact_name = editForm.value.emergency_contact_name
+    if (editForm.value.emergency_contact_phone)
+      updates.emergency_contact_phone = editForm.value.emergency_contact_phone
 
     const updated = await updateProfile(updates)
     profile.value = { ...profile.value, ...updated }
@@ -555,8 +554,10 @@ async function handleSave(): Promise<void> {
 
 function formatDate(iso?: string): string {
   if (!iso) return ''
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'long', year: 'numeric',
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   })
 }
 
@@ -599,7 +600,8 @@ async function fetchProfile(): Promise<void> {
 
 function handleRefresh(event: CustomEvent): void {
   fetchProfile().then(() => {
-    ;(event.target as HTMLIonRefresherElement).complete()
+    const refresher = event.target as HTMLIonRefresherElement
+    refresher.complete()
   })
 }
 

@@ -237,22 +237,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonBackButton,
-  IonContent, IonRefresher, IonRefresherContent, IonModal, IonSpinner,
-  IonLabel, IonSegment, IonSegmentButton,
-  onIonViewWillEnter,
-} from '@ionic/vue'
 import { Geolocation } from '@capacitor/geolocation'
-import { Icon } from '@iconify/vue'
-import { getExternalBookings, createExternalBooking, getOrders } from '@/shared/api'
+import { onIonViewWillEnter } from '@ionic/vue'
+import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { createExternalBooking, getExternalBookings, getOrders } from '@/shared/api'
 import { useToast } from '@/shared/composables'
-import { AppBadge, AppButton } from '@/shared/components/ui'
 import { formatISTDateShort } from '@/shared/lib/datetime'
 import type { Order } from '@/shared/models'
-import RideSelectorModal from '@/shared/components/business/RideSelectorModal.vue'
 
 const route = useRoute()
 const { showSuccess, showError } = useToast()
@@ -359,7 +351,7 @@ async function fetchBookings(): Promise<void> {
       status: t.external_booking_details?.reimbursement_status || 'pending',
       service_date: t.created_at,
       pickup: t.pickup_location?.coordinates, // [lng, lat]
-      drop: t.drop_location?.coordinates      // [lng, lat]
+      drop: t.drop_location?.coordinates, // [lng, lat]
     }))
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load bookings'
@@ -372,12 +364,12 @@ async function handleSubmit(): Promise<void> {
   isSubmitting.value = true
   error.value = null
   try {
-    let pickup: { latitude: number; longitude: number } | undefined = undefined
+    let pickup: { latitude: number; longitude: number } | undefined
     try {
       const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true })
       pickup = {
         latitude: position.coords.latitude,
-        longitude: position.coords.longitude
+        longitude: position.coords.longitude,
       }
     } catch (geoErr) {
       console.warn('Geolocation failed, proceeding without pickup location', geoErr)
@@ -395,24 +387,33 @@ async function handleSubmit(): Promise<void> {
       customer_name: selectedOrder.value?.customer?.full_name || 'External',
       service_date: todayStr,
       pickup_location: pickup,
-      drop_location: dropLat && dropLng ? {
-        latitude: dropLat,
-        longitude: dropLng
-      } : undefined,
+      drop_location:
+        dropLat && dropLng
+          ? {
+              latitude: dropLat,
+              longitude: dropLng,
+            }
+          : undefined,
     })
-    
+
     showSuccess('Ride logged successfully')
     showForm.value = false
     fetchBookings()
 
     if (dropLat && dropLng) {
-       if (form.value.provider === 'Uber') {
-        window.open(`uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${dropLat}&dropoff[longitude]=${dropLng}`, '_system')
+      if (form.value.provider === 'Uber') {
+        window.open(
+          `uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${dropLat}&dropoff[longitude]=${dropLng}`,
+          '_system'
+        )
       } else if (form.value.provider === 'Ola') {
         window.open(`olacabs://booking?lat=${dropLat}&lng=${dropLng}`, '_system')
       } else if (form.value.provider === 'Other') {
         // Fallback or generic map
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${dropLat},${dropLng}`, '_system')
+        window.open(
+          `https://www.google.com/maps/dir/?api=1&destination=${dropLat},${dropLng}`,
+          '_system'
+        )
       }
     }
   } catch (err) {

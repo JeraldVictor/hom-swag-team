@@ -7,10 +7,10 @@
  * Uses Composition API style with defineStore.
  */
 
-import { computed } from 'vue'
 import { defineStore } from 'pinia'
-import { useAuthStore } from '@/shared/stores/auth'
+import { computed } from 'vue'
 import type { UserType } from '@/shared/models/user.model'
+import { useAuthStore } from '@/shared/stores/auth'
 
 export const useUserTypeStore = defineStore('userType', () => {
   const authStore = useAuthStore()

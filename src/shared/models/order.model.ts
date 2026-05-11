@@ -1,7 +1,17 @@
 /**
  * Progression states for a beautician's service order.
  */
-export type OrderStatus = 'Confirmed' | 'Ongoing' | 'Started' | 'Completed' | 'started' | 'ongoing' | 'completed' | 'arrived_and_cancelled' | 'cancelled' | 'cancelled_and_refunded'
+export type OrderStatus =
+  | 'Confirmed'
+  | 'Ongoing'
+  | 'Started'
+  | 'Completed'
+  | 'started'
+  | 'ongoing'
+  | 'completed'
+  | 'arrived_and_cancelled'
+  | 'cancelled'
+  | 'cancelled_and_refunded'
 
 /**
  * Customer address associated with an order.

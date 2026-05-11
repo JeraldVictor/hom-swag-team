@@ -51,4 +51,7 @@ export interface WeeklyOffRequestBody {
   reason?: string
 }
 
-export type WeeklyOffCreateBody = Pick<WeeklyOffRequestBody, 'day_of_week' | 'effective_from' | 'effective_to' | 'reason'>
+export type WeeklyOffCreateBody = Pick<
+  WeeklyOffRequestBody,
+  'day_of_week' | 'effective_from' | 'effective_to' | 'reason'
+>

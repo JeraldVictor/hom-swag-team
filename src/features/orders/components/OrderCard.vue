@@ -22,13 +22,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Icon } from '@iconify/vue'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
-import type { Order } from '@/shared/models'
 import { formatISTDate } from '@/shared/lib/datetime'
+import type { Order } from '@/shared/models'
 
 const props = defineProps<{ order: Order }>()
-const emit = defineEmits<{ (e: 'click'): void }>()
+const emit = defineEmits<(e: 'click') => void>()
 
 const statusVariant = computed(() => {
   const s = props.order.status?.toLowerCase()
@@ -38,8 +36,8 @@ const statusVariant = computed(() => {
   return 'warning'
 })
 
-const customerName = computed(() =>
-  props.order.customer?.full_name ?? props.order.customer?.name ?? null
+const customerName = computed(
+  () => props.order.customer?.full_name ?? props.order.customer?.name ?? null
 )
 
 const address = computed(() => {

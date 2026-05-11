@@ -183,7 +183,7 @@ const router = createRouter({
 // Navigation guard — protect authenticated routes + block when offline
 // ---------------------------------------------------------------------------
 
-router.beforeEach(async (to) => {
+router.beforeEach(async to => {
   // Allow navigation to the offline / error utility pages regardless of state
   const alwaysAllowed = ['Error', 'PageNotFound']
   if (to.name && alwaysAllowed.includes(to.name as string)) {
@@ -198,7 +198,7 @@ router.beforeEach(async (to) => {
   const accessToken = await Storage_Service.getString(STORAGE_KEYS.accessToken)
   const isAuthenticated = !!accessToken
 
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
   if (requiresAuth && !isAuthenticated) {
     return { name: 'Login' }

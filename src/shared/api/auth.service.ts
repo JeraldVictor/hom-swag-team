@@ -7,13 +7,13 @@
 
 import apiClient from '@/shared/lib/api'
 import type {
+  AuthResponse,
+  LogoutBody,
   OtpRequestBody,
   OtpRequestResponse,
   OtpVerifyBody,
-  AuthResponse,
   RefreshTokenBody,
   TokenPair,
-  LogoutBody,
 } from '@/shared/models/auth.model'
 
 /**

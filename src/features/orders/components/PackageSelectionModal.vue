@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import {
-  IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonContent,
-  IonFooter, IonLabel, IonList, IonItem, IonCheckbox, IonRadioGroup, IonRadio,
-  IonSpinner
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { AppButton, AppBadge } from '@/shared/components/ui'
+import { computed, onMounted, ref } from 'vue'
 import { getProduct } from '@/shared/api/products.service'
 import type { Product, ProductOption } from '@/shared/models'
 
@@ -17,11 +10,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'confirm', data: { 
-    product: Product, 
-    selectedOptions: ProductOption[], 
-    selectedPackageItems: string[] 
-  }): void
+  (
+    e: 'confirm',
+    data: {
+      product: Product
+      selectedOptions: ProductOption[]
+      selectedPackageItems: string[]
+    }
+  ): void
 }>()
 
 const product = ref<Product | null>(null)
@@ -35,18 +31,22 @@ async function fetchDetails() {
     isLoading.value = true
     const data = await getProduct(props.productId)
     product.value = data
-    
+
     // Auto-select fixed package items if not "choose_any"
-    if (data.type === 'package' && !data.package_config?.choose_any && data.package_config?.services) {
+    if (
+      data.type === 'package' &&
+      !data.package_config?.choose_any &&
+      data.package_config?.services
+    ) {
       selectedPackageItemIds.value = [...data.package_config.services]
     }
 
     // Fetch details for package services to show names
     if (data.type === 'package' && data.package_config?.services?.length) {
-       const details = await Promise.all(
-         data.package_config.services.map(id => getProduct(id).catch(() => null))
-       )
-       packageItemDetails.value = details.filter((d): d is Product => d !== null)
+      const details = await Promise.all(
+        data.package_config.services.map(id => getProduct(id).catch(() => null))
+      )
+      packageItemDetails.value = details.filter((d): d is Product => d !== null)
     }
   } catch (err) {
     console.error('Failed to fetch product details', err)
@@ -80,14 +80,14 @@ const canConfirm = computed(() => {
 function handleConfirm() {
   if (!product.value || !canConfirm.value) return
 
-  const selectedOptions = (product.value.options || []).filter(opt => 
+  const selectedOptions = (product.value.options || []).filter(opt =>
     selectedOptionIds.value.includes(String(opt._id || opt.id || opt.product_option_id))
   )
 
   emit('confirm', {
     product: product.value,
     selectedOptions,
-    selectedPackageItems: selectedPackageItemIds.value
+    selectedPackageItems: selectedPackageItemIds.value,
   })
 }
 
@@ -100,7 +100,12 @@ function toggleOption(id: string) {
   } else {
     // Check max limit before adding if not unlimited
     const limits = product.value?.option_limits
-    if (limits && !limits.is_unlimited && limits.max_selection && selectedOptionIds.value.length >= limits.max_selection) {
+    if (
+      limits &&
+      !limits.is_unlimited &&
+      limits.max_selection &&
+      selectedOptionIds.value.length >= limits.max_selection
+    ) {
       // If max_selection is 1, replace current
       if (limits.max_selection === 1) {
         selectedOptionIds.value = [id]
@@ -120,10 +125,10 @@ function togglePackageItem(id: string) {
   } else {
     const limits = product.value?.package_config
     if (limits?.max_selection && selectedPackageItemIds.value.length >= limits.max_selection) {
-       if (limits.max_selection === 1) {
-         selectedPackageItemIds.value = [id]
-       }
-       return
+      if (limits.max_selection === 1) {
+        selectedPackageItemIds.value = [id]
+      }
+      return
     }
     selectedPackageItemIds.value.push(id)
   }

@@ -3,7 +3,7 @@
     <!-- Logo / branding -->
     <div class="perm-splash__header">
       <img
-        :src="logo"
+        :src="logoSrc"
         alt="HomSwag"
         class="perm-splash__logo"
       />
@@ -105,15 +105,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Icon } from '@iconify/vue'
-import { usePermissions } from '@/shared/composables/usePermissions'
-import type { PermissionState } from '@/shared/composables/usePermissions'
+import { computed, onMounted, ref } from 'vue'
 import logo from '@/shared/images/HomSwagLogo.png'
+import type { PermissionState } from '@/shared/composables/usePermissions'
+import { usePermissions } from '@/shared/composables/usePermissions'
 
-const emit = defineEmits<{
-  (e: 'granted'): void
-}>()
+const emit = defineEmits<(e: 'granted') => void>()
+const logoSrc = logo
 
 const { statuses, isLoading, checkAll, requestAll } = usePermissions()
 
@@ -173,9 +171,7 @@ function statusLabel(key: PermKey): string {
   return map[statusClass(key)] ?? 'Unknown'
 }
 
-const hasDenied = computed(() =>
-  permissions.some((p) => statuses.value[p.key] === 'denied'),
-)
+const hasDenied = computed(() => permissions.some(p => statuses.value[p.key] === 'denied'))
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -185,7 +181,7 @@ async function handleRequest() {
   for (const perm of permissions) {
     activeKey.value = perm.key
     // Small delay so the user sees the loading state per item
-    await new Promise((r) => setTimeout(r, 200))
+    await new Promise(r => setTimeout(r, 200))
   }
   activeKey.value = null
   await requestAll()

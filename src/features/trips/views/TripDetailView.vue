@@ -251,30 +251,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonBackButton,
-  IonContent,
-  IonButton,
-  IonSpinner,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { FEATURES } from '@/shared/lib/feature-flags'
+import { useToast, useTracking } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
-import type { Coordinates, PlaceResult } from '@/shared/models/location.model'
-import GoogleMapView from '@/shared/components/ui/GoogleMapView.vue'
-import PlacesSearchInput from '@/shared/components/ui/PlacesSearchInput.vue'
-import TripStatusBadge from '../components/TripStatusBadge.vue'
-import { useTripDetail } from '../composables/useTripDetail'
-import type { TripKanbanState } from '@/shared/models/trip.model'
-import { useTracking, useToast } from '@/shared/composables'
 import { formatISTTime } from '@/shared/lib/datetime'
+import { FEATURES } from '@/shared/lib/feature-flags'
+import type { Coordinates, PlaceResult } from '@/shared/models/location.model'
+import type { TripKanbanState } from '@/shared/models/trip.model'
+import { useTripDetail } from '../composables/useTripDetail'
 
 // ── Route param ────────────────────────────────────────────────────────────
 
@@ -283,7 +268,7 @@ const tripId = computed(() => route.params.id as string)
 
 // ── Composables ────────────────────────────────────────────────────────────
 
-const { trip, isLoading, error, isUpdating, isInProgress, isCompleted, fetchTrip, advanceStatus } =
+const { trip, isLoading, error, isUpdating, isInProgress, fetchTrip, advanceStatus } =
   useTripDetail()
 
 const { currentPosition, isTracking, startTracking, stopTracking } = useTracking()
@@ -300,12 +285,6 @@ const overridePickup = ref<PlaceResult | null>(null)
 const overrideDrop = ref<PlaceResult | null>(null)
 const mapInstance = ref<google.maps.Map | null>(null)
 
-// Effective pickup/drop — use overrides if set, otherwise trip data
-const effectivePickup = computed<Coordinates | null>(() => {
-  if (overridePickup.value) return overridePickup.value.coordinates
-  return trip.value?.pickup_location ?? null
-})
-
 const effectiveDrop = computed<Coordinates | null>(() => {
   if (overrideDrop.value) return overrideDrop.value.coordinates
   return trip.value?.drop_location ?? null
@@ -317,9 +296,7 @@ const mapHeight = '40vh'
 
 // ── Computed ───────────────────────────────────────────────────────────────
 
-const formattedTime = computed(() =>
-  trip.value ? formatISTTime(trip.value.start_time) : '',
-)
+const formattedTime = computed(() => (trip.value ? formatISTTime(trip.value.start_time) : ''))
 
 const NEXT_ACTION_LABELS: Partial<Record<TripKanbanState, string>> = {
   Assigned: 'Mark as Viewed',
@@ -330,7 +307,7 @@ const NEXT_ACTION_LABELS: Partial<Record<TripKanbanState, string>> = {
 }
 
 const nextActionLabel = computed(() =>
-  trip.value ? (NEXT_ACTION_LABELS[trip.value.kanban_state] ?? null) : null,
+  trip.value ? (NEXT_ACTION_LABELS[trip.value.kanban_state] ?? null) : null
 )
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -342,14 +319,14 @@ onMounted(async () => {
 // Auto-start tracking when trip enters "Trip Started" state
 watch(
   () => trip.value?.kanban_state,
-  async (state) => {
+  async state => {
     if (state === 'Trip Started' && !isTracking.value) {
       await startTracking()
     }
     if ((state === 'Trip Completed' || state === 'Completed') && isTracking.value) {
       await stopTracking()
     }
-  },
+  }
 )
 
 onUnmounted(() => {

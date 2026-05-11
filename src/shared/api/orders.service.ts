@@ -5,7 +5,12 @@
  */
 
 import apiClient from '@/shared/lib/api'
-import type { Order, UpdateOrderStatusBody, VerifyServiceOtpBody, UpgradeProductBody } from '@/shared/models/order.model'
+import type {
+  Order,
+  UpdateOrderStatusBody,
+  UpgradeProductBody,
+  VerifyServiceOtpBody,
+} from '@/shared/models/order.model'
 import type { PaginatedResponse } from '@/shared/models/pagination.model'
 
 /**
@@ -13,9 +18,9 @@ import type { PaginatedResponse } from '@/shared/models/pagination.model'
  * GET /orders
  */
 export async function getOrders(
-  page?: number, 
-  limit?: number, 
-  status?: string, 
+  page?: number,
+  limit?: number,
+  status?: string,
   date?: string
 ): Promise<PaginatedResponse<Order>> {
   const response = await apiClient.get<{ data: PaginatedResponse<Order> | Order[] }>('/orders', {
@@ -24,7 +29,16 @@ export async function getOrders(
   const raw = response.data.data
   // Handle both paginated envelope and plain array
   if (Array.isArray(raw)) {
-    return { data: raw, total: raw.length, count: raw.length, page: 1, limit: raw.length, pages: 1, hasNextPage: false, hasPrevPage: false }
+    return {
+      data: raw,
+      total: raw.length,
+      count: raw.length,
+      page: 1,
+      limit: raw.length,
+      pages: 1,
+      hasNextPage: false,
+      hasPrevPage: false,
+    }
   }
   return raw as PaginatedResponse<Order>
 }
@@ -44,7 +58,7 @@ export async function getOrder(id: string | number): Promise<Order> {
  */
 export async function updateOrderStatus(
   id: string | number,
-  body: UpdateOrderStatusBody,
+  body: UpdateOrderStatusBody
 ): Promise<Order> {
   const response = await apiClient.patch<{ data: Order }>(`/orders/${id}/status`, body)
   return response.data.data
@@ -65,7 +79,7 @@ export async function generateServiceOtp(id: string | number): Promise<Order> {
  */
 export async function verifyServiceOtp(
   id: string | number,
-  body: VerifyServiceOtpBody,
+  body: VerifyServiceOtpBody
 ): Promise<Order> {
   const response = await apiClient.post<{ data: Order }>(`/orders/${id}/otp/verify`, body)
   return response.data.data
@@ -77,7 +91,7 @@ export async function verifyServiceOtp(
  */
 export async function upgradeOrderProduct(
   id: string | number,
-  body: UpgradeProductBody,
+  body: UpgradeProductBody
 ): Promise<Order> {
   const response = await apiClient.post<{ data: Order }>(`/orders/${id}/upgrade-product`, body)
   return response.data.data
@@ -89,7 +103,7 @@ export async function upgradeOrderProduct(
  */
 export async function updateOrder(
   id: string | number,
-  body: { products?: unknown[]; delivery_address?: unknown; status_reason?: string },
+  body: { products?: unknown[]; delivery_address?: unknown; status_reason?: string }
 ): Promise<Order> {
   const response = await apiClient.patch<{ data: Order }>(`/orders/${id}`, body)
   return response.data.data
@@ -99,13 +113,10 @@ export async function updateOrder(
  * Upload a selfie taken on arrival at the customer's location.
  * POST /orders/:id/arrival-selfie
  */
-export async function uploadArrivalSelfie(
-  id: string | number,
-  formData: FormData,
-): Promise<Order> {
+export async function uploadArrivalSelfie(id: string | number, formData: FormData): Promise<Order> {
   const response = await apiClient.post<{ data: Order }>(
     `/orders/${String(id)}/arrival-selfie`,
-    formData,
+    formData
   )
   return response.data.data
 }
@@ -116,11 +127,11 @@ export async function uploadArrivalSelfie(
  */
 export async function uploadCompletionProof(
   id: string | number,
-  formData: FormData,
+  formData: FormData
 ): Promise<Order> {
   const response = await apiClient.post<{ data: Order }>(
     `/orders/${String(id)}/completion-proof`,
-    formData,
+    formData
   )
   return response.data.data
 }
@@ -140,7 +151,7 @@ export async function getPaymentLink(id: string | number): Promise<{ url: string
  */
 export async function updateSelfRideStatus(
   id: string | number,
-  isSelfRide: boolean,
+  isSelfRide: boolean
 ): Promise<Order> {
   const response = await apiClient.patch<{ data: Order }>(`/orders/${id}/self-ride`, {
     is_self_ride: isSelfRide,

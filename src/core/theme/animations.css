@@ -8,84 +8,174 @@
    -------------------------------------------------------------------------- */
 
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slide-down {
-  from { opacity: 0; transform: translateY(-12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slide-in-left {
-  from { opacity: 0; transform: translateX(-20px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes scale-in-bounce {
-  0%   { opacity: 0; transform: scale(0.85); }
-  60%  { opacity: 1; transform: scale(1.04); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes pop-in {
-  0%   { opacity: 0; transform: scale(0.7); }
-  70%  { opacity: 1; transform: scale(1.08); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes pulse-ring {
-  0%   { transform: scale(1);    opacity: 0.6; }
-  100% { transform: scale(1.5);  opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
 
 @keyframes progress-fill {
-  from { width: 0%; }
+  from {
+    width: 0%;
+  }
 }
 
 @keyframes count-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes hero-entrance {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 @keyframes wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25%       { transform: rotate(-6deg); }
-  75%       { transform: rotate(6deg); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(6deg);
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -119,49 +209,101 @@
   animation: slide-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.anim-list > *:nth-child(1)  { animation-delay: 0.04s; }
-.anim-list > *:nth-child(2)  { animation-delay: 0.08s; }
-.anim-list > *:nth-child(3)  { animation-delay: 0.12s; }
-.anim-list > *:nth-child(4)  { animation-delay: 0.16s; }
-.anim-list > *:nth-child(5)  { animation-delay: 0.20s; }
-.anim-list > *:nth-child(6)  { animation-delay: 0.24s; }
-.anim-list > *:nth-child(7)  { animation-delay: 0.28s; }
-.anim-list > *:nth-child(8)  { animation-delay: 0.32s; }
-.anim-list > *:nth-child(n+9) { animation-delay: 0.36s; }
+.anim-list > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.anim-list > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.anim-list > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.anim-list > *:nth-child(4) {
+  animation-delay: 0.16s;
+}
+.anim-list > *:nth-child(5) {
+  animation-delay: 0.2s;
+}
+.anim-list > *:nth-child(6) {
+  animation-delay: 0.24s;
+}
+.anim-list > *:nth-child(7) {
+  animation-delay: 0.28s;
+}
+.anim-list > *:nth-child(8) {
+  animation-delay: 0.32s;
+}
+.anim-list > *:nth-child(n + 9) {
+  animation-delay: 0.36s;
+}
 
 /* Grid variant — scale-in instead of slide-up */
 .anim-grid > * {
   animation: scale-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.anim-grid > *:nth-child(1)  { animation-delay: 0.04s; }
-.anim-grid > *:nth-child(2)  { animation-delay: 0.08s; }
-.anim-grid > *:nth-child(3)  { animation-delay: 0.12s; }
-.anim-grid > *:nth-child(4)  { animation-delay: 0.16s; }
-.anim-grid > *:nth-child(5)  { animation-delay: 0.20s; }
-.anim-grid > *:nth-child(6)  { animation-delay: 0.24s; }
-.anim-grid > *:nth-child(n+7) { animation-delay: 0.28s; }
+.anim-grid > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.anim-grid > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.anim-grid > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.anim-grid > *:nth-child(4) {
+  animation-delay: 0.16s;
+}
+.anim-grid > *:nth-child(5) {
+  animation-delay: 0.2s;
+}
+.anim-grid > *:nth-child(6) {
+  animation-delay: 0.24s;
+}
+.anim-grid > *:nth-child(n + 7) {
+  animation-delay: 0.28s;
+}
 
 /* --------------------------------------------------------------------------
    Delay utilities
    -------------------------------------------------------------------------- */
 
-.anim-delay-0   { animation-delay: 0s; }
-.anim-delay-1   { animation-delay: 0.05s; }
-.anim-delay-2   { animation-delay: 0.10s; }
-.anim-delay-3   { animation-delay: 0.15s; }
-.anim-delay-4   { animation-delay: 0.20s; }
-.anim-delay-5   { animation-delay: 0.25s; }
-.anim-delay-6   { animation-delay: 0.30s; }
-.anim-delay-7   { animation-delay: 0.35s; }
-.anim-delay-8   { animation-delay: 0.40s; }
+.anim-delay-0 {
+  animation-delay: 0s;
+}
+.anim-delay-1 {
+  animation-delay: 0.05s;
+}
+.anim-delay-2 {
+  animation-delay: 0.1s;
+}
+.anim-delay-3 {
+  animation-delay: 0.15s;
+}
+.anim-delay-4 {
+  animation-delay: 0.2s;
+}
+.anim-delay-5 {
+  animation-delay: 0.25s;
+}
+.anim-delay-6 {
+  animation-delay: 0.3s;
+}
+.anim-delay-7 {
+  animation-delay: 0.35s;
+}
+.anim-delay-8 {
+  animation-delay: 0.4s;
+}
 
 /* --------------------------------------------------------------------------
    Interactive press feedback — add to any tappable element
    -------------------------------------------------------------------------- */
 
 .press-feedback {
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -185,7 +327,9 @@
    -------------------------------------------------------------------------- */
 
 .card-interactive {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -199,7 +343,7 @@
    -------------------------------------------------------------------------- */
 
 .fab-pulse::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: 50%;
@@ -240,7 +384,9 @@
 /* fade-up */
 .fade-up-enter-active,
 .fade-up-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .fade-up-enter-from,
 .fade-up-leave-to {
@@ -251,7 +397,9 @@
 /* fade-down */
 .fade-down-enter-active,
 .fade-down-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 .fade-down-enter-from,
 .fade-down-leave-to {
@@ -262,7 +410,9 @@
 /* slide-right (page forward) */
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
 }
 .slide-right-enter-from {
   opacity: 0;
@@ -276,7 +426,9 @@
 /* scale-up (modal / sheet) */
 .scale-up-enter-active,
 .scale-up-leave-active {
-  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .scale-up-enter-from,
 .scale-up-leave-to {
@@ -310,8 +462,8 @@ ion-tab-button[aria-selected="true"] .tab-icon {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
   }
 }

@@ -6,7 +6,7 @@
  */
 
 import { ref } from 'vue'
-import { getOtRequests, createOtRequest, cancelOtRequest } from '@/shared/api'
+import { cancelOtRequest, createOtRequest, getOtRequests } from '@/shared/api'
 import type { OtRequest, OtRequestCreateBody } from '@/shared/models'
 
 export function useOtRequests() {
@@ -48,7 +48,7 @@ export function useOtRequests() {
     error.value = null
     try {
       await cancelOtRequest(id)
-      requests.value = requests.value.filter((r) => (r.id ?? r._id) !== id)
+      requests.value = requests.value.filter(r => (r.id ?? r._id) !== id)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to cancel OT request'

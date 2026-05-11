@@ -17,7 +17,9 @@ export async function getExternalBookings(params?: {
   limit?: number
   status?: string
 }): Promise<ExternalBooking[]> {
-  const response = await apiClient.get<{ data: ExternalBooking[] }>('/external-bookings', { params })
+  const response = await apiClient.get<{ data: ExternalBooking[] }>('/external-bookings', {
+    params,
+  })
   return response.data.data
 }
 
@@ -36,7 +38,7 @@ export async function createExternalBooking(body: ExternalBookingBody): Promise<
  */
 export async function uploadExternalBookingProof(
   id: string | number,
-  formData: FormData,
+  formData: FormData
 ): Promise<ExternalBooking> {
   const response = await apiClient.post<{ data: ExternalBooking }>(
     `/external-bookings/${String(id)}/proof`,

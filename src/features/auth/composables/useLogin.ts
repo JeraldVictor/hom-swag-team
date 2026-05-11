@@ -11,14 +11,14 @@
  *   - Navigates to /tabs/home
  */
 
-import { ref, computed } from 'vue'
-import type { Ref, ComputedRef } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/shared/stores/auth'
 import { requestOtp, verifyOtp } from '@/shared/api/auth.service'
 import { getProfile } from '@/shared/api/profile.service'
-import { useToast } from '@/shared/composables/useToast'
 import { locationTracker } from '@/shared/composables/useLocationTracker'
+import { useToast } from '@/shared/composables/useToast'
+import { useAuthStore } from '@/shared/stores/auth'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -104,8 +104,7 @@ export function useLogin(): UseLoginReturn {
       await requestOtp({ phone: phone.value })
       step.value = 'otp'
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to send OTP. Please try again.'
+      const message = err instanceof Error ? err.message : 'Failed to send OTP. Please try again.'
       phoneError.value = message
       showError(message)
     } finally {
@@ -148,8 +147,7 @@ export function useLogin(): UseLoginReturn {
       // Start location tracking now that the user is authenticated
       void locationTracker.start()
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Invalid OTP. Please try again.'
+      const message = err instanceof Error ? err.message : 'Invalid OTP. Please try again.'
       otpError.value = message
       showError(message)
     } finally {

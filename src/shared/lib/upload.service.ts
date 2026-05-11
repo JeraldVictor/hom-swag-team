@@ -34,13 +34,13 @@ class UploadServiceClass {
   async uploadFile(
     file: File,
     endpoint: string,
-    onProgress?: UploadProgressCallback,
+    onProgress?: UploadProgressCallback
   ): Promise<string> {
     const formData = new FormData()
     formData.append('file', file)
 
     const response = await apiClient.post<{ data: { url: string } }>(endpoint, formData, {
-      onUploadProgress: (progressEvent) => {
+      onUploadProgress: progressEvent => {
         if (onProgress && progressEvent.total) {
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
           onProgress(Math.min(percent, 100))
@@ -62,7 +62,7 @@ class UploadServiceClass {
   async multipartUpload(
     files: File[],
     endpoint: string,
-    onProgress?: UploadProgressCallback,
+    onProgress?: UploadProgressCallback
   ): Promise<string[]> {
     const formData = new FormData()
     for (const file of files) {
@@ -70,7 +70,7 @@ class UploadServiceClass {
     }
 
     const response = await apiClient.post<{ data: { urls: string[] } }>(endpoint, formData, {
-      onUploadProgress: (progressEvent) => {
+      onUploadProgress: progressEvent => {
         if (onProgress && progressEvent.total) {
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
           onProgress(Math.min(percent, 100))

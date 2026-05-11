@@ -168,14 +168,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonContent, IonRefresher, IonRefresherContent, onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { onIonViewWillEnter } from '@ionic/vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { getCalendar } from '@/shared/api'
-import { useToast, useDrawer } from '@/shared/composables'
+import { useDrawer, useToast } from '@/shared/composables'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -203,7 +199,7 @@ function toDateStr(d: Date): string {
 }
 
 function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00')
+  const d = new Date(`${dateStr}T00:00:00`)
   d.setDate(d.getDate() + n)
   return toDateStr(d)
 }
@@ -219,11 +215,11 @@ function monthEndStr(year: number, month: number): string {
 
 // ── State ──────────────────────────────────────────────────────────────────
 
-const currentYear  = ref(today.getFullYear())
+const currentYear = ref(today.getFullYear())
 const currentMonth = ref(today.getMonth())
 const selectedDate = ref(toDateStr(today))
-const isLoading    = ref(false)
-const allEvents    = ref<CalEvent[]>([])
+const isLoading = ref(false)
+const allEvents = ref<CalEvent[]>([])
 
 const { showError } = useToast()
 const { openDrawer } = useDrawer()
@@ -235,8 +231,10 @@ function openMenu(): void {
 // ── Computed: month label ──────────────────────────────────────────────────
 
 const monthLabel = computed(() =>
-  new Date(currentYear.value, currentMonth.value, 1)
-    .toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+  new Date(currentYear.value, currentMonth.value, 1).toLocaleDateString('en-IN', {
+    month: 'long',
+    year: 'numeric',
+  })
 )
 
 // ── Computed: events keyed by date ────────────────────────────────────────
@@ -264,7 +262,7 @@ interface CalCell {
 const calendarCells = computed<CalCell[]>(() => {
   const cells: CalCell[] = []
   const firstDay = new Date(currentYear.value, currentMonth.value, 1)
-  const lastDay  = new Date(currentYear.value, currentMonth.value + 1, 0)
+  const lastDay = new Date(currentYear.value, currentMonth.value + 1, 0)
   const todayStr = toDateStr(today)
 
   for (let i = 0; i < firstDay.getDay(); i++) {
@@ -273,8 +271,8 @@ const calendarCells = computed<CalCell[]>(() => {
 
   for (let d = 1; d <= lastDay.getDate(); d++) {
     const date = toDateStr(new Date(currentYear.value, currentMonth.value, d))
-    const evs  = eventsByDate.value[date] ?? []
-    const dotTypes = [...new Set(evs.map((e) => e.type))].slice(0, 3)
+    const evs = eventsByDate.value[date] ?? []
+    const dotTypes = [...new Set(evs.map(e => e.type))].slice(0, 3)
     cells.push({ key: date, day: d, date, isToday: date === todayStr, dots: dotTypes })
   }
 
@@ -289,17 +287,19 @@ const selectedEvents = computed<CalEvent[]>(() =>
 
 const upcomingEvents = computed<CalEvent[]>(() => {
   const from = addDays(selectedDate.value, 1)
-  const to   = addDays(selectedDate.value, 30)
+  const to = addDays(selectedDate.value, 30)
   return allEvents.value
-    .filter((ev) => ev.date > selectedDate.value && ev.date >= from && ev.date <= to)
+    .filter(ev => ev.date > selectedDate.value && ev.date >= from && ev.date <= to)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 10)
 })
 
 const formattedSelectedDate = computed(() => {
   if (!selectedDate.value) return ''
-  return new Date(selectedDate.value + 'T00:00:00').toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long',
+  return new Date(`${selectedDate.value}T00:00:00`).toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
   })
 })
 
@@ -309,8 +309,8 @@ async function fetchCalendar(): Promise<void> {
   isLoading.value = true
   try {
     const start = monthStartStr(currentYear.value, currentMonth.value)
-    const end   = monthEndStr(currentYear.value, currentMonth.value)
-    const data  = await getCalendar(start, end)
+    const end = monthEndStr(currentYear.value, currentMonth.value)
+    const data = await getCalendar(start, end)
 
     const events: CalEvent[] = []
 
@@ -320,15 +320,21 @@ async function fetchCalendar(): Promise<void> {
       const type = req.leave_type as string
       if (!type || !req.date) continue
       const durationMap: Record<string, string> = {
-        full_day: 'Full Day', first_half: 'First Half', second_half: 'Second Half',
+        full_day: 'Full Day',
+        first_half: 'First Half',
+        second_half: 'Second Half',
       }
       events.push({
         date: req.date as string,
         type: type as EventType,
-        title: type === 'paid_leave' ? 'Paid Leave'
-             : type === 'sick_leave' ? 'Sick Leave'
-             : type === 'loss_of_pay' ? 'Loss of Pay'
-             : 'Block Time',
+        title:
+          type === 'paid_leave'
+            ? 'Paid Leave'
+            : type === 'sick_leave'
+              ? 'Sick Leave'
+              : type === 'loss_of_pay'
+                ? 'Loss of Pay'
+                : 'Block Time',
         status: req.status as string,
         id: String(req._id ?? req.id ?? ''),
         detail: durationMap[req.duration as string] ?? (req.duration as string),
@@ -359,11 +365,11 @@ async function fetchCalendar(): Promise<void> {
 
 function eventIcon(type: EventType): string {
   const map: Record<EventType, string> = {
-    paid_leave:  'lucide:umbrella',
-    sick_leave:  'lucide:thermometer',
+    paid_leave: 'lucide:umbrella',
+    sick_leave: 'lucide:thermometer',
     loss_of_pay: 'lucide:minus-circle',
-    block_time:  'lucide:ban',
-    holiday:     'lucide:party-popper',
+    block_time: 'lucide:ban',
+    holiday: 'lucide:party-popper',
   }
   return map[type] ?? 'lucide:calendar'
 }
@@ -373,29 +379,37 @@ function statusLabel(status: string): string {
 }
 
 function formatEventDate(iso: string): string {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
-    weekday: 'short', day: 'numeric', month: 'short',
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
   })
 }
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 
-function selectDate(date: string): void { selectedDate.value = date }
+function selectDate(date: string): void {
+  selectedDate.value = date
+}
 
 function goToToday(): void {
-  currentYear.value  = today.getFullYear()
+  currentYear.value = today.getFullYear()
   currentMonth.value = today.getMonth()
   selectedDate.value = toDateStr(today)
 }
 
 function prevMonth(): void {
-  if (currentMonth.value === 0) { currentMonth.value = 11; currentYear.value-- }
-  else currentMonth.value--
+  if (currentMonth.value === 0) {
+    currentMonth.value = 11
+    currentYear.value--
+  } else currentMonth.value--
 }
 
 function nextMonth(): void {
-  if (currentMonth.value === 11) { currentMonth.value = 0; currentYear.value++ }
-  else currentMonth.value++
+  if (currentMonth.value === 11) {
+    currentMonth.value = 0
+    currentYear.value++
+  } else currentMonth.value++
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {

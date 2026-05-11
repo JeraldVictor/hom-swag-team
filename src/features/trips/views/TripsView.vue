@@ -68,24 +68,11 @@
 </template>
 
 <script setup lang="ts">
+import { onIonViewWillEnter } from '@ionic/vue'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonButton,
-  IonContent,
-  IonRefresher,
-  IonRefresherContent,
-  onIonViewWillEnter,
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
-import { useTrips } from '../composables/useTrips'
-import TripCard from '../components/TripCard.vue'
 import { useDrawer } from '@/shared/composables'
+import { useTrips } from '../composables/useTrips'
 
 const router = useRouter()
 const { trips, isLoading, error, fetchTrips, refresh } = useTrips()

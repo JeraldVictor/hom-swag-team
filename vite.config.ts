@@ -1,10 +1,9 @@
 /// <reference types="vitest" />
 
-import { defineConfig } from 'vite'
+import path from 'node:path'
 import vue from '@vitejs/plugin-vue'
-import path from 'path'
+import { defineConfig } from 'vite'
 import { mobileConsolePlugin } from './plugins/mobile-console'
-
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -15,9 +14,9 @@ export default defineConfig({
     vue({
       template: {
         compilerOptions: {
-          isCustomElement: (tag) => tag === 'phantom-ui'
-        }
-      }
+          isCustomElement: tag => tag === 'phantom-ui',
+        },
+      },
     }),
   ],
   resolve: {
@@ -26,7 +25,7 @@ export default defineConfig({
     },
   },
   server: {
-    host:'0.0.0.0',
+    host: '0.0.0.0',
     port: 8090,
     proxy: {
       // Proxy /api/* → <BFF_ORIGIN>/bff/field/*
@@ -35,16 +34,16 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_BFF_BASE_URL || 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/bff/field'),
+        rewrite: path => path.replace(/^\/api/, '/bff/field'),
       },
     },
   },
   test: {
     globals: true,
-    environment: 'jsdom'
+    environment: 'jsdom',
   },
   preview: {
-    host:'0.0.0.0',
-    port: 8090
+    host: '0.0.0.0',
+    port: 8090,
   },
 })

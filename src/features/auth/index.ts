@@ -5,12 +5,10 @@
  * Other features should import from here, not from internal paths.
  */
 
-// Views
-export { default as LoginView } from './views/LoginView.vue'
-
-// Composables
-export { useLogin } from './composables/useLogin'
-export type { LoginStep, UseLoginReturn } from './composables/useLogin'
-
 // Components
 export { default as OtpInput } from './components/OtpInput.vue'
+export type { LoginStep, UseLoginReturn } from './composables/useLogin'
+// Composables
+export { useLogin } from './composables/useLogin'
+// Views
+export { default as LoginView } from './views/LoginView.vue'

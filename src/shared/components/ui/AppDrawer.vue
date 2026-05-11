@@ -115,13 +115,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { Icon } from '@iconify/vue'
 import { storeToRefs } from 'pinia'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useDrawer } from '@/shared/composables/useDrawer'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUserTypeStore } from '@/shared/stores/userType'
-import { useDrawer } from '@/shared/composables/useDrawer'
 
 const router = useRouter()
 const route = useRoute()
@@ -139,7 +138,7 @@ const initials = computed(() => {
   return name
     .split(' ')
     .slice(0, 2)
-    .map((n) => n[0]?.toUpperCase() ?? '')
+    .map(n => n[0]?.toUpperCase() ?? '')
     .join('')
 })
 
@@ -159,14 +158,16 @@ interface NavItem {
 
 /** Primary navigation — shown at the top of the drawer */
 const primaryItems = computed<NavItem[]>(() => {
-  const items: NavItem[] = [
-    { label: 'Home', icon: 'lucide:house', route: '/home' },
-  ]
+  const items: NavItem[] = [{ label: 'Home', icon: 'lucide:house', route: '/home' }]
 
   if (isBeautician.value) {
     items.push({ label: 'Orders', icon: 'lucide:briefcase', route: '/orders' })
     items.push({ label: 'Complaints', icon: 'lucide:message-circle-warning', route: '/complaints' })
-    items.push({ label: 'External Bookings', icon: 'lucide:calendar-plus', route: '/external-bookings' })
+    items.push({
+      label: 'External Bookings',
+      icon: 'lucide:calendar-plus',
+      route: '/external-bookings',
+    })
     items.push({ label: 'Leaderboard', icon: 'lucide:trophy', route: '/leaderboard' })
   }
 
@@ -198,7 +199,7 @@ const accountItems: NavItem[] = [
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function isActive(targetRoute: string): boolean {
-  return route.path === targetRoute || route.path.startsWith(targetRoute + '/')
+  return route.path === targetRoute || route.path.startsWith(`${targetRoute}/`)
 }
 
 function navigate(targetRoute: string): void {

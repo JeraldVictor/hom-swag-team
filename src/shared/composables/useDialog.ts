@@ -5,12 +5,8 @@
  * `actionSheetController` with typed helper functions.
  */
 
-import {
-  actionSheetController,
-  alertController,
-  modalController,
-} from '@ionic/vue'
 import type { ActionSheetButton, AlertButton } from '@ionic/vue'
+import { actionSheetController, alertController, modalController } from '@ionic/vue'
 import type { Component } from 'vue'
 
 // ---------------------------------------------------------------------------
@@ -75,7 +71,7 @@ async function showModal<T = unknown>(options: ShowModalOptions): Promise<T | nu
  * @returns A promise that resolves with the action sheet's dismiss data.
  */
 async function showActionSheet(
-  options: ShowActionSheetOptions,
+  options: ShowActionSheetOptions
 ): Promise<{ role?: string; data?: unknown }> {
   const actionSheet = await actionSheetController.create({
     header: options.header,

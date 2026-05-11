@@ -368,22 +368,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
-  IonRefresher, IonRefresherContent, onIonViewWillEnter, actionSheetController
-} from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { onIonViewWillEnter } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
-import { useAuthStore, useUserTypeStore } from '@/shared/stores'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { getComplaints, getDashboard, getOrders, getTrips } from '@/shared/api'
 import { useDrawer } from '@/shared/composables'
-import { AppButton } from '@/shared/components/ui'
-import { getDashboard, getOrders, getTrips, getComplaints } from '@/shared/api'
-import type { DashboardData, Order, Trip } from '@/shared/models'
-import { formatISTDateShort } from '@/shared/lib/datetime'
-
 import { useNavigation } from '@/shared/composables/useNavigation'
+import { formatISTDateShort } from '@/shared/lib/datetime'
+import type { DashboardData, Order, Trip } from '@/shared/models'
+import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -408,11 +402,15 @@ const isLoading = ref(false)
 // ── Computed: user info ────────────────────────────────────────────────────
 
 const userName = computed(() => user.value?.name?.split(' ')[0] ?? 'there')
-const roleLabel = computed(() => isBeautician.value ? 'Beautician' : 'Rider')
+const roleLabel = computed(() => (isBeautician.value ? 'Beautician' : 'Rider'))
 
 const initials = computed(() => {
   const name = user.value?.name ?? ''
-  return name.split(' ').slice(0, 2).map((n) => n[0]?.toUpperCase() ?? '').join('')
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map(n => n[0]?.toUpperCase() ?? '')
+    .join('')
 })
 
 const greeting = computed(() => {
@@ -438,53 +436,57 @@ function isToday(iso?: string | Date): boolean {
 }
 
 const upcomingOrders = computed(() =>
-  orders.value.filter((o) => {
+  orders.value.filter(o => {
     const s = o.status?.toLowerCase()
     // Include valid upcoming statuses for TODAY
-    return (s === 'confirmed' || s === 'pending' || s === 'assigned' || s === 'assigned_draft') && isToday(o.booking_info?.date)
+    return (
+      (s === 'confirmed' || s === 'pending' || s === 'assigned' || s === 'assigned_draft') &&
+      isToday(o.booking_info?.date)
+    )
   })
 )
 
 const ongoingOrders = computed(() =>
-  orders.value.filter((o) => {
+  orders.value.filter(o => {
     const s = o.status?.toLowerCase()
     return s === 'started' || s === 'ongoing' || s === 'arrived' || s === 'in_progress'
   })
 )
 
 const completedOrders = computed(() =>
-  orders.value.filter((o) => {
+  orders.value.filter(o => {
     const s = o.status?.toLowerCase()
     return s === 'completed' && isToday(o.updated_at || o.booking_info?.date)
   })
 )
 
 const cancelledOrders = computed(() =>
-  orders.value.filter((o) => {
+  orders.value.filter(o => {
     const s = o.status?.toLowerCase()
-    return (s === 'cancelled' || s === 'arrived_and_cancelled') && isToday(o.updated_at || o.booking_info?.date)
+    return (
+      (s === 'cancelled' || s === 'arrived_and_cancelled') &&
+      isToday(o.updated_at || o.booking_info?.date)
+    )
   })
 )
 
 // ── Computed: trip buckets ─────────────────────────────────────────────────
 
 const upcomingTrips = computed(() =>
-  trips.value.filter((t) => t.kanban_state === 'Assigned' || t.kanban_state === 'Viewed')
+  trips.value.filter(t => t.kanban_state === 'Assigned' || t.kanban_state === 'Viewed')
 )
 
-const activeTrips = computed(() =>
-  trips.value.filter((t) => t.kanban_state === 'Trip Started')
-)
+const activeTrips = computed(() => trips.value.filter(t => t.kanban_state === 'Trip Started'))
 
 const completedTrips = computed(() =>
-  trips.value.filter((t) => {
+  trips.value.filter(t => {
     const done = t.kanban_state === 'Completed' || t.kanban_state === 'Fare Calculated'
     return done && isToday(t.updated_at ?? t.created_at)
   })
 )
 
 const cancelledTrips = computed(() =>
-  trips.value.filter((t) => {
+  trips.value.filter(t => {
     const s = t.kanban_state?.toLowerCase()
     return s === 'cancelled' && isToday(t.updated_at ?? t.created_at)
   })
@@ -507,10 +509,6 @@ const todayDone = computed(() => {
   }
   return isBeautician.value ? completedOrders.value.length : completedTrips.value.length
 })
-
-const monthDone = computed(() => dashboard.value?.month_completed_count ?? 0)
-
-const upcomingWorkload = computed(() => dashboard.value?.tomorrow_count ?? upcomingOrders.value.length)
 
 // ── Computed: next item card ───────────────────────────────────────────────
 
@@ -537,17 +535,28 @@ interface ListItem {
 
 function orderToItem(o: Order): ListItem {
   const s = o.status?.toLowerCase() ?? ''
-  const statusClass = s === 'completed' ? 'done'
-    : (s === 'started' || s === 'ongoing') ? 'active'
-    : s === 'arrived_and_cancelled' ? 'cancelled'
-    : 'pending'
-  const statusLabel = s === 'confirmed' ? 'Confirmed'
-    : s === 'started' ? 'Started'
-    : s === 'ongoing' ? 'Ongoing'
-    : s === 'completed' ? 'Completed'
-    : s === 'assigned_draft' || s === 'assigned' ? 'Assigned'
-    : s === 'arrived_and_cancelled' ? 'Cancelled'
-    : o.status
+  const statusClass =
+    s === 'completed'
+      ? 'done'
+      : s === 'started' || s === 'ongoing'
+        ? 'active'
+        : s === 'arrived_and_cancelled'
+          ? 'cancelled'
+          : 'pending'
+  const statusLabel =
+    s === 'confirmed'
+      ? 'Confirmed'
+      : s === 'started'
+        ? 'Started'
+        : s === 'ongoing'
+          ? 'Ongoing'
+          : s === 'completed'
+            ? 'Completed'
+            : s === 'assigned_draft' || s === 'assigned'
+              ? 'Assigned'
+              : s === 'arrived_and_cancelled'
+                ? 'Cancelled'
+                : o.status
   const addr = o.delivery_address ?? o.address
   const id = o.id ?? o._id ?? ''
 
@@ -573,7 +582,12 @@ function orderToItem(o: Order): ListItem {
       label: 'Navigate',
       icon: 'lucide:navigation',
       variant: 'info',
-      handler: () => openNavigationMenu(Number(addr.latitude), Number(addr.longitude), o.customer?.full_name || 'Customer'),
+      handler: () =>
+        openNavigationMenu(
+          Number(addr.latitude),
+          Number(addr.longitude),
+          o.customer?.full_name || 'Customer'
+        ),
     })
   }
   if (isBeautician.value && (s === 'confirmed' || s === 'started' || s === 'ongoing')) {
@@ -601,16 +615,26 @@ function orderToItem(o: Order): ListItem {
 
 function tripToItem(t: Trip): ListItem {
   const s = t.kanban_state
-  const statusClass = (s === 'Completed' || s === 'Fare Calculated') ? 'done'
-    : s === 'Trip Started' ? 'active'
-    : 'pending'
-  const statusLabel = s === 'Assigned' ? 'Assigned'
-    : s === 'Viewed' ? 'Viewed'
-    : s === 'Trip Started' ? 'In Progress'
-    : s === 'Trip Completed' ? 'Trip Done'
-    : s === 'Fare Calculated' ? 'Fare Calc.'
-    : s === 'Completed' ? 'Completed'
-    : s
+  const statusClass =
+    s === 'Completed' || s === 'Fare Calculated'
+      ? 'done'
+      : s === 'Trip Started'
+        ? 'active'
+        : 'pending'
+  const statusLabel =
+    s === 'Assigned'
+      ? 'Assigned'
+      : s === 'Viewed'
+        ? 'Viewed'
+        : s === 'Trip Started'
+          ? 'In Progress'
+          : s === 'Trip Completed'
+            ? 'Trip Done'
+            : s === 'Fare Calculated'
+              ? 'Fare Calc.'
+              : s === 'Completed'
+                ? 'Completed'
+                : s
 
   const actions: ItemAction[] = []
   if (s === 'Assigned' || s === 'Viewed') {
@@ -624,7 +648,12 @@ function tripToItem(t: Trip): ListItem {
       label: 'Navigate',
       icon: 'lucide:navigation',
       variant: 'info',
-      handler: () => openNavigationMenu(t.pickup_location.latitude, t.pickup_location.longitude, t.customer_name ?? 'Customer'),
+      handler: () =>
+        openNavigationMenu(
+          t.pickup_location.latitude,
+          t.pickup_location.longitude,
+          t.customer_name ?? 'Customer'
+        ),
     })
   }
   if (s === 'Trip Started') {
@@ -638,7 +667,12 @@ function tripToItem(t: Trip): ListItem {
       label: 'Navigate',
       icon: 'lucide:navigation',
       variant: 'info',
-      handler: () => openNavigationMenu(t.drop_location.latitude, t.drop_location.longitude, t.customer_name ?? 'Customer'),
+      handler: () =>
+        openNavigationMenu(
+          t.drop_location.latitude,
+          t.drop_location.longitude,
+          t.customer_name ?? 'Customer'
+        ),
     })
   }
 
@@ -684,7 +718,7 @@ const todayList = computed<ListItem[]>(() => {
 const displayTodayList = computed(() => todayList.value.slice(0, 3))
 
 const nextItem = computed<ListItem | null>(() => {
-  return todayList.value.find((i) => i.statusClass !== 'done') ?? null
+  return todayList.value.find(i => i.statusClass !== 'done') ?? null
 })
 
 // ── Computed: earnings ─────────────────────────────────────────────────────
@@ -729,20 +763,20 @@ async function fetchAll(): Promise<void> {
     const uType = user.value.user_type
     const calls: Promise<unknown>[] = [
       getDashboard()
-        .then((d) => {
+        .then(d => {
           console.log('[HomeView] Dashboard data received:', d)
           dashboard.value = d
-          
+
           // Priority 1: Use today_orders if available
           if (d.today_orders && d.today_orders.length > 0) {
             console.log('[HomeView] Using today_orders from dashboard:', d.today_orders.length)
             orders.value = d.today_orders
-          } 
+          }
           // Priority 2: Extract from trips if available
           else if (d.trips && d.trips.length > 0) {
             const seen = new Set()
             const extractedOrders: any[] = []
-            
+
             for (const t of d.trips as any[]) {
               const o = t.order_id
               if (o && typeof o === 'object' && o._id) {
@@ -752,38 +786,47 @@ async function fetchAll(): Promise<void> {
                 }
               }
             }
-            
+
             if (extractedOrders.length > 0) {
-              console.log('[HomeView] Extracted deduplicated orders from trips:', extractedOrders.length)
+              console.log(
+                '[HomeView] Extracted deduplicated orders from trips:',
+                extractedOrders.length
+              )
               orders.value = extractedOrders
             }
           }
         })
-        .catch((err) => console.error('[HomeView] Failed to fetch dashboard:', err))
+        .catch(err => console.error('[HomeView] Failed to fetch dashboard:', err)),
     ]
 
     if (uType === 'beautician') {
       calls.push(
-        getOrders(1, 100).then((res) => {
-          const list = Array.isArray(res) ? res : (res.data ?? [])
-          console.log('[HomeView] Orders received from API:', list.length)
-          // Only overwrite if we didn't already extract them from trips, 
-          // or if the API returned more/different relevant data
-          if (list.length > 0 || orders.value.length === 0) {
-            orders.value = list
-          }
-        }).catch((err) => console.error('[HomeView] Failed to fetch orders:', err)),
-        getComplaints().then((list) => {
-          console.log('[HomeView] Complaints received:', list.length)
-          hasComplaints.value = list.length > 0
-        }).catch((err) => console.error('[HomeView] Failed to fetch complaints:', err)),
+        getOrders(1, 100)
+          .then(res => {
+            const list = Array.isArray(res) ? res : (res.data ?? [])
+            console.log('[HomeView] Orders received from API:', list.length)
+            // Only overwrite if we didn't already extract them from trips,
+            // or if the API returned more/different relevant data
+            if (list.length > 0 || orders.value.length === 0) {
+              orders.value = list
+            }
+          })
+          .catch(err => console.error('[HomeView] Failed to fetch orders:', err)),
+        getComplaints()
+          .then(list => {
+            console.log('[HomeView] Complaints received:', list.length)
+            hasComplaints.value = list.length > 0
+          })
+          .catch(err => console.error('[HomeView] Failed to fetch complaints:', err))
       )
     } else {
       calls.push(
-        getTrips(1, 100).then((list) => {
-          console.log('[HomeView] Trips received:', list.length)
-          trips.value = list
-        }).catch((err) => console.error('[HomeView] Failed to fetch trips:', err)),
+        getTrips(1, 100)
+          .then(list => {
+            console.log('[HomeView] Trips received:', list.length)
+            trips.value = list
+          })
+          .catch(err => console.error('[HomeView] Failed to fetch trips:', err))
       )
     }
 

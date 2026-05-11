@@ -1,16 +1,5 @@
 <script setup lang="ts">
-/**
- * LoginView — two-step authentication screen.
- *
- * Step 1: Phone number entry (10 or 14 digits)
- * Step 2: 6-digit OTP verification
- *
- * Navigation to home is stubbed — replace API calls in useLogin.ts.
- */
-import { IonPage, IonContent } from '@ionic/vue'
 import { useLogin } from '@/features/auth/composables/useLogin'
-import OtpInput from '@/features/auth/components/OtpInput.vue'
-import AppLoadingSpinner from '@/shared/components/ui/AppLoadingSpinner.vue'
 
 const {
   step,

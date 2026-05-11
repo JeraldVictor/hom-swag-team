@@ -23,23 +23,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
-import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import { App } from '@capacitor/app'
 import type { PluginListenerHandle } from '@capacitor/core'
-import { Icon } from '@iconify/vue'
-import { useAuthStore } from '@/shared/stores/auth'
-import { useAppStore } from '@/shared/stores/app'
-import { useNetwork, getIsOnline } from '@/shared/composables/useNetwork'
+import { storeToRefs } from 'pinia'
+import { onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import logo from '@/shared/images/HomSwagLogo.png'
+import { locationTracker } from '@/shared/composables/useLocationTracker'
+import { getIsOnline, useNetwork } from '@/shared/composables/useNetwork'
 import { usePermissions } from '@/shared/composables/usePermissions'
 import { useToast } from '@/shared/composables/useToast'
-import { locationTracker } from '@/shared/composables/useLocationTracker'
 import { webSocketService } from '@/shared/lib/websocket.service'
-import NoInternetView from '@/features/home/views/NoInternetView.vue'
-import PermissionSplashView from '@/features/home/views/PermissionSplashView.vue'
-import logo from '@/shared/images/HomSwagLogo.png'
+import { useAppStore } from '@/shared/stores/app'
+import { useAuthStore } from '@/shared/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -137,21 +133,22 @@ async function setupAppStateListener() {
 
 onMounted(async () => {
   void import('@aejkatappaja/phantom-ui')
-  
+
   // Listen for force logout events from the server (e.g. account deactivated/blocked)
   webSocketService.on('force_logout', async (data: { reason?: string }) => {
     console.warn('[App] Force logout received:', data.reason)
-    
+
     // Stop tracking immediately
     locationTracker.stop()
-    
+
     // Show notification to user
-    const reasonMessage = data.reason === 'account_deactivated' 
-      ? 'Your account has been deactivated. Please contact support.'
-      : 'You have been logged out for security reasons.'
-    
+    const reasonMessage =
+      data.reason === 'account_deactivated'
+        ? 'Your account has been deactivated. Please contact support.'
+        : 'You have been logged out for security reasons.'
+
     showToast(reasonMessage, 'danger')
-    
+
     // Clear session and redirect
     await authStore.logout()
     await router.replace('/login')
@@ -166,7 +163,7 @@ onUnmounted(() => {
 })
 
 // Keep the store's isOnline in sync with the composable's reactive ref
-watch(isOnline, (online) => {
+watch(isOnline, online => {
   appStore.setOnline(online)
 })
 </script>

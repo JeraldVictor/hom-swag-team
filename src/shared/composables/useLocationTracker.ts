@@ -24,16 +24,20 @@
  * interval and `isTracking` state.
  */
 
-import { ref } from 'vue'
-import type { Ref } from 'vue'
-import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 import type { PluginListenerHandle } from '@capacitor/core'
+import { Capacitor } from '@capacitor/core'
 import { Geolocation } from '@capacitor/geolocation'
-import { getTrackingStatus, pushLocation, setTrackingMasterStatus } from '@/shared/api/location.service'
+import type { Ref } from 'vue'
+import { ref } from 'vue'
+import {
+  getTrackingStatus,
+  pushLocation,
+  setTrackingMasterStatus,
+} from '@/shared/api/location.service'
 import { ApiError } from '@/shared/lib/api'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import { webSocketService } from '@/shared/lib/websocket.service'
-import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
 import type { TrackingStatus } from '@/shared/models/location.model'
 
 // ---------------------------------------------------------------------------
@@ -58,9 +62,7 @@ export interface UseLocationTrackerReturn {
 // Implementation
 // ---------------------------------------------------------------------------
 
-export function useLocationTracker(
-  options: LocationTrackerOptions = {},
-): UseLocationTrackerReturn {
+export function useLocationTracker(options: LocationTrackerOptions = {}): UseLocationTrackerReturn {
   const intervalMs = options.intervalMs ?? 60_000
 
   const isTracking = ref(false)
@@ -74,13 +76,24 @@ export function useLocationTracker(
     is_blocked: false,
   })
 
+  function getLocationService(): {
+    startForegroundService?: () => void
+    stopForegroundService?: () => void
+  } | null {
+    return ((Capacitor as unknown as { Plugins?: Record<string, unknown> }).Plugins
+      ?.LocationService ?? null) as {
+      startForegroundService?: () => void
+      stopForegroundService?: () => void
+    } | null
+  }
+
   // -------------------------------------------------------------------------
   // Android foreground service helpers (Requirement 2.2)
   // -------------------------------------------------------------------------
 
   function startForegroundService(): void {
     try {
-      ;(Capacitor as any).Plugins.LocationService.startForegroundService()
+      getLocationService()?.startForegroundService?.()
     } catch (err) {
       console.warn('[useLocationTracker] Failed to start foreground service', err)
     }
@@ -88,7 +101,7 @@ export function useLocationTracker(
 
   function stopForegroundService(): void {
     try {
-      ;(Capacitor as any).Plugins.LocationService.stopForegroundService()
+      getLocationService()?.stopForegroundService?.()
     } catch (err) {
       console.warn('[useLocationTracker] Failed to stop foreground service', err)
     }
@@ -158,7 +171,7 @@ export function useLocationTracker(
       if (status.is_blocked) {
         // Worker is on leave / week-off / block_time → skip this tick
         console.warn(
-          `[useLocationTracker] Worker is blocked (${status.blocked_reason ?? 'unknown'}) — skipping tick`,
+          `[useLocationTracker] Worker is blocked (${status.blocked_reason ?? 'unknown'}) — skipping tick`
         )
         return
       }
@@ -179,14 +192,16 @@ export function useLocationTracker(
           if (err.status === 503) {
             // Feature flag disabled on the server side → stop interval
             console.warn(
-              '[useLocationTracker] Server returned 503 (tracking disabled) — stopping interval',
+              '[useLocationTracker] Server returned 503 (tracking disabled) — stopping interval'
             )
             stop()
             return
           }
           if (err.status === 422) {
             // Worker is blocked on the server side → skip tick
-            console.warn('[useLocationTracker] Server returned 422 (worker blocked) — skipping tick')
+            console.warn(
+              '[useLocationTracker] Server returned 422 (worker blocked) — skipping tick'
+            )
             return
           }
         }
@@ -223,18 +238,24 @@ export function useLocationTracker(
       }
 
       // Listen for status updates pushed from the server
-      socketUnsubscribe = webSocketService.on('tracking:status_updated', (status: TrackingStatus) => {
-        console.log('[useLocationTracker] Received status update from socket:', status)
-        currentStatus.value = status
-        setTrackingMasterStatus(status.is_enabled)
+      socketUnsubscribe = webSocketService.on(
+        'tracking:status_updated',
+        (status: TrackingStatus) => {
+          console.log('[useLocationTracker] Received status update from socket:', status)
+          currentStatus.value = status
+          setTrackingMasterStatus(status.is_enabled)
 
-        // If status changed to disabled, stop immediately
-        if (!status.is_enabled && isTracking.value) {
-          stop()
+          // If status changed to disabled, stop immediately
+          if (!status.is_enabled && isTracking.value) {
+            stop()
+          }
         }
-      })
+      )
     } catch (err) {
-      console.warn('[useLocationTracker] Initial status fetch/socket setup failed — continuing with defaults', err)
+      console.warn(
+        '[useLocationTracker] Initial status fetch/socket setup failed — continuing with defaults',
+        err
+      )
     }
 
     // 2. Set up Android foreground service listener (Requirement 2.2)
