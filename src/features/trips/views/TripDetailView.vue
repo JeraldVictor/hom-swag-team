@@ -265,10 +265,8 @@ import {
   IonSpinner,
 } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
-import { formatISTTime } from '@/shared/lib/datetime'
-import { useTracking } from '@/shared/composables/useTracking'
-import { useToast } from '@/shared/composables/useToast'
 import { FEATURES } from '@/shared/lib/feature-flags'
+import { useNavigation } from '@/shared/composables/useNavigation'
 import type { Coordinates, PlaceResult } from '@/shared/models/location.model'
 import GoogleMapView from '@/shared/components/ui/GoogleMapView.vue'
 import PlacesSearchInput from '@/shared/components/ui/PlacesSearchInput.vue'
@@ -288,6 +286,7 @@ const { trip, isLoading, error, isUpdating, isInProgress, isCompleted, fetchTrip
 
 const { currentPosition, isTracking, startTracking, stopTracking } = useTracking()
 const { showSuccess, showError } = useToast()
+const { openNavigationMenu } = useNavigation()
 
 // ── Local state ────────────────────────────────────────────────────────────
 
@@ -389,19 +388,15 @@ async function handleAdvance(): Promise<void> {
   }
 }
 
-function openNativeNav(coords: Coordinates): void {
+async function openNativeNav(coords: Coordinates): Promise<void> {
   const { latitude: lat, longitude: lng } = coords
-  // Deep-link to Google Maps navigation
-  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`
-  window.open(url, '_blank')
+  await openNavigationMenu(lat, lng, 'Destination')
 }
 
-function openFullRouteNav(): void {
-  if (!effectivePickup.value || !effectiveDrop.value) return
-  const { latitude: oLat, longitude: oLng } = effectivePickup.value
+async function openFullRouteNav(): Promise<void> {
+  if (!effectiveDrop.value) return
   const { latitude: dLat, longitude: dLng } = effectiveDrop.value
-  const url = `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLng}&destination=${dLat},${dLng}&travelmode=driving`
-  window.open(url, '_blank')
+  await openNavigationMenu(dLat, dLng, 'Destination')
 }
 
 function onPickupSelected(place: PlaceResult): void {

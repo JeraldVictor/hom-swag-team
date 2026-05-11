@@ -100,20 +100,23 @@ async function handleBook(providerId: string) {
       console.warn('Geo failed', e)
     }
 
-    // 2. Auto-log external booking (silent)
-    try {
-      await createExternalBooking({
-        provider: providerId,
-        cost: 0,
-        order_id: props.orderId,
-        customer_name: props.customerName,
-        service_date: new Date().toISOString().split('T')[0],
-        pickup_location: pickup,
-        drop_location: { latitude: lat, longitude: lng },
-        service_description: `Booked via ${providerId}`
-      })
-    } catch (e) {
-       console.error('Silent log failed', e)
+    // 2. Auto-log external booking (silent) — ONLY for actual ride providers
+    const isMapProvider = providerId === 'Google Maps' || providerId === 'Other'
+    if (!isMapProvider) {
+      try {
+        await createExternalBooking({
+          provider: providerId,
+          cost: 0,
+          order_id: props.orderId,
+          customer_name: props.customerName,
+          service_date: new Date().toISOString().split('T')[0],
+          pickup_location: pickup,
+          drop_location: { latitude: lat, longitude: lng },
+          service_description: `Booked via ${providerId}`
+        })
+      } catch (e) {
+         console.error('Silent log failed', e)
+      }
     }
 
     // 3. Open Intent

@@ -81,10 +81,11 @@ async function boot() {
 }
 
 async function finishBoot() {
+  const restored = await authStore.restoreSession()
+
   appStore.setPermissionsGranted(true)
   appStore.setBootPhase('ready')
 
-  const restored = await authStore.restoreSession()
   if (restored) {
     // Ensure socket is connected if we have a session
     if (authStore.accessToken) {

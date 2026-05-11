@@ -66,15 +66,10 @@
             <p class="kpi-card__value">{{ todayDone }}</p>
             <p class="kpi-card__label">Completed</p>
           </div>
-          <div class="kpi-card kpi-card--warning">
-            <Icon icon="lucide:indian-rupee" class="kpi-card__icon" aria-hidden="true" />
-            <p class="kpi-card__value">{{ formatAmountShort(dashboard?.today_earnings) }}</p>
-            <p class="kpi-card__label">Today</p>
-          </div>
-          <div class="kpi-card kpi-card--info">
-            <Icon icon="lucide:wallet" class="kpi-card__icon" aria-hidden="true" />
-            <p class="kpi-card__value">{{ formatAmountShort(dashboard?.month_earnings) }}</p>
-            <p class="kpi-card__label">Month</p>
+          <div class="kpi-card kpi-card--success" @click="goTo('/orders', { date: 'past', status: 'Completed' })">
+            <Icon icon="lucide:layout-grid" class="kpi-card__icon" aria-hidden="true" />
+            <p class="kpi-card__value">{{ monthDone }}</p>
+            <p class="kpi-card__label">Month Total</p>
           </div>
         </div>
 
@@ -86,38 +81,38 @@
           <div class="glance-grid anim-grid">
             <!-- Beautician: upcoming orders -->
             <template v-if="isBeautician">
-          <div class="glance-card glance-card--purple press-feedback" @click="goTo('/orders', { date: 'tomorrow' })">
-                <div class="glance-card__top">
-                  <Icon icon="lucide:clock" class="glance-card__icon" aria-hidden="true" />
-                  <span class="glance-card__count">{{ upcomingOrders.length }}</span>
+                <div class="glance-card glance-card--purple press-feedback" @click="goTo('/orders', { date: 'tomorrow' })">
+                  <div class="glance-card__top">
+                    <Icon icon="lucide:clock" class="glance-card__icon" aria-hidden="true" />
+                    <span class="glance-card__count">{{ upcomingWorkload }}</span>
+                  </div>
+                  <p class="glance-card__label">Upcoming Orders</p>
+                  <p class="glance-card__sub">Tap to view</p>
                 </div>
-                <p class="glance-card__label">Upcoming Orders</p>
-                <p class="glance-card__sub">Tap to view</p>
-              </div>
-              <div class="glance-card glance-card--green" @click="goTo('/orders', { status: 'Completed' })">
-                <div class="glance-card__top">
-                  <Icon icon="lucide:check-circle-2" class="glance-card__icon" aria-hidden="true" />
-                  <span class="glance-card__count">{{ completedOrders.length }}</span>
+                <div class="glance-card glance-card--green" @click="goTo('/orders', { status: 'Completed', date: 'today' })">
+                  <div class="glance-card__top">
+                    <Icon icon="lucide:check-circle-2" class="glance-card__icon" aria-hidden="true" />
+                    <span class="glance-card__count">{{ todayDone }}</span>
+                  </div>
+                  <p class="glance-card__label">Completed Orders</p>
+                  <p class="glance-card__sub">Today</p>
                 </div>
-                <p class="glance-card__label">Completed Orders</p>
-                <p class="glance-card__sub">Today</p>
-              </div>
-              <div class="glance-card glance-card--blue" @click="goTo('/orders', { status: 'Ongoing' })">
-                <div class="glance-card__top">
-                  <Icon icon="lucide:loader" class="glance-card__icon" aria-hidden="true" />
-                  <span class="glance-card__count">{{ ongoingOrders.length }}</span>
+                <div class="glance-card glance-card--blue" @click="goTo('/orders', { status: 'Ongoing' })">
+                  <div class="glance-card__top">
+                    <Icon icon="lucide:loader" class="glance-card__icon" aria-hidden="true" />
+                    <span class="glance-card__count">{{ ongoingOrders.length }}</span>
+                  </div>
+                  <p class="glance-card__label">In Progress</p>
+                  <p class="glance-card__sub">Right now</p>
                 </div>
-                <p class="glance-card__label">In Progress</p>
-                <p class="glance-card__sub">Right now</p>
-              </div>
-              <div class="glance-card glance-card--orange" @click="goTo('/orders')">
-                <div class="glance-card__top">
-                  <Icon icon="lucide:package" class="glance-card__icon" aria-hidden="true" />
-                  <span class="glance-card__count">{{ dashboard?.month_count ?? 0 }}</span>
+                <div class="glance-card glance-card--orange" @click="goTo('/orders', { date: 'past' })">
+                  <div class="glance-card__top">
+                    <Icon icon="lucide:package" class="glance-card__icon" aria-hidden="true" />
+                    <span class="glance-card__count">{{ monthDone }}</span>
+                  </div>
+                  <p class="glance-card__label">This Month</p>
+                  <p class="glance-card__sub">Total orders</p>
                 </div>
-                <p class="glance-card__label">This Month</p>
-                <p class="glance-card__sub">Total orders</p>
-              </div>
             </template>
 
             <!-- Rider: upcoming trips -->
@@ -210,7 +205,7 @@
           <!-- Grouped list -->
           <div v-else class="today-list anim-list">
             <div
-              v-for="item in todayList"
+              v-for="item in displayTodayList"
               :key="item.id"
               class="today-card"
               :class="`today-card--${item.statusClass}`"
@@ -386,7 +381,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
@@ -401,46 +396,13 @@ import { getDashboard, getOrders, getTrips, getComplaints } from '@/shared/api'
 import type { DashboardData, Order, Trip } from '@/shared/models'
 import { formatISTDateShort } from '@/shared/lib/datetime'
 
+import { useNavigation } from '@/shared/composables/useNavigation'
+
 const router = useRouter()
 const authStore = useAuthStore()
 const userTypeStore = useUserTypeStore()
 const { openDrawer } = useDrawer()
-
-async function openNavigationMenu(lat: number, lng: number, name: string) {
-  const actionSheet = await actionSheetController.create({
-    header: `Navigate to ${name}`,
-    mode: 'ios',
-    buttons: [
-      {
-        text: 'Google Maps',
-        icon: 'i-lucide-map',
-        handler: () => {
-          window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank')
-        }
-      },
-      {
-        text: 'Uber (Book Ride)',
-        icon: 'i-simple-icons-uber',
-        handler: () => {
-          window.open(`uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}`, '_system')
-        }
-      },
-      {
-        text: 'Ola (Book Ride)',
-        icon: 'i-simple-icons-ola',
-        handler: () => {
-          window.open(`olacabs://booking?lat=${lat}&lng=${lng}`, '_system')
-        }
-      },
-      {
-        text: 'Cancel',
-        role: 'cancel',
-        icon: 'i-lucide-x'
-      }
-    ]
-  })
-  await actionSheet.present()
-}
+const { openNavigationMenu } = useNavigation()
 
 function openMenu(): void {
   openDrawer()
@@ -491,8 +453,8 @@ function isToday(iso?: string | Date): boolean {
 const upcomingOrders = computed(() =>
   orders.value.filter((o) => {
     const s = o.status?.toLowerCase()
-    // Include both confirmed and pending for upcoming
-    return s === 'confirmed' || s === 'pending' || s === 'assigned'
+    // Include valid upcoming statuses for TODAY
+    return (s === 'confirmed' || s === 'pending' || s === 'assigned' || s === 'assigned_draft') && isToday(o.booking_info?.date)
   })
 )
 
@@ -506,7 +468,8 @@ const ongoingOrders = computed(() =>
 const completedOrders = computed(() =>
   orders.value.filter((o) => {
     const s = o.status?.toLowerCase()
-    return s === 'completed' && isToday(o.updated_at ?? o.created_at)
+    // Count it as 'Done Today' if it was finished today, regardless of original schedule
+    return s === 'completed' && isToday(o.updated_at || o.booking_info?.date)
   })
 )
 
@@ -529,15 +492,22 @@ const completedTrips = computed(() =>
 
 // ── Computed: KPI strip ────────────────────────────────────────────────────
 
-const todayActive = computed(() =>
-  isBeautician.value
+const todayActive = computed(() => {
+  if (dashboard.value && typeof dashboard.value.todays_count === 'number') {
+    return dashboard.value.todays_count
+  }
+  return isBeautician.value
     ? ongoingOrders.value.length + upcomingOrders.value.length
     : activeTrips.value.length + upcomingTrips.value.length
-)
+})
 
 const todayDone = computed(() =>
   isBeautician.value ? completedOrders.value.length : completedTrips.value.length
 )
+
+const monthDone = computed(() => dashboard.value?.month_count ?? 0)
+
+const upcomingWorkload = computed(() => dashboard.value?.all_upcoming_count ?? upcomingOrders.value.length)
 
 // ── Computed: next item card ───────────────────────────────────────────────
 
@@ -572,6 +542,7 @@ function orderToItem(o: Order): ListItem {
     : s === 'started' ? 'Started'
     : s === 'ongoing' ? 'Ongoing'
     : s === 'completed' ? 'Completed'
+    : s === 'assigned_draft' || s === 'assigned' ? 'Assigned'
     : s === 'arrived_and_cancelled' ? 'Cancelled'
     : o.status
   const addr = o.delivery_address ?? o.address
@@ -690,14 +661,20 @@ const todayList = computed<ListItem[]>(() => {
   if (isBeautician.value) {
     return [
       ...ongoingOrders.value.map(orderToItem),
-      ...upcomingOrders.value.map(orderToItem),
+      ...upcomingOrders.value.filter(o => isToday(o.booking_info?.date)).map(orderToItem),
     ]
   }
   return [
     ...activeTrips.value.map(tripToItem),
-    ...upcomingTrips.value.map(tripToItem),
+    ...upcomingTrips.value.filter(t => isToday(t.created_at)).map(tripToItem),
   ]
 })
+
+/**
+ * Limit the dashboard list to a focused set (top 3) to prevent clutter.
+ * "View all" takes the user to the full paginated list.
+ */
+const displayTodayList = computed(() => todayList.value.slice(0, 3))
 
 const nextItem = computed<ListItem | null>(() => {
   return todayList.value.find((i) => i.statusClass !== 'done') ?? null
@@ -731,24 +708,55 @@ const leaveBalanceEntries = computed(() => {
 // ── Fetch ──────────────────────────────────────────────────────────────────
 
 async function fetchAll(): Promise<void> {
-  console.log('[HomeView] Fetching all dashboard data...')
+  // If user profile isn't loaded yet, wait for it (handled by the watch)
+  if (!user.value) {
+    console.log('[HomeView] Waiting for user profile before fetching...')
+    return
+  }
+
+  console.log('[HomeView] Fetching all dashboard data for:', user.value.user_type)
   isLoading.value = true
   try {
+    const uType = user.value.user_type
     const calls: Promise<unknown>[] = [
       getDashboard()
         .then((d) => {
           console.log('[HomeView] Dashboard data received:', d)
           dashboard.value = d
+          // If we have trips with order data, use them as a fallback/initial set for orders
+          if (uType === 'beautician' && d.trips?.length > 0 && orders.value.length === 0) {
+            const seen = new Set()
+            const extractedOrders: any[] = []
+            
+            for (const t of d.trips) {
+              const o = t.order_id
+              if (o && typeof o === 'object' && o._id) {
+                if (!seen.has(o._id)) {
+                  seen.add(o._id)
+                  extractedOrders.push(o)
+                }
+              }
+            }
+            
+            if (extractedOrders.length > 0) {
+              console.log('[HomeView] Extracted deduplicated orders:', extractedOrders.length)
+              orders.value = extractedOrders
+            }
+          }
         })
         .catch((err) => console.error('[HomeView] Failed to fetch dashboard:', err))
     ]
 
-    if (isBeautician.value) {
+    if (uType === 'beautician') {
       calls.push(
-        getOrders(1, 100).then((res) => { // Increased limit to 100 for better coverage
+        getOrders(1, 100).then((res) => {
           const list = Array.isArray(res) ? res : (res.data ?? [])
-          console.log('[HomeView] Orders received:', list.length)
-          orders.value = list
+          console.log('[HomeView] Orders received from API:', list.length)
+          // Only overwrite if we didn't already extract them from trips, 
+          // or if the API returned more/different relevant data
+          if (list.length > 0 || orders.value.length === 0) {
+            orders.value = list
+          }
         }).catch((err) => console.error('[HomeView] Failed to fetch orders:', err)),
         getComplaints().then((list) => {
           console.log('[HomeView] Complaints received:', list.length)
@@ -799,8 +807,14 @@ function formatAmountShort(val?: number): string {
 }
 
 onMounted(fetchAll)
-onIonViewWillEnter(() => {
-  fetchAll()
+onIonViewWillEnter(fetchAll)
+
+// Re-fetch when user identity is confirmed (prevents blank state on first boot)
+watch([isBeautician, isRider], ([newB, newR]) => {
+  if (newB || newR) {
+    console.log('[HomeView] User type confirmed, re-fetching...')
+    fetchAll()
+  }
 })
 </script>
 

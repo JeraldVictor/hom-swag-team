@@ -59,9 +59,14 @@
           </div>
 
           <div class="hero-actions" v-if="!isCompleted">
-            <AppButton expand="block" size="lg" icon="lucide:navigation" class="nav-btn-custom" @click="navigateToLocation">
-              Navigate to Location
-            </AppButton>
+            <div class="main-hero-btns">
+              <AppButton expand="block" size="lg" icon="lucide:navigation" class="nav-btn-custom" @click="navigateToLocation">
+                Navigate
+              </AppButton>
+              <AppButton v-if="order && !isCompleted" expand="block" size="lg" variant="outline" icon="lucide:car-taxi-front" @click="showRideModal = true">
+                Book Ride
+              </AppButton>
+            </div>
             <div class="dual-btns">
               <AppButton variant="outline" icon="lucide:copy" @click="copyAddress">
                 Copy Address
@@ -381,6 +386,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useNavigation } from '@/shared/composables/useNavigation'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
   IonContent, IonButton, IonSpinner, IonModal, IonLabel, IonTextarea,
@@ -432,6 +438,7 @@ const showUpgradeModal = ref(false)
 const isFetchingUpgrades = ref(false)
 const selectedItem = ref<OrderProduct | null>(null)
 const upgradableProducts = ref<any[]>([])
+const { openNavigationMenu } = useNavigation()
 
 // ── Computed ───────────────────────────────────────────────────────────────
 
@@ -644,7 +651,11 @@ async function navigateToLocation() {
     showError('Coordinates not available for this address.')
     return
   }
-  showRideModal.value = true
+  await openNavigationMenu(
+    Number(addr.latitude), 
+    Number(addr.longitude), 
+    order.value.customer?.full_name || 'Customer'
+  )
 }
 
 async function copyAddress() {
@@ -766,6 +777,12 @@ onMounted(() => fetchOrder(orderId))
   --background: linear-gradient(135deg, var(--color-brand) 0%, #6366f1 100%);
   --background-activated: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
   --box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
+}
+
+.main-hero-btns {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 12px;
 }
 
 .dual-btns { 
