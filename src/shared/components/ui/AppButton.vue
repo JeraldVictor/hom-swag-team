@@ -131,6 +131,7 @@ ion-button::part(native) {
 .btn-icon {
   font-size: 1.4em;
   flex-shrink: 0;
+  margin: 0 0.5rem;
 }
 
 /* States */
