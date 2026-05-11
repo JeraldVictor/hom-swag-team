@@ -400,6 +400,12 @@
               </div>
               <span>Complaints</span>
             </button>
+            <button v-if="isBeautician" class="quick-action" @click="goTo('/external-bookings')">
+              <div class="quick-action__icon-wrap quick-action__icon-wrap--purple">
+                <Icon icon="lucide:car-taxi-front" aria-hidden="true" />
+              </div>
+              <span>External Trip</span>
+            </button>
             <button class="quick-action" @click="goTo('/support')">
               <div class="quick-action__icon-wrap quick-action__icon-wrap--default">
                 <Icon icon="lucide:life-buoy" aria-hidden="true" />
@@ -418,7 +424,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
+import {
+  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
+  IonRefresher, IonRefresherContent, onIonViewWillEnter, actionSheetController
+} from '@ionic/vue'
 import { Icon } from '@iconify/vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
@@ -431,6 +440,42 @@ const router = useRouter()
 const authStore = useAuthStore()
 const userTypeStore = useUserTypeStore()
 const { openDrawer } = useDrawer()
+
+async function openNavigationMenu(lat: number, lng: number, name: string) {
+  const actionSheet = await actionSheetController.create({
+    header: `Navigate to ${name}`,
+    mode: 'ios',
+    buttons: [
+      {
+        text: 'Google Maps',
+        icon: 'i-lucide-map',
+        handler: () => {
+          window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank')
+        }
+      },
+      {
+        text: 'Uber (Book Ride)',
+        icon: 'i-simple-icons-uber',
+        handler: () => {
+          window.open(`uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}`, '_system')
+        }
+      },
+      {
+        text: 'Ola (Book Ride)',
+        icon: 'i-simple-icons-ola',
+        handler: () => {
+          window.open(`olacabs://booking?lat=${lat}&lng=${lng}`, '_system')
+        }
+      },
+      {
+        text: 'Cancel',
+        role: 'cancel',
+        icon: 'i-lucide-x'
+      }
+    ]
+  })
+  await actionSheet.present()
+}
 
 function openMenu(): void {
   openDrawer()
@@ -586,11 +631,15 @@ function orderToItem(o: Order): ListItem {
       label: 'Navigate',
       icon: 'lucide:navigation',
       variant: 'info',
-      handler: () => {
-        const lat = addr.latitude
-        const lng = addr.longitude
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank')
-      },
+      handler: () => openNavigationMenu(Number(addr.latitude), Number(addr.longitude), o.customer?.full_name || 'Customer'),
+    })
+  }
+  if (isBeautician.value && (s === 'confirmed' || s === 'started' || s === 'ongoing')) {
+    actions.push({
+      label: 'Book Ride',
+      icon: 'lucide:car-taxi-front',
+      variant: 'info',
+      handler: () => router.push(`/external-bookings?order_id=${id}`),
     })
   }
 
@@ -633,10 +682,7 @@ function tripToItem(t: Trip): ListItem {
       label: 'Navigate',
       icon: 'lucide:navigation',
       variant: 'info',
-      handler: () => {
-        const { latitude: lat, longitude: lng } = t.pickup_location
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank')
-      },
+      handler: () => openNavigationMenu(t.pickup_location.latitude, t.pickup_location.longitude, t.customer_name),
     })
   }
   if (s === 'Trip Started') {
@@ -650,10 +696,7 @@ function tripToItem(t: Trip): ListItem {
       label: 'Navigate',
       icon: 'lucide:navigation',
       variant: 'info',
-      handler: () => {
-        const { latitude: lat, longitude: lng } = t.drop_location
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank')
-      },
+      handler: () => openNavigationMenu(t.drop_location.latitude, t.drop_location.longitude, t.customer_name),
     })
   }
 

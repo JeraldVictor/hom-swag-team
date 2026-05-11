@@ -61,7 +61,7 @@
           </div>
 
           <div class="hero-actions" v-if="!isCompleted">
-            <ion-button expand="block" mode="ios" class="nav-btn" @click="navigateToCustomer">
+            <ion-button expand="block" mode="ios" class="nav-btn" @click="navigateToLocation">
               <Icon icon="lucide:navigation" slot="start" />
               Navigate to Location
             </ion-button>
@@ -312,7 +312,7 @@
               placeholder="Provide a detailed reason for cancellation..."
               fill="outline"
               shape="round"
-              rows="4"
+              :rows="4"
               class="cancel-textarea"
               mode="md"
             ></ion-textarea>
@@ -343,6 +343,18 @@
         </div>
       </ion-content>
     </ion-modal>
+    
+    <!-- Reusable Ride Selection Modal -->
+    <RideSelectorModal
+      v-model:is-open="showRideModal"
+      :order-id="String(order?._id || order?.id || '')"
+      :customer-name="order?.customer?.full_name || 'Customer'"
+      :destination="{ 
+        lat: order?.delivery_address?.latitude ? Number(order.delivery_address.latitude) : Number(order?.address?.latitude || 0),
+        lng: order?.delivery_address?.longitude ? Number(order.delivery_address.longitude) : Number(order?.address?.longitude || 0)
+      }"
+      @booked="(p: string) => showSuccess(`Ride booked via ${p}`)"
+    />
   </ion-page>
 </template>
 
@@ -354,12 +366,16 @@ import {
   IonContent, IonButton, IonSpinner, IonModal, IonLabel, IonTextarea,
   toastController, alertController,
 } from '@ionic/vue'
+import { Geolocation } from '@capacitor/geolocation'
 import { Icon } from '@iconify/vue'
 import { useOrderDetail } from '../composables/useOrderDetail'
 import { AppBadge, AppButton } from '@/shared/components/ui'
 import { OtpInput } from '@/features/auth'
+import { createExternalBooking } from '@/shared/api'
+import { useToast } from '@/shared/composables'
 import type { OrderProduct } from '@/shared/models'
 import { formatISTDate } from '@/shared/lib/datetime'
+import RideSelectorModal from '@/shared/components/business/RideSelectorModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -386,6 +402,8 @@ const {
 
 // ── UI State ───────────────────────────────────────────────────────────────
 
+const { showSuccess, showError } = useToast()
+const showRideModal = ref(false)
 const showOtpInput = ref(false)
 const otpValue = ref('')
 const showCancelModal = ref(false)
@@ -600,6 +618,16 @@ async function handleUpgrade(newProduct: any) {
     })
     await toast.present()
   }
+}
+
+async function navigateToLocation() {
+  if (!order.value) return
+  const addr = order.value.delivery_address || order.value.address
+  if (!addr || !addr.latitude || !addr.longitude) {
+    showError('Coordinates not available for this address.')
+    return
+  }
+  showRideModal.value = true
 }
 
 onMounted(() => fetchOrder(orderId))
@@ -882,10 +910,5 @@ onMounted(() => fetchOrder(orderId))
 @keyframes spin { to { transform: rotate(360deg); } }
 .ms-auto { margin-left: auto; }
 
-/* Animations */
-.anim-fade-in { animation: fadeIn 0.4s ease-out both; }
-.anim-slide-up { animation: slideUp 0.3s ease-out both; }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+/* ── Animations ──────────────────────────────────────────────────────────── */
 </style>

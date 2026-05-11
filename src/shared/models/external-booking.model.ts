@@ -3,7 +3,7 @@
  * Beauticians can request to log bookings sourced outside the platform.
  */
 
-export type ExternalBookingStatus = 'requested' | 'approved' | 'rejected'
+export type ExternalBookingStatus = 'requested' | 'pending' | 'approved' | 'rejected'
 
 export interface ExternalBooking {
   id: string | number
@@ -14,7 +14,7 @@ export interface ExternalBooking {
   service_date: string
   service_time?: string
   service_description?: string
-  amount?: number
+  cost?: number
   address?: string
   status: ExternalBookingStatus
   /** Proof image URL after upload */
@@ -32,6 +32,10 @@ export interface ExternalBookingBody {
   service_date: string
   service_time?: string
   service_description?: string
-  amount?: number
+  cost?: number
   address?: string
+  order_id?: string
+  pickup_location?: { latitude: number; longitude: number }
+  drop_location?: { latitude: number; longitude: number }
+  provider?: string
 }

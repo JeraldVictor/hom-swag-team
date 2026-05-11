@@ -83,4 +83,10 @@ export interface Trip {
   notes?: string
   is_two_way?: boolean
   auto_distance_km?: number
+  is_external_booking?: boolean
+  external_booking_details?: {
+    provider: string
+    cost: number
+    reimbursement_status: string
+  }
 }
