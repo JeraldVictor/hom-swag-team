@@ -14,8 +14,10 @@
  *                              (only meaningful when VITE_FEATURE_MAPS=true)
  */
 
-function flag(key: string): boolean {
-  return import.meta.env[key] === 'true'
+import { ENV } from '@/shared/lib/env'
+
+function flag(key: 'VITE_FEATURE_MAPS' | 'VITE_FEATURE_DIRECTIONS'): boolean {
+  return key === 'VITE_FEATURE_MAPS' ? ENV.VITE_FEATURE_MAPS : ENV.VITE_FEATURE_DIRECTIONS
 }
 
 export const FEATURES = {

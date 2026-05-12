@@ -7,6 +7,7 @@
 
 import { io, type Socket } from 'socket.io-client'
 import type { Coordinates } from '@/shared/models/location.model'
+import { ENV } from '@/shared/lib/env'
 
 /** Message structure for inbound events (legacy support or generic) */
 export interface WsMessage {
@@ -24,7 +25,7 @@ class WebSocketService {
 
   /** WebSocket server URL — falls back to http://localhost:3000 if not set. */
   private get wsUrl(): string {
-    return (import.meta.env.VITE_WS_URL as string | undefined) ?? 'http://localhost:3000'
+    return ENV.VITE_WS_URL || 'http://localhost:3000'
   }
 
   /**
@@ -41,6 +42,7 @@ class WebSocketService {
       this.socket.disconnect()
     }
 
+    console.log('[WebSocketService] Connecting wsUrl=', this.wsUrl)
     this.socket = io(this.wsUrl, {
       auth: { token },
       transports: ['websocket'],

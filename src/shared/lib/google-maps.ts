@@ -11,6 +11,7 @@
  */
 
 import { FEATURES } from '@/shared/lib/feature-flags'
+import { ENV } from '@/shared/lib/env'
 
 let loadPromise: Promise<void> | null = null
 
@@ -32,7 +33,7 @@ export function loadGoogleMaps(): Promise<void> {
       return
     }
 
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
+    const apiKey = ENV.VITE_GOOGLE_MAPS_API_KEY
     if (!apiKey) {
       console.warn('[GoogleMaps] VITE_GOOGLE_MAPS_API_KEY is not set. Map features will not work.')
     }

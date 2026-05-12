@@ -40,6 +40,7 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './core/router'
+import { ENV } from '@/shared/lib/env'
 import {
   AppAvatar,
   AppBadge,
@@ -148,6 +149,14 @@ app.component('OtpInput', OtpInput)
 app.component('RideSelectorModal', RideSelectorModal)
 app.component('OrderCard', OrderCard)
 app.component('PackageSelectionModal', PackageSelectionModal)
+
+if (ENV.DEV) {
+  console.groupCollapsed('[ENV DEBUG] import.meta.env values')
+  console.log('[ENV DEBUG] window.location.href', window.location.href)
+  console.log('[ENV DEBUG] window.location.origin', window.location.origin)
+  console.log('[ENV DEBUG] env', ENV)
+  console.groupEnd()
+}
 
 // Mount regardless of whether the initial navigation succeeded or was aborted.
 // A rejected isReady() (e.g. guard returning false on cold start) must not

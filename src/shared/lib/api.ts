@@ -21,6 +21,7 @@ import type {
 } from 'axios'
 import axios from 'axios'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
+import { ENV } from '@/shared/lib/env'
 
 // ---------------------------------------------------------------------------
 // ApiError
@@ -213,14 +214,14 @@ const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestCo
 // In dev mode (Vite live-reload) use an absolute URL from window.location.origin
 // so CapacitorHttp routes requests to the Vite dev server (which proxies /api
 // to the BFF). In production the full BFF URL is embedded at build time.
-const prodUrl = import.meta.env.VITE_BFF_API_URL as string | undefined
-if (!import.meta.env.DEV && (!prodUrl || !prodUrl.startsWith('http'))) {
+const prodUrl = ENV.VITE_BFF_API_URL
+if (!ENV.DEV && (!prodUrl || !prodUrl.startsWith('http'))) {
   throw new Error(
     `[api] VITE_BFF_API_URL is missing or not an absolute URL ("${prodUrl}"). ` +
       'Build with --mode prod or set a correct absolute URL in .env.prod.'
   )
 }
-const baseURL = import.meta.env.DEV
+const baseURL = ENV.DEV
   ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api`
   : prodUrl!
 
@@ -268,7 +269,9 @@ if (import.meta.env.DEV) {
       const ms =
         Date.now() -
         (((response.config as unknown as Record<string, unknown>).__t as number) ?? Date.now())
-      console.debug(`[API ✅] ${method} ${url} — ${response.status} (${ms}ms)`)
+      console.debug(
+        `[API ✅] ${method} ${response.config.baseURL ?? ''}${response.config.url ?? ''} — ${response.status} (${ms}ms)`
+      )
       console.debug('[API ✅] response:', response.data)
       return response
     },

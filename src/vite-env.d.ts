@@ -9,10 +9,12 @@ declare module '*.vue' {
 interface ImportMetaEnv {
   /** Base URL for the BFF (Backend For Frontend) API */
   readonly VITE_BFF_API_URL: string
-  /** Google Maps JavaScript API key */
+  readonly VITE_BFF_BASE_URL: string
+  readonly VITE_MEDIA_BASE_URL: string
   readonly VITE_GOOGLE_MAPS_API_KEY: string
-  /** WebSocket server URL */
   readonly VITE_WS_URL: string
+  readonly VITE_FEATURE_MAPS: string
+  readonly VITE_FEATURE_DIRECTIONS: string
 }
 
 interface ImportMeta {

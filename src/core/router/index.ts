@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { ENV } from '@/shared/lib/env'
 
 const routes: Array<RouteRecordRaw> = [
   // Default — redirect to login
@@ -175,7 +176,7 @@ const routes: Array<RouteRecordRaw> = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(ENV.BASE_URL),
   routes,
 })
 

@@ -33,6 +33,7 @@
     "@capacitor/local-notifications": "^8.1.0",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/status-bar": "8.0.2",
+    "@dotenvx/dotenvx": "^1.65.0",
     "@iconify-json/lucide": "^1.2.106",
     "@iconify/vue": "^5.0.1",
     "@ionic/vue": "^8.8.6",
