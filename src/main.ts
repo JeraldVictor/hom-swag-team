@@ -31,6 +31,7 @@ import {
   IonAvatar,
   IonCard,
   IonIcon,
+  IonBackButton,
 } from '@ionic/vue'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
@@ -108,6 +109,7 @@ const ionicComponents = [
   IonAvatar,
   IonCard,
   IonIcon,
+  IonBackButton,
 ]
 
 for (const component of ionicComponents) {

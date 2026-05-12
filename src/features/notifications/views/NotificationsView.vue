@@ -60,9 +60,11 @@
             </div>
             <div class="notif-item__body">
               <p class="notif-item__title">{{ notif.title }}</p>
-              <p v-if="notif.body || notif.message" class="notif-item__message">
-                {{ notif.body ?? notif.message }}
-              </p>
+              <div
+                v-if="notif.body || notif.message"
+                class="notif-item__message"
+                v-html="notif.body ?? notif.message"
+              ></div>
               <p class="notif-item__time">{{ formatTime(notif.created_at) }}</p>
             </div>
           </div>
