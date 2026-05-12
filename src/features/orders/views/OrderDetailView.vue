@@ -199,7 +199,21 @@
               </AppBadge>
             </div>
             <div class="payment-method">
-              <p>Method: <strong>{{ order.payment_method?.toUpperCase() || 'COD / UPI' }}</strong></p>
+              <p>Payment Type: <strong>{{ order.payment_method?.toUpperCase() || 'COD / UPI' }}</strong></p>
+            </div>
+            <div class="payment-details-grid">
+              <div class="payment-detail-item">
+                <span>Amount Paid</span>
+                <strong>{{ amountPaid }}</strong>
+              </div>
+              <div class="payment-detail-item">
+                <span>Tip Amount</span>
+                <strong>{{ tipAmount }}</strong>
+              </div>
+              <div class="payment-detail-item full-width">
+                <span>Reference / Transaction ID</span>
+                <strong>{{ paymentReference }}</strong>
+              </div>
             </div>
             <div class="payment-hint">
               <p>
@@ -254,7 +268,7 @@
                       variant="clear" 
                       size="sm" 
                       icon="lucide:upload"
-                      @click="proofInput?.click()"
+                      @click="triggerProofInput"
                       class="action-btn-sm"
                     >
                       Upload
@@ -270,6 +284,37 @@
               </div>
             </div>
           </div>
+
+          <div
+            class="content-card payment-status-editor"
+            v-if="order.status.toLowerCase() === 'started' && proofImages.length"
+          >
+            <div class="card-header">
+              <Icon icon="lucide:sliders-horizontal" class="header-icon" />
+              <h3>Payment Status</h3>
+            </div>
+            <div class="payment-status-row">
+              <select v-model="paymentStatus" class="form-select">
+                <option value="" disabled>Select payment status</option>
+                <option v-for="option in paymentStatusOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <AppButton
+                variant="outline"
+                size="sm"
+                :loading="isUpdating"
+                :disabled="!paymentStatus || paymentStatus === order.payment_status?.toLowerCase()"
+                @click="handleSavePaymentStatus"
+              >
+                Save status
+              </AppButton>
+            </div>
+            <p class="hint">
+              Choose Paid, Unpaid, or Conflict after uploading payment proof. This must be updated before completing the order.
+            </p>
+          </div>
+
         </div>
 
         <div class="action-footer" v-if="!isCompleted">
@@ -462,13 +507,13 @@
 
 <script setup lang="ts">
 import { alertController, toastController } from '@ionic/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, getTodayIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
-import type { OrderProduct } from '@/shared/models'
+import type { OrderProduct, PaymentStatus } from '@/shared/models'
 import { useOrderDetail } from '../composables/useOrderDetail'
 
 const route = useRoute()
@@ -492,6 +537,7 @@ const {
   upgradeProduct,
   getUpgradableProducts,
   captureAndUploadPaymentProof,
+  updateOrderDetails,
 } = useOrderDetail()
 
 // ── UI State ───────────────────────────────────────────────────────────────
@@ -507,6 +553,12 @@ const isFetchingUpgrades = ref(false)
 const selectedItem = ref<OrderProduct | null>(null)
 const upgradableProducts = ref<any[]>([])
 const proofInput = ref<HTMLInputElement | null>(null)
+const paymentStatus = ref<PaymentStatus | ''>('')
+const paymentStatusOptions = [
+  { label: 'Paid', value: 'paid' },
+  { label: 'Unpaid', value: 'unpaid' },
+  { label: 'Conflict', value: 'conflict' },
+]
 const { openNavigationMenu } = useNavigation()
 
 // ── Computed ───────────────────────────────────────────────────────────────
@@ -550,6 +602,20 @@ const paymentStatusVariant = computed(() => {
   return s === 'paid' ? 'success' : 'warning'
 })
 
+const amountPaid = computed(() => {
+  if (!order.value) return '—'
+  if (order.value.cod_collected_amount != null) return `₹${order.value.cod_collected_amount}`
+  if (order.value.total != null) return `₹${order.value.total}`
+  return '—'
+})
+
+const tipAmount = computed(() => {
+  if (order.value?.tip != null) return `₹${order.value.tip}`
+  return '—'
+})
+
+const paymentReference = computed(() => order.value?.payment_reference || '—')
+
 const canCancel = computed(() => {
   const s = order.value?.status?.toLowerCase()
   return s === 'confirmed' || s === 'ongoing' || s === 'started'
@@ -572,6 +638,16 @@ const isBookingDateToday = computed(() => {
   if (!order.value?.booking_info?.date) return false
   return order.value.booking_info.date === getTodayIST()
 })
+
+watch(
+  order,
+  value => {
+    const status = value?.payment_status?.toLowerCase()
+    const allowedStatuses = ['pending', 'paid', 'unpaid', 'conflict', 'failed', 'refunded'] as const
+    paymentStatus.value = allowedStatuses.includes(status as any) ? (status as PaymentStatus) : ''
+  },
+  { immediate: true }
+)
 
 // ── Methods ────────────────────────────────────────────────────────────────
 
@@ -630,6 +706,13 @@ async function handleMainAction() {
       return
     }
 
+    if (
+      !['paid', 'unpaid', 'conflict'].includes((order.value?.payment_status ?? '').toLowerCase())
+    ) {
+      showError('Set payment status to Paid, Unpaid, or Conflict before completing the service.')
+      return
+    }
+
     const confirmed = await presentConfirm(
       'Complete Service',
       'Have you finished all services? This will mark the order as completed.'
@@ -655,6 +738,23 @@ async function handleUploadSelfie() {
       showOtpInput.value = true
     }
   }
+}
+
+async function handleSavePaymentStatus() {
+  if (!order.value) return
+  if (!paymentStatus.value || !['paid', 'unpaid', 'conflict'].includes(paymentStatus.value)) {
+    showError('Please choose Paid, Unpaid, or Conflict before saving payment status.')
+    return
+  }
+
+  await updateOrderDetails({ payment_status: paymentStatus.value as PaymentStatus })
+  if (!error.value) {
+    showSuccess('Payment status updated successfully')
+  }
+}
+
+function triggerProofInput() {
+  proofInput.value?.click()
 }
 
 async function handleCapturePaymentProof() {
@@ -921,10 +1021,60 @@ onMounted(() => fetchOrder(orderId))
   gap: 12px;
 }
 
-.dual-btns { 
-  display: grid; 
-  grid-template-columns: 1fr 1fr; 
-  gap: 12px; 
+.payment-status-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.form-select {
+  flex: 1;
+  min-width: 160px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.payment-status-editor .hint {
+  margin-top: 12px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.payment-details-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.payment-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.payment-detail-item span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.payment-detail-item strong {
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.payment-detail-item.full-width {
+  grid-column: span 2;
 }
 
 .primary-action-btn-custom {

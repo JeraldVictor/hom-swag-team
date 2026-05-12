@@ -33,6 +33,8 @@ import {
   IonTextarea,
   IonTitle,
   IonToolbar,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
 } from '@ionic/vue'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
@@ -86,6 +88,7 @@ import './core/theme/variables.css'
 import './core/theme/animations.css'
 import './core/theme/global.css'
 import '@aejkatappaja/phantom-ui/ssr.css'
+import OrderCard from './features/orders/components/OrderCard.vue'
 
 const app = createApp(App).use(IonicVue).use(createPinia()).use(router)
 app.component('Icon', Icon)
@@ -123,6 +126,8 @@ const ionicComponents = [
   IonCard,
   IonIcon,
   IonBackButton,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
 ]
 
 for (const component of ionicComponents) {
@@ -140,6 +145,7 @@ app.component('AppLabel', AppLabel)
 app.component('AppLoadingSpinner', AppLoadingSpinner)
 app.component('OtpInput', OtpInput)
 app.component('RideSelectorModal', RideSelectorModal)
+app.component('OrderCard', OrderCard)
 
 // Mount regardless of whether the initial navigation succeeded or was aborted.
 // A rejected isReady() (e.g. guard returning false on cold start) must not

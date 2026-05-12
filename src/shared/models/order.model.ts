@@ -13,6 +13,15 @@ export type OrderStatus =
   | 'cancelled'
   | 'cancelled_and_refunded'
 
+export type PaymentStatus = 'pending' | 'paid' | 'unpaid' | 'conflict' | 'failed' | 'refunded'
+
+export interface UpdateOrderPayload {
+  products?: unknown[]
+  delivery_address?: unknown
+  status_reason?: string
+  payment_status?: PaymentStatus
+}
+
 /**
  * Customer address associated with an order.
  */
@@ -81,8 +90,11 @@ export interface Order {
   total?: number
   discount_total?: number
   delivery_fee?: number
-  payment_status?: string
+  payment_status?: PaymentStatus
   payment_method?: string
+  payment_reference?: string
+  tip?: number
+  cod_collected_amount?: number
   /** Photo taken on arrival */
   arrival_selfie?: { url?: string; key?: string }
   /** Photos/screenshots uploaded for completion proof */

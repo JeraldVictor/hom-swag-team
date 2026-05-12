@@ -7,6 +7,7 @@
 import apiClient from '@/shared/lib/api'
 import type {
   Order,
+  UpdateOrderPayload,
   UpdateOrderStatusBody,
   UpgradeProductBody,
   VerifyServiceOtpBody,
@@ -101,10 +102,7 @@ export async function upgradeOrderProduct(
  * Update order details (products, delivery address, etc.).
  * PATCH /orders/:id
  */
-export async function updateOrder(
-  id: string | number,
-  body: { products?: unknown[]; delivery_address?: unknown; status_reason?: string }
-): Promise<Order> {
+export async function updateOrder(id: string | number, body: UpdateOrderPayload): Promise<Order> {
   const response = await apiClient.patch<{ data: Order }>(`/orders/${id}`, body)
   return response.data.data
 }

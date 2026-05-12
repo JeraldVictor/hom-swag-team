@@ -11,7 +11,7 @@ import {
   verifyServiceOtp as verifyServiceOtpApi,
 } from '@/shared/api'
 import { useCamera, useDirections } from '@/shared/composables'
-import type { Order, OrderProduct, UpgradeProductBody } from '@/shared/models'
+import type { Order, OrderProduct, UpgradeProductBody, UpdateOrderPayload } from '@/shared/models'
 
 /** Helper to convert base64 data URL to Blob */
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -247,10 +247,7 @@ export function useOrderDetail() {
     }
   }
 
-  async function updateOrderDetails(updates: {
-    products?: OrderProduct[]
-    status_reason?: string
-  }): Promise<void> {
+  async function updateOrderDetails(updates: UpdateOrderPayload): Promise<void> {
     if (!order.value) return
     isUpdating.value = true
     error.value = null
