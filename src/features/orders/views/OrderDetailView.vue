@@ -18,7 +18,8 @@
         type="file"
         accept="image/*"
         multiple
-        class="hidden"
+        hidden
+        style="display: none"
         @change="handleCompletionProofChange"
       />
       <div v-if="isLoading && !order" class="loading-state">
@@ -218,17 +219,51 @@
             </div>
             <div class="proof-group">
               <div class="proof-entry">
-                <p class="proof-label">Arrival Selfie</p>
+                <div class="proof-label-row">
+                  <p class="proof-label">Arrival Selfie</p>
+                  <AppButton 
+                    v-if="order.status.toLowerCase() === 'ongoing' && !order.arrival_selfie"
+                    variant="clear" 
+                    size="sm" 
+                    icon="lucide:camera"
+                    @click="handleUploadSelfie"
+                    class="action-btn-sm"
+                  >
+                    Take Selfie
+                  </AppButton>
+                </div>
                 <div class="proof-preview" v-if="order.arrival_selfie?.url">
-                  <img :src="order.arrival_selfie?.url" alt="Arrival selfie" />
+                  <img :src="mediaUrl(order.arrival_selfie?.url)" alt="Arrival selfie" />
                 </div>
                 <p v-else class="proof-empty">No arrival selfie uploaded yet.</p>
               </div>
               <div class="proof-entry">
-                <p class="proof-label">Payment Proof</p>
+                <div class="proof-label-row">
+                  <p class="proof-label">Payment Proof</p>
+                  <div class="proof-actions" v-if="order.status.toLowerCase() === 'started'">
+                    <AppButton 
+                      variant="clear" 
+                      size="sm" 
+                      icon="lucide:camera"
+                      @click="handleCapturePaymentProof"
+                      class="action-btn-sm"
+                    >
+                      Camera
+                    </AppButton>
+                    <AppButton 
+                      variant="clear" 
+                      size="sm" 
+                      icon="lucide:upload"
+                      @click="proofInput?.click()"
+                      class="action-btn-sm"
+                    >
+                      Upload
+                    </AppButton>
+                  </div>
+                </div>
                 <div v-if="proofImages.length" class="proof-list">
                   <div v-for="(image, index) in proofImages" :key="index" class="proof-thumbnail">
-                    <img :src="image.url" :alt="`Payment proof ${index + 1}`" />
+                    <img :src="mediaUrl(image.url)" :alt="`Payment proof ${index + 1}`" />
                   </div>
                 </div>
                 <p v-else class="proof-empty">No payment proof uploaded yet.</p>
@@ -456,6 +491,7 @@ const {
   cancelAfterArrival,
   upgradeProduct,
   getUpgradableProducts,
+  captureAndUploadPaymentProof,
 } = useOrderDetail()
 
 // ── UI State ───────────────────────────────────────────────────────────────
@@ -479,7 +515,7 @@ const customerInitials = computed(() => {
   const name = order.value?.customer?.full_name || order.value?.customer?.name || '?'
   return name
     .split(' ')
-    .map(n => n[0])
+    .map((n: string) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
@@ -526,7 +562,7 @@ const isSelfieStep = computed(() => {
 const proofImages = computed(() => {
   if (!order.value?.proof_of_service) return []
   return Array.isArray(order.value.proof_of_service)
-    ? order.value.proof_of_service.filter(p => !!p?.url)
+    ? order.value.proof_of_service.filter((p: { url?: string }) => !!p?.url)
     : order.value.proof_of_service
       ? [order.value.proof_of_service]
       : []
@@ -572,17 +608,13 @@ async function handleMainAction() {
   } else if (s === 'ongoing') {
     // Ongoing -> Started (Reached Customer + Selfie + OTP)
     if (!order.value?.arrival_selfie) {
-      // For selfie, maybe the camera is enough of a confirmation, but user asked for "all"
       const confirmed = await presentConfirm(
         'Take Selfie',
         'Are you ready to take the arrival selfie?'
       )
       if (!confirmed) return
 
-      const uploaded = await uploadSelfie()
-      if (uploaded) {
-        showOtpInput.value = true
-      }
+      await handleUploadSelfie()
     } else {
       showOtpInput.value = true
     }
@@ -590,9 +622,10 @@ async function handleMainAction() {
     if (!proofImages.value.length) {
       const confirmed = await presentConfirm(
         'Upload Payment Proof',
-        'Upload payment screenshot(s) before completing the service.'
+        'Upload payment screenshot(s) or take a photo before completing the service.'
       )
       if (!confirmed) return
+      // We'll let them use the new buttons in the proof card or trigger upload
       proofInput.value?.click()
       return
     }
@@ -611,6 +644,23 @@ async function handleMainAction() {
     )
     if (!confirmed) return
     await advanceStatus()
+  }
+}
+
+async function handleUploadSelfie() {
+  const uploaded = await uploadSelfie()
+  if (uploaded) {
+    showSuccess('Selfie uploaded successfully')
+    if (order.value?.status.toLowerCase() === 'ongoing') {
+      showOtpInput.value = true
+    }
+  }
+}
+
+async function handleCapturePaymentProof() {
+  const uploaded = await captureAndUploadPaymentProof()
+  if (uploaded) {
+    showSuccess('Payment proof captured successfully')
   }
 }
 
@@ -652,7 +702,6 @@ async function handleCompletionProofChange(event: Event) {
   const uploaded = await uploadCompletionProof(files)
   if (uploaded) {
     showSuccess('Payment proof uploaded successfully')
-    await advanceStatus()
   }
   if (proofInput.value) {
     proofInput.value.value = ''
@@ -902,6 +951,27 @@ onMounted(() => fetchOrder(orderId))
 .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
 .card-header h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--color-text); }
 .header-icon { font-size: 18px; color: var(--color-brand); }
+
+.proof-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.proof-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn-sm {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --height: 32px;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+}
 
 .address-text { margin: 0; font-size: 15px; line-height: 1.6; color: var(--color-text-secondary); font-weight: 500; }
 

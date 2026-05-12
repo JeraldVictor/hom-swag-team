@@ -1,14 +1,14 @@
 import { computed, readonly, ref } from 'vue'
 import {
-  generateServiceOtp,
-  getOrder,
-  getUpgradableProducts,
-  updateOrder,
-  updateOrderStatus,
-  upgradeOrderProduct,
-  uploadArrivalSelfie,
-  uploadCompletionProof,
-  verifyServiceOtp,
+  generateServiceOtp as generateServiceOtpApi,
+  getOrder as getOrderApi,
+  getUpgradableProducts as getUpgradableProductsApi,
+  updateOrder as updateOrderApi,
+  updateOrderStatus as updateOrderStatusApi,
+  upgradeOrderProduct as upgradeOrderProductApi,
+  uploadArrivalSelfie as uploadArrivalSelfieApi,
+  uploadCompletionProof as uploadCompletionProofApi,
+  verifyServiceOtp as verifyServiceOtpApi,
 } from '@/shared/api'
 import { useCamera, useDirections } from '@/shared/composables'
 import type { Order, OrderProduct, UpgradeProductBody } from '@/shared/models'
@@ -76,7 +76,7 @@ export function useOrderDetail() {
     isLoading.value = true
     error.value = null
     try {
-      order.value = await getOrder(id)
+      order.value = await getOrderApi(id)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load order'
     } finally {
@@ -93,7 +93,7 @@ export function useOrderDetail() {
     error.value = null
     try {
       const id = order.value._id || order.value.id
-      order.value = await updateOrderStatus(id, {
+      order.value = await updateOrderStatusApi(id, {
         status: next,
         status_reason: reason,
         otp,
@@ -118,10 +118,33 @@ export function useOrderDetail() {
       formData.append('image', blob, `selfie_${order.value._id || order.value.id}.jpg`)
 
       const id = order.value._id || order.value.id
-      order.value = await uploadArrivalSelfie(id, formData)
+      order.value = await uploadArrivalSelfieApi(id, formData)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upload selfie'
+      return false
+    } finally {
+      isUpdating.value = false
+    }
+  }
+
+  async function captureAndUploadPaymentProof(): Promise<boolean> {
+    if (!order.value) return false
+    isUpdating.value = true
+    error.value = null
+    try {
+      const dataUrl = await takePhoto()
+      if (!dataUrl) return false
+
+      const blob = dataUrlToBlob(dataUrl)
+      const id = order.value._id || order.value.id
+      const formData = new FormData()
+      formData.append('image', blob, `payment_proof_${id}_${Date.now()}.jpg`)
+
+      order.value = await uploadCompletionProofApi(id, formData)
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to capture payment proof'
       return false
     } finally {
       isUpdating.value = false
@@ -146,7 +169,7 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      order.value = await uploadCompletionProof(id, formData)
+      order.value = await uploadCompletionProofApi(id, formData)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upload completion proof'
@@ -165,7 +188,7 @@ export function useOrderDetail() {
         order.value.status.toLowerCase() === 'confirmed' ? 'cancelled' : 'arrived_and_cancelled'
 
       const id = order.value._id || order.value.id
-      order.value = await updateOrderStatus(id, {
+      order.value = await updateOrderStatusApi(id, {
         status: nextStatus,
         status_reason: reason,
         otp,
@@ -183,7 +206,7 @@ export function useOrderDetail() {
     error.value = null
     try {
       const id = order.value._id || order.value.id
-      const updated = await generateServiceOtp(id)
+      const updated = await generateServiceOtpApi(id)
       order.value = updated
       return updated.service_otp ?? null
     } catch (err) {
@@ -200,7 +223,7 @@ export function useOrderDetail() {
     error.value = null
     try {
       const id = order.value._id || order.value.id
-      order.value = await verifyServiceOtp(id, { otp })
+      order.value = await verifyServiceOtpApi(id, { otp })
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Invalid OTP'
@@ -216,7 +239,7 @@ export function useOrderDetail() {
     error.value = null
     try {
       const id = order.value._id || order.value.id
-      order.value = await upgradeOrderProduct(id, body)
+      order.value = await upgradeOrderProductApi(id, body)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upgrade product'
     } finally {
@@ -233,7 +256,7 @@ export function useOrderDetail() {
     error.value = null
     try {
       const id = order.value._id || order.value.id
-      order.value = await updateOrder(id, updates)
+      order.value = await updateOrderApi(id, updates)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update order'
     } finally {
@@ -268,7 +291,8 @@ export function useOrderDetail() {
     verifyOtp,
     upgradeProduct,
     updateOrderDetails,
-    getUpgradableProducts,
+    getUpgradableProducts: getUpgradableProductsApi,
     navigateToCustomer,
+    captureAndUploadPaymentProof,
   }
 }
