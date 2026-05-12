@@ -1,6 +1,12 @@
 /**
  * A notification entity for a field worker.
  */
+export interface NotificationData {
+  order_id?: string | number
+  trip_id?: string | number
+  [key: string]: unknown
+}
+
 export interface Notification {
   id: string | number
   _id?: string
@@ -16,6 +22,7 @@ export interface Notification {
   /** Optional reference to a related entity */
   reference_id?: string
   reference_type?: string
+  data?: NotificationData
 }
 
 export interface RawNotification extends Omit<Notification, 'id' | 'is_read'> {
