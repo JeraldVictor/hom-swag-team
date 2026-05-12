@@ -32,11 +32,23 @@ export interface PaymentInfo {
   internal_comment?: string
 }
 
+export interface OrderInstructionPreset {
+  _id?: string
+  text?: string
+  description?: string
+  customer_facing?: boolean
+  staff_visible?: boolean
+  rider_visible?: boolean
+  beautician_visible?: boolean
+}
+
 export interface UpdateOrderPayload {
   products?: unknown[]
   delivery_address?: unknown
   status_reason?: string
   payment?: PaymentInfo
+  staff_notes?: string
+  custom_instruction?: string
 }
 
 /**
@@ -110,6 +122,9 @@ export interface Order {
   payment?: PaymentInfo
   tip?: number
   cod_collected_amount?: number
+  staff_notes?: string
+  custom_instruction?: string
+  instruction_presets?: OrderInstructionPreset[]
   /** Photo taken on arrival */
   arrival_selfie?: { url?: string; key?: string }
   /** Photos/screenshots uploaded for completion proof */

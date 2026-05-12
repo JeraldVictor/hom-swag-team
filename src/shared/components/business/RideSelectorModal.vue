@@ -3,7 +3,7 @@
     :is-open="isOpen"
     @didDismiss="$emit('update:isOpen', false)"
     :initial-breakpoint="1"
-    :breakpoints="[0, 0.65, 0.9]"
+    :breakpoints="[0, 0.65, 0.9, 1]"
     handle-behavior="cycle"
     class="ride-selector-modal"
   >

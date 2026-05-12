@@ -13,7 +13,11 @@
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh">
-        <ion-refresher-content />
+        <ion-refresher-content
+          pulling-text="Pull to refresh orders"
+          refreshing-spinner="circles"
+          refreshing-text="Refreshing orders..."
+        />
       </ion-refresher>
 
       <!-- Filters -->

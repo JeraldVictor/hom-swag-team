@@ -13,6 +13,9 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh" class="modern-refresher">
+        <ion-refresher-content pulling-icon="lucide:arrow-down" refreshing-spinner="crescent" />
+      </ion-refresher>
       <input
         ref="proofInput"
         type="file"
@@ -95,10 +98,51 @@
               <h3>Service Address</h3>
             </div>
             <p class="address-text">{{ fullAddress }}</p>
-            <p v-if="order.notes" class="order-notes">
-              <Icon icon="lucide:info" />
-              <span>Notes: {{ order.notes }}</span>
-            </p>
+          </div>
+
+          <!-- Order Context Section -->
+          <div class="content-card context-card" v-if="hasOrderContext">
+            <div class="card-header">
+              <Icon icon="lucide:notebook-tabs" class="header-icon" />
+              <h3>Order Context & Info</h3>
+            </div>
+            
+            <div class="context-grid">
+              <!-- Customer Notes -->
+              <div v-if="order.notes" class="context-box note-box">
+                <div class="box-header">
+                  <Icon icon="lucide:message-square-quote" />
+                  <span>Customer Note</span>
+                </div>
+                <p>{{ order.notes }}</p>
+              </div>
+
+              <!-- Instructions -->
+              <div v-if="order.custom_instruction || order.instruction_presets?.length" class="context-box instruction-box">
+                <div class="box-header">
+                  <Icon icon="lucide:clipboard-list" />
+                  <span>Special Instructions</span>
+                </div>
+                <p v-if="order.custom_instruction" :class="{ 'mb-2': order.instruction_presets?.length }">{{ order.custom_instruction }}</p>
+                <div v-if="order.instruction_presets?.length" class="preset-chips">
+                  <AppBadge v-for="preset in order.instruction_presets" :key="preset._id" variant="info" size="sm">
+                    {{ preset.text || preset.description }}
+                  </AppBadge>
+                </div>
+              </div>
+
+              <!-- Staff/Internal -->
+              <div v-if="order.staff_notes || order.payment?.internal_comment" class="context-box internal-box">
+                <div class="box-header">
+                  <Icon icon="lucide:shield-alert" />
+                  <span>Internal Reference</span>
+                </div>
+                <p v-if="order.staff_notes"><strong>Staff:</strong> {{ order.staff_notes }}</p>
+                <p v-if="order.payment?.internal_comment" :class="{ 'mt-1': order.staff_notes }">
+                  <strong>Payment:</strong> {{ order.payment.internal_comment }}
+                </p>
+              </div>
+            </div>
           </div>
 
           <!-- Items Section -->
@@ -246,7 +290,7 @@
                     Take Selfie
                   </AppButton>
                 </div>
-                <div class="proof-preview" v-if="order.arrival_selfie?.url">
+                <div class="proof-preview" v-if="order.arrival_selfie?.url" @click="openGallery(mediaUrl(order.arrival_selfie.url))">
                   <img :src="mediaUrl(order.arrival_selfie?.url)" alt="Arrival selfie" />
                 </div>
                 <p v-else class="proof-empty">No arrival selfie uploaded yet.</p>
@@ -276,7 +320,7 @@
                   </div>
                 </div>
                 <div v-if="proofImages.length" class="proof-list">
-                  <div v-for="(image, index) in proofImages" :key="index" class="proof-thumbnail">
+                  <div v-for="(image, index) in proofImages" :key="index" class="proof-thumbnail" @click="openGallery(mediaUrl(image.url))">
                     <img :src="mediaUrl(image.url)" :alt="`Payment proof ${index + 1}`" />
                   </div>
                 </div>
@@ -502,6 +546,18 @@
       }"
       @booked="(p: string) => showSuccess(`Ride booked via ${p}`)"
     />
+
+    <!-- Image Gallery Modal -->
+    <ion-modal :is-open="showGallery" @didDismiss="showGallery = false" class="gallery-modal">
+      <div class="gallery-container">
+        <div class="gallery-header">
+          <AppButton variant="clear" icon-only icon="lucide:x" @click="showGallery = false" class="close-btn" />
+        </div>
+        <div class="gallery-content">
+          <img :src="activeImageUrl" class="full-image" alt="Preview" />
+        </div>
+      </div>
+    </ion-modal>
   </ion-page>
 </template>
 
@@ -512,8 +568,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, getTodayIST } from '@/shared/lib/datetime'
-import { mediaUrl } from '@/shared/lib/media'
 import type { OrderProduct, PaymentStatus } from '@/shared/models'
+import { mediaUrl } from '@/shared/lib/media'
 import { useOrderDetail } from '../composables/useOrderDetail'
 
 const route = useRoute()
@@ -544,6 +600,8 @@ const {
 
 const { showSuccess, showError } = useToast()
 const showRideModal = ref(false)
+const showGallery = ref(false)
+const activeImageUrl = ref('')
 const showOtpInput = ref(false)
 const otpValue = ref('')
 const showCancelModal = ref(false)
@@ -586,6 +644,16 @@ const fullAddress = computed(() => {
   return [addr.street || addr.line1, addr.landmark, addr.city, addr.pincode]
     .filter(Boolean)
     .join(', ')
+})
+
+const hasOrderContext = computed(() => {
+  return !!(
+    order.value?.notes ||
+    order.value?.custom_instruction ||
+    order.value?.staff_notes ||
+    order.value?.payment?.internal_comment ||
+    order.value?.instruction_presets?.length
+  )
 })
 
 const statusVariant = computed(() => {
@@ -654,8 +722,11 @@ watch(
 
 // ── Methods ────────────────────────────────────────────────────────────────
 
-async function handleRefresh() {
+async function handleRefresh(event?: CustomEvent): Promise<void> {
   await fetchOrder(orderId)
+  if (event?.target && typeof (event.target as HTMLIonRefresherElement).complete === 'function') {
+    ;(event.target as HTMLIonRefresherElement).complete()
+  }
 }
 
 async function presentConfirm(header: string, message: string) {
@@ -758,6 +829,11 @@ async function handleSavePaymentStatus() {
 
 function triggerProofInput() {
   proofInput.value?.click()
+}
+
+function openGallery(url: string) {
+  activeImageUrl.value = url
+  showGallery.value = true
 }
 
 async function handleCapturePaymentProof() {
@@ -1031,6 +1107,69 @@ onMounted(() => fetchOrder(orderId))
   flex-wrap: wrap;
 }
 
+.context-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.context-box {
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+}
+
+.box-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.box-header svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-brand);
+}
+
+.context-box p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.note-box {
+  background: var(--color-brand-pale);
+  border-color: rgba(var(--color-brand-rgb), 0.1);
+}
+
+.instruction-box {
+  background: #fffbe6;
+  border-color: #ffe58f;
+}
+
+.internal-box {
+  background: var(--color-surface);
+  border-style: dashed;
+}
+
+.mb-2 { margin-bottom: 8px; }
+.mt-1 { margin-top: 4px; }
+
 .form-select {
   flex: 1;
   min-width: 160px;
@@ -1234,6 +1373,103 @@ onMounted(() => fetchOrder(orderId))
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .ms-auto { margin-left: auto; }
+
+.proof-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.proof-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.proof-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.proof-preview, .proof-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.proof-preview img, .proof-thumbnail img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.proof-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.proof-preview, .proof-thumbnail {
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.proof-preview:active, .proof-thumbnail:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+/* ── Gallery Modal Styling ────────────────────────────────────────────────── */
+.gallery-modal {
+  --background: rgba(0, 0, 0, 0.95);
+  --width: 100%;
+  --height: 100%;
+}
+
+.gallery-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gallery-header {
+  padding: env(safe-area-inset-top) 16px 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.close-btn {
+  --color: #fff;
+  --background: rgba(255, 255, 255, 0.1);
+  --border-radius: 50%;
+  width: 44px;
+  height: 44px;
+}
+
+.gallery-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.full-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
 
 /* ── Animations ──────────────────────────────────────────────────────────── */
 </style>
