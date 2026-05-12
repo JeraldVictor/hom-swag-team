@@ -1,6 +1,6 @@
 import { ENV } from '@/shared/lib/env'
 
-const MEDIA_BASE_URL = ENV.VITE_MEDIA_BASE_URL || 'http://alpha.homswag.com'
+const MEDIA_BASE_URL = ENV.VITE_MEDIA_BASE_URL
 
 let mediaBuster = Date.now()
 

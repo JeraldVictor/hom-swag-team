@@ -159,10 +159,10 @@ function openMenu(): void {
 
 onMounted(() => {
   // Handle query params
-  if (route.query.date) {
+  if (route.query.date && route.query.date !== 'undefined') {
     dateFilter.value = route.query.date as OrderDateFilter
   }
-  if (route.query.status) {
+  if (route.query.status && route.query.status !== 'undefined') {
     statusFilter.value = route.query.status as OrderStatus | 'all'
   }
   fetchOrders()

@@ -145,8 +145,18 @@ const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestCo
   let url = base + path
   // Append serialised query params if present
   if (config.params) {
-    const qs = new URLSearchParams(config.params as Record<string, string>).toString()
-    if (qs) url += (url.includes('?') ? '&' : '?') + qs
+    const params = config.params as Record<string, unknown>
+    const qs = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null) return
+      if (Array.isArray(value)) {
+        value.forEach(item => qs.append(key, String(item)))
+      } else {
+        qs.append(key, String(value))
+      }
+    })
+    const queryString = qs.toString()
+    if (queryString) url += (url.includes('?') ? '&' : '?') + queryString
   }
   const method = (config.method ?? 'GET').toUpperCase()
 

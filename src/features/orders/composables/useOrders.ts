@@ -47,9 +47,12 @@ export function useOrders() {
     let dateParam: string | undefined
     if (dateFilter.value === 'today') dateParam = todayStr
     else if (dateFilter.value === 'tomorrow') dateParam = tomorrowStr
-    else if (dateFilter.value === 'past') dateParam = 'past'
 
-    const activeFilter = statusFilter.value.toLowerCase()
+    const rawStatus = String(statusFilter.value ?? '')
+      .toLowerCase()
+      .trim()
+    const activeFilter = rawStatus === '' || rawStatus === 'undefined' ? 'all' : rawStatus
+    console.log('Fetching orders with filters:', { status: activeFilter, date: dateParam, page })
     const statusParam = activeFilter === 'all' ? undefined : activeFilter
 
     try {

@@ -24,8 +24,10 @@ export async function getOrders(
   status?: string,
   date?: string
 ): Promise<PaginatedResponse<Order>> {
+  const safeStatus = status && status !== 'undefined' ? status : undefined
+  const safeDate = date && date !== 'undefined' ? date : undefined
   const response = await apiClient.get<{ data: PaginatedResponse<Order> | Order[] }>('/orders', {
-    params: { page, limit, status, date },
+    params: { page, limit, status: safeStatus, date: safeDate },
   })
   const raw = response.data.data
   // Handle both paginated envelope and plain array
