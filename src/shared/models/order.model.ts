@@ -148,23 +148,29 @@ export interface OrderProduct {
   total: number
   duration?: number
   type?: 'service' | 'package'
-  selected_options?: {
-    order_product_option_id?: string
-    product_option_id: string
-    title: string
-    price?: number
-    min_price?: number
-    base_price?: number
-  }[]
-  selected_package_items?: {
-    product_id: string
-    title: string
-  }[]
-  selected_free_items?: {
-    order_free_item_id?: string
-    product_id: string
-    title: string
-  }[]
+  selected_options?: ReadonlyArray<
+    Readonly<{
+      order_product_option_id?: string
+      product_option_id: string
+      title: string
+      price?: number
+      min_price?: number
+      base_price?: number
+    }>
+  >
+  selected_package_items?: ReadonlyArray<
+    Readonly<{
+      product_id: string
+      title: string
+    }>
+  >
+  selected_free_items?: ReadonlyArray<
+    Readonly<{
+      order_free_item_id?: string
+      product_id: string
+      title: string
+    }>
+  >
 }
 
 /**

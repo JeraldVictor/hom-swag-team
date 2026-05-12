@@ -16,19 +16,19 @@ interface CartItem {
   duration?: number
   image?: string
   type?: 'service' | 'package'
-  selected_options?: {
+  selected_options?: ReadonlyArray<{
     product_option_id: string
     title: string
     price: number
-  }[]
-  selected_package_items?: {
+  }>
+  selected_package_items?: ReadonlyArray<{
     product_id: string
     title: string
-  }[]
-  selected_free_items?: {
+  }>
+  selected_free_items?: ReadonlyArray<{
     product_id: string
     title: string
-  }[]
+  }>
 }
 
 const route = useRoute()
@@ -191,9 +191,21 @@ function onSelectionConfirm(data: {
 }) {
   const pid = String(data.product._id || data.product.id)
   const existing = cartMap[pid]
+  const selectedOptions = data.selectedOptions.map(o => ({
+    product_option_id: String(o._id || o.id || o.product_option_id),
+    title: o.title,
+    price: o.price ?? o.min_price ?? o.base_price ?? 0,
+  }))
 
   if (existing) {
-    existing.quantity++
+    existing.title = data.product.name || data.product.title || ''
+    existing.price = data.product.min_price
+    existing.duration = data.product.duration_minutes
+    existing.type = data.product.type
+    existing.image = data.product.image_url || data.product.images?.[0]?.url
+    existing.selected_options = selectedOptions
+    existing.selected_package_items = data.selectedPackageItems
+    existing.selected_free_items = data.selectedFreeItems
   } else {
     cartMap[pid] = {
       product_id: pid,
@@ -203,11 +215,7 @@ function onSelectionConfirm(data: {
       duration: data.product.duration_minutes,
       type: data.product.type,
       image: data.product.image_url || data.product.images?.[0]?.url,
-      selected_options: data.selectedOptions.map(o => ({
-        product_option_id: String(o._id || o.id || o.product_option_id),
-        title: o.title,
-        price: o.price ?? o.min_price ?? o.base_price ?? 0,
-      })),
+      selected_options: selectedOptions,
       selected_package_items: data.selectedPackageItems,
       selected_free_items: data.selectedFreeItems,
     }

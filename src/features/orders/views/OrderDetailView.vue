@@ -192,32 +192,32 @@
                   </div>
                 </div>
 
-                <div v-if="item.type === 'package' && item.selected_package_items?.length" class="mic-sub-section">
+                <div v-if="item.type === 'package' && getSelectedServiceItems(item).length" class="mic-sub-section">
                   <div class="mic-sub-header">Included Services</div>
                   <div class="mic-sub-list">
-                    <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
+                    <div v-for="service in getSelectedServiceItems(item)" :key="service.product_id || service._id" class="mic-sub-item">
                       <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                      <span>{{ service.title }}</span>
+                      <span>{{ service.title || service.name }}</span>
                     </div>
                   </div>
                 </div>
 
-                <div v-if="item.selected_options?.length" class="mic-sub-section">
+                <div v-if="getSelectedOptions(item).length" class="mic-sub-section">
                   <div class="mic-sub-header">Add-ons / Options</div>
                   <div class="mic-sub-list">
-                    <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
+                    <div v-for="opt in getSelectedOptions(item)" :key="opt.product_option_id || opt.id || opt._id" class="mic-sub-item mic-item-row">
                       <div class="mic-item-info">
                         <span class="mic-item-title">{{ opt.title }}</span>
                       </div>
-                      <span class="mic-item-price">₹{{ opt.price ?? 0 }}</span>
+                      <span class="mic-item-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
                     </div>
                   </div>
                 </div>
 
-                <div v-if="item.selected_free_items?.length" class="mic-sub-section">
+                <div v-if="getSelectedFreeItems(item).length" class="mic-sub-section">
                   <div class="mic-sub-header">Free Perks</div>
                   <div class="mic-sub-list">
-                    <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
+                    <div v-for="free in getSelectedFreeItems(item)" :key="free.product_id || free._id" class="mic-sub-item">
                       <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
                       <span>{{ free.title }}</span>
                     </div>
@@ -880,6 +880,20 @@ function triggerProofInput() {
 function openGallery(url: string) {
   activeImageUrl.value = url
   showGallery.value = true
+}
+
+function getSelectedServiceItems(item: Readonly<OrderProduct>) {
+  return (
+    item.selected_package_items || (item as any).services || (item as any).package_services || []
+  )
+}
+
+function getSelectedOptions(item: Readonly<OrderProduct>) {
+  return item.selected_options || (item as any).options || []
+}
+
+function getSelectedFreeItems(item: Readonly<OrderProduct>) {
+  return item.selected_free_items || (item as any).free_products || []
 }
 
 async function handleCapturePaymentProof() {
