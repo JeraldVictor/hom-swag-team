@@ -498,8 +498,8 @@ ion-badge {
   color: var(--color-text-secondary, #666);
   line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  box-orient: vertical;
   overflow: hidden;
 }
 
