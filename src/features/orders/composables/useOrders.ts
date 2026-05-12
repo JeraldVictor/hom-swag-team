@@ -50,7 +50,7 @@ export function useOrders() {
     else if (dateFilter.value === 'past') dateParam = 'past'
 
     const activeFilter = statusFilter.value.toLowerCase()
-    const statusParam = activeFilter
+    const statusParam = activeFilter === 'all' ? undefined : activeFilter
 
     try {
       const res = await getOrders(page, limit, statusParam, dateParam)
@@ -117,9 +117,6 @@ export function useOrders() {
       if (dateFilter.value === 'today' && !isToday && !isActive) return false
       if (dateFilter.value === 'tomorrow' && !isTomorrow) return false
       if (dateFilter.value === 'past' && !isPast) return false
-
-      // Additional business rules for 'past' view (usually only want to see work history)
-      if (dateFilter.value === 'past' && !isCompleted) return false
 
       // Status filter
       if (!allowedStatuses.includes(s)) return false

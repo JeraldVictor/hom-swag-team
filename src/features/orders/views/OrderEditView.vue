@@ -13,13 +13,22 @@ interface CartItem {
   quantity: number
   title: string
   price: number
+  duration?: number
   image?: string
+  type?: 'service' | 'package'
   selected_options?: {
     product_option_id: string
     title: string
     price: number
   }[]
-  selected_package_items?: string[]
+  selected_package_items?: {
+    product_id: string
+    title: string
+  }[]
+  selected_free_items?: {
+    product_id: string
+    title: string
+  }[]
 }
 
 const route = useRoute()
@@ -100,12 +109,18 @@ async function fetchOrderData() {
           quantity: p.quantity,
           title: p.title,
           price: p.price,
+          duration: p.duration,
+          type: p.type,
           selected_options: p.selected_options?.map(o => ({
             product_option_id: o.product_option_id,
             title: o.title,
-            price: o.price || 0,
+            price: o.price ?? o.min_price ?? o.base_price ?? 0,
           })),
           selected_package_items: p.selected_package_items,
+          selected_free_items: p.selected_free_items?.map(f => ({
+            product_id: f.product_id,
+            title: f.title,
+          })),
         }
       })
     }
@@ -153,12 +168,17 @@ async function fetchProducts() {
 function handleAddClick(product: Product) {
   const pid = String(product._id || product.id)
 
-  // If it's a package or has options, show selection modal
-  if (product.type === 'package' || (product.options && product.options.length > 0)) {
+  const requiresSelection =
+    product.type === 'package' ||
+    (product.options && product.options.length > 0) ||
+    (product.free_products?.length &&
+      product.free_product_limits &&
+      !product.free_product_limits.is_unlimited)
+
+  if (requiresSelection) {
     selectionModal.productId = pid
     selectionModal.isOpen = true
   } else {
-    // Regular product without options
     addToCart(product)
   }
 }
@@ -166,7 +186,8 @@ function handleAddClick(product: Product) {
 function onSelectionConfirm(data: {
   product: Product
   selectedOptions: ProductOption[]
-  selectedPackageItems: string[]
+  selectedPackageItems: { product_id: string; title: string }[]
+  selectedFreeItems: { product_id: string; title: string }[]
 }) {
   const pid = String(data.product._id || data.product.id)
   const existing = cartMap[pid]
@@ -179,13 +200,16 @@ function onSelectionConfirm(data: {
       quantity: 1,
       title: data.product.name || data.product.title || '',
       price: data.product.min_price,
+      duration: data.product.duration_minutes,
+      type: data.product.type,
       image: data.product.image_url || data.product.images?.[0]?.url,
       selected_options: data.selectedOptions.map(o => ({
         product_option_id: String(o._id || o.id || o.product_option_id),
         title: o.title,
-        price: o.price,
+        price: o.price ?? o.min_price ?? o.base_price ?? 0,
       })),
       selected_package_items: data.selectedPackageItems,
+      selected_free_items: data.selectedFreeItems,
     }
   }
 
@@ -205,7 +229,17 @@ function addToCart(product: Product) {
       quantity: 1,
       title: product.name || product.title || '',
       price: product.min_price,
+      duration: product.duration_minutes,
+      type: product.type,
       image: product.image_url || product.images?.[0]?.url,
+      selected_free_items: product.free_products?.length
+        ? product.free_product_limits && !product.free_product_limits.is_unlimited
+          ? []
+          : product.free_products.map(fp => ({
+              product_id: String(fp._id || fp.product_id),
+              title: fp.title,
+            }))
+        : undefined,
     }
   }
   saveToStorage()
@@ -274,9 +308,11 @@ watch([activeMenuId, searchQuery], () => {
         <ion-title>Edit Order</ion-title>
         <ion-buttons slot="end">
           <AppButton 
-            variant="danger" 
+            variant="ghost" 
             size="sm"
+            color="danger"
             @click="handleDiscard"
+            class="discard-btn"
           >
             Discard
           </AppButton>
@@ -285,7 +321,7 @@ watch([activeMenuId, searchQuery], () => {
       <ion-toolbar class="search-toolbar">
         <ion-searchbar 
           v-model="searchQuery" 
-          placeholder="Search products..."
+          placeholder="Search services..."
           :debounce="500"
           class="custom-searchbar"
         ></ion-searchbar>
@@ -323,7 +359,7 @@ watch([activeMenuId, searchQuery], () => {
         <div v-for="product in products" :key="product._id || product.id" class="product-item anim-fade-in">
           <div class="product-image-container">
             <img :src="product.image_url || (product.images?.[0]?.url) || 'https://placehold.co/200x200?text=Product'" class="product-img" />
-            <div v-if="product.restrictions?.beautician_only" class="pro-only-tag">
+            <div v-if="product.restrictions?.beautician_only" class="pro-only-tag" title="Pro Only">
               <Icon icon="lucide:star" />
             </div>
             <div v-if="product.type === 'package'" class="package-tag">
@@ -345,16 +381,16 @@ watch([activeMenuId, searchQuery], () => {
             </div>
             
             <div class="product-actions">
-              <div v-if="getCartQuantity(String(product._id || product.id)) > 0" class="qty-control-mini">
-                <button @click="removeFromCart(String(product._id || product.id))" class="mini-btn">
+              <div v-if="getCartQuantity(String(product._id || product.id)) > 0" class="qty-control-modern">
+                <button @click="removeFromCart(String(product._id || product.id))" class="qty-btn" aria-label="Decrease quantity">
                   <Icon icon="lucide:minus" />
                 </button>
-                <span class="mini-qty">{{ getCartQuantity(String(product._id || product.id)) }}</span>
-                <button @click="handleAddClick(product)" class="mini-btn">
+                <span class="qty-number">{{ getCartQuantity(String(product._id || product.id)) }}</span>
+                <button @click="handleAddClick(product)" class="qty-btn" aria-label="Increase quantity">
                   <Icon icon="lucide:plus" />
                 </button>
               </div>
-              <AppButton v-else variant="primary" size="sm" icon="lucide:plus" @click="handleAddClick(product)">
+              <AppButton v-else variant="primary" size="sm" icon="lucide:plus" @click="handleAddClick(product)" class="add-btn-modern">
                 Add
               </AppButton>
             </div>
@@ -364,16 +400,16 @@ watch([activeMenuId, searchQuery], () => {
     </ion-content>
 
     <Transition name="slide-up">
-      <ion-footer v-if="cartItems.length > 0" class="cart-footer-pos">
+      <ion-footer v-if="cartItems.length > 0" class="cart-footer-modern">
         <div class="cart-summary-card" @click="handleGoToPreview">
           <div class="cart-summary-left">
-            <div class="cart-badge">
-              <Icon icon="lucide:shopping-cart" />
-              <span class="badge-count">{{ totalQuantity }}</span>
+            <div class="cart-icon-wrapper">
+              <Icon icon="lucide:shopping-bag" />
+              <div class="cart-badge-count">{{ totalQuantity }}</div>
             </div>
             <div class="cart-price-info">
-              <span class="cart-total-label">Total Amount</span>
-              <span class="cart-total-value">₹{{ subtotal }}</span>
+              <span class="cart-label">Est. Total</span>
+              <span class="cart-value">₹{{ subtotal }}</span>
             </div>
           </div>
           <div class="cart-summary-right">
@@ -396,28 +432,32 @@ watch([activeMenuId, searchQuery], () => {
 </template>
 
 <style scoped>
+.discard-btn {
+  font-weight: 700;
+}
+
 .search-toolbar {
-  --padding-top: 8px;
-  --padding-bottom: 8px;
+  --padding-top: var(--spacing-2);
+  --padding-bottom: var(--spacing-2);
 }
 
 .custom-searchbar {
-  --border-radius: 12px;
+  --border-radius: var(--radius-xl);
   --box-shadow: none;
   --background: var(--color-background);
-  padding: 0 16px;
+  padding: 0 var(--spacing-4);
 }
 
 .menu-tabs {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  padding: 0 8px;
+  padding: 0 var(--spacing-2);
 }
 
 ion-segment-button {
   --indicator-color: var(--color-brand);
   --color-checked: var(--color-brand);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: none;
   min-width: 100px;
 }
@@ -425,19 +465,24 @@ ion-segment-button {
 .product-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  padding-bottom: 100px;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  padding-bottom: 120px;
 }
 
 .product-item {
   background: var(--color-surface);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--color-border);
   overflow: hidden;
   display: flex;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   min-height: 110px;
+  transition: transform 0.2s ease;
+}
+
+.product-item:active {
+  transform: scale(0.98);
 }
 
 .product-image-container {
@@ -456,33 +501,34 @@ ion-segment-button {
 
 .pro-only-tag {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  background: rgba(245, 158, 11, 0.9);
+  top: var(--spacing-1);
+  left: var(--spacing-1);
+  background: var(--color-warning);
   color: white;
-  padding: 2px;
-  border-radius: 4px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .package-tag {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
+  bottom: var(--spacing-1);
+  right: var(--spacing-1);
   background: var(--color-brand);
   color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 9px;
-  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
 }
 
 .product-info {
-  padding: 10px 12px;
+  padding: var(--spacing-3) var(--spacing-4);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -490,44 +536,42 @@ ion-segment-button {
 }
 
 .product-name {
-  margin: 0 0 6px;
-  font-size: 14px;
-  font-weight: 700;
+  margin: 0 0 var(--spacing-1);
+  font-size: var(--font-size-base);
+  font-weight: 800;
   color: var(--color-text);
   line-height: 1.4;
-  word-wrap: break-word;
-  white-space: normal;
 }
 
 .product-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-2);
 }
 
 .price-container {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--spacing-2);
 }
 
 .product-base-price {
-  font-size: 13px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   text-decoration: line-through;
 }
 
 .product-min-price {
-  font-size: 17px;
+  font-size: var(--font-size-lg);
   font-weight: 800;
   color: var(--color-brand);
 }
 
 .product-duration {
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -539,59 +583,69 @@ ion-segment-button {
   justify-content: flex-end;
 }
 
-.qty-control-mini {
+.qty-control-modern {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-4);
   background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 2px;
+  border-radius: var(--radius-lg);
+  padding: 4px;
 }
 
-.mini-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+.qty-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  background: white;
-  color: var(--color-text);
+  background: var(--color-surface);
+  color: var(--color-brand);
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   cursor: pointer;
+  transition: background 0.2s;
 }
 
-.mini-qty {
-  font-size: 14px;
-  font-weight: 700;
+.qty-btn:active {
+  background: var(--color-brand-pale);
 }
 
-.cart-footer-pos {
-  padding: 16px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-  background: transparent;
-  pointer-events: none;
+.qty-number {
+  font-size: var(--font-size-base);
+  font-weight: 800;
+  min-width: 20px;
+  text-align: center;
+}
+
+.add-btn-modern {
+  font-weight: 800;
+  --border-radius: var(--radius-lg);
+}
+
+.cart-footer-modern {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  padding: var(--spacing-5);
+  padding-bottom: max(var(--spacing-5), env(safe-area-inset-bottom));
+  background: transparent;
+  pointer-events: none;
   z-index: 100;
 }
 
 .cart-summary-card {
   pointer-events: auto;
-  background: var(--color-brand);
+  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-mid) 100%);
   color: white;
-  padding: 12px 20px;
-  border-radius: 20px;
+  padding: var(--spacing-4) var(--spacing-5);
+  border-radius: var(--radius-2xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 12px 32px rgba(var(--color-brand-rgb), 0.4);
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.4);
   cursor: pointer;
-  transition: transform 0.2s;
 }
 
 .cart-summary-card:active {
@@ -601,31 +655,31 @@ ion-segment-button {
 .cart-summary-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-4);
 }
 
-.cart-badge {
+.cart-icon-wrapper {
   position: relative;
-  width: 44px;
-  height: 44px;
-  background: rgba(255,255,255,0.2);
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 24px;
 }
 
-.badge-count {
+.cart-badge-count {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: var(--color-danger);
+  background: var(--color-error);
   color: white;
   font-size: 10px;
   font-weight: 800;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -638,29 +692,25 @@ ion-segment-button {
   flex-direction: column;
 }
 
-.cart-total-label {
+.cart-label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   opacity: 0.8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.cart-total-value {
-  font-size: 20px;
+.cart-value {
+  font-size: var(--font-size-xl);
   font-weight: 800;
 }
 
 .cart-summary-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-2);
   font-weight: 700;
-  font-size: 15px;
-}
-
-.arrow-icon {
-  font-size: 18px;
+  font-size: var(--font-size-base);
 }
 
 .loading-state, .empty-state {
@@ -669,37 +719,37 @@ ion-segment-button {
   align-items: center;
   justify-content: center;
   padding: 80px 40px;
-  color: var(--color-text-muted);
   text-align: center;
 }
 
 .empty-icon-wrapper {
   width: 80px;
   height: 80px;
-  border-radius: 24px;
+  border-radius: var(--radius-2xl);
   background: var(--color-background);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 40px;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-4);
   color: var(--color-border);
 }
 
 .empty-state h3 {
-  margin: 0 0 8px;
-  color: var(--color-text);
+  margin: 0 0 var(--spacing-2);
   font-weight: 800;
+  color: var(--color-text);
 }
 
 .empty-state p {
-  margin: 0 0 24px;
-  font-size: 14px;
+  margin: 0 0 var(--spacing-6);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .spin {
   font-size: 40px;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-4);
   animation: spin 1s linear infinite;
   color: var(--color-brand);
 }
@@ -710,19 +760,19 @@ ion-segment-button {
 }
 
 .slide-up-enter-active, .slide-up-leave-active {
-  transition: all 0.3s ease-out;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .slide-up-enter-from, .slide-up-leave-to {
-  transform: translateY(100px);
+  transform: translateY(120px);
   opacity: 0;
 }
 
 .anim-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 </style>

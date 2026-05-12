@@ -40,52 +40,60 @@
       <template v-else-if="order">
         <!-- Hero Section: Customer & Quick Info -->
         <div class="order-hero">
-          <div class="customer-profile">
-            <div class="customer-avatar">
-              {{ customerInitials }}
+          <div class="hero-content">
+            <div class="customer-profile">
+              <AppAvatar 
+                :initials="customerInitials" 
+                size="64" 
+                backgroundColor="rgba(255, 255, 255, 0.2)"
+                class="customer-avatar-modern"
+              />
+              <div class="customer-info">
+                <h2 class="customer-name">{{ order.customer?.full_name || 'Customer' }}</h2>
+                <div class="order-id-badge">
+                  <Icon icon="lucide:hash" class="hash-icon" />
+                  <span>{{ order.order_number }}</span>
+                </div>
+              </div>
+              <AppBadge :variant="(statusVariant as any)" class="status-badge-hero">
+                {{ order.status }}
+              </AppBadge>
             </div>
-            <div class="customer-info">
-              <h2 class="customer-name">{{ order.customer?.full_name || 'Customer' }}</h2>
-              <p class="order-id">Order #{{ order.order_number }}</p>
-            </div>
-            <AppBadge :variant="(statusVariant as any)" class="status-badge">
-              {{ order.status }}
-            </AppBadge>
-          </div>
 
-          <div class="order-meta-grid">
-            <div class="meta-item">
-              <Icon icon="lucide:calendar" class="meta-icon" />
-              <div>
-                <p class="meta-label">Date</p>
-                <p class="meta-value">{{ formattedDate }}</p>
+            <div class="order-meta-grid">
+              <div class="meta-item">
+                <Icon icon="lucide:calendar" class="meta-icon" />
+                <div>
+                  <p class="meta-label">Date</p>
+                  <p class="meta-value">{{ formattedDate }}</p>
+                </div>
+              </div>
+              <div class="meta-item">
+                <Icon icon="lucide:clock" class="meta-icon" />
+                <div>
+                  <p class="meta-label">Timing</p>
+                  <p class="meta-value">{{ order.booking_info?.timing || 'Not set' }}</p>
+                </div>
               </div>
             </div>
-            <div class="meta-item">
-              <Icon icon="lucide:clock" class="meta-icon" />
-              <div>
-                <p class="meta-label">Timing</p>
-                <p class="meta-value">{{ order.booking_info?.timing || 'Not set' }}</p>
-              </div>
-            </div>
-          </div>
 
-          <div class="hero-actions" v-if="!isCompleted">
-            <div class="main-hero-btns">
-              <AppButton expand="block" size="lg" icon="lucide:navigation" class="nav-btn-custom" @click="navigateToLocation">
-                Navigate
-              </AppButton>
-              <AppButton v-if="order && !isCompleted" expand="block" size="lg" variant="outline" icon="lucide:car-taxi-front" @click="showRideModal = true">
-                Book Ride
-              </AppButton>
-            </div>
-            <div class="dual-btns">
-              <AppButton variant="outline" icon="lucide:copy" @click="copyAddress">
-                Copy Address
-              </AppButton>
-              <AppButton variant="outline" icon="lucide:phone" :href="'tel:' + order.customer?.phone">
-                Call
-              </AppButton>
+            <div class="hero-actions" v-if="!isCompleted">
+              <div class="main-hero-btns">
+                <AppButton expand="block" size="lg" icon="lucide:navigation" class="nav-btn-modern" @click="navigateToLocation">
+                  Navigate
+                </AppButton>
+                <AppButton v-if="order && !isCompleted" expand="block" size="lg" icon="lucide:car-taxi-front" class="ride-btn-modern" @click="showRideModal = true">
+                  Book Ride
+                </AppButton>
+              </div>
+              <div class="dual-btns-modern">
+                <AppButton icon="lucide:copy" size="sm" @click="copyAddress" class="action-chip">
+                  Copy Address
+                </AppButton>
+                <AppButton icon="lucide:phone" size="sm" :href="'tel:' + order.customer?.phone" class="action-chip">
+                  Call
+                </AppButton>
+              </div>
             </div>
           </div>
         </div>
@@ -161,51 +169,62 @@
               </AppButton>
             </div>
             <div class="line-items">
-              <div v-for="item in order.products" :key="item.product_id" class="line-item">
-                <div class="item-main">
-                  <div class="item-info">
-                    <p class="item-title">
-                      {{ item.title }}
-                      <AppBadge v-if="item.total === 0" variant="success" size="sm" class="ms-2">Free</AppBadge>
-                      <AppBadge v-if="item.type === 'package'" variant="info" size="sm" class="ms-2">Package</AppBadge>
-                    </p>
-                    <p class="item-qty">
-                      Qty: {{ item.quantity }}
-                      <span v-if="item.price > 0"> × ₹{{ item.price }}</span>
-                      <span v-if="item.duration" class="ms-2">
-                        <Icon icon="lucide:clock" class="inline-icon" /> {{ item.duration }} min
-                      </span>
-                    </p>
+              <div v-for="item in order.products" :key="item.product_id" class="modern-item-card">
+                <div class="mic-header">
+                  <div class="mic-title-row">
+                    <span class="mic-title">{{ item.title }}</span>
+                    <div class="mic-badges">
+                      <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
+                      <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
+                    </div>
                   </div>
-                  <p class="item-total" v-if="item.total > 0">₹{{ item.total }}</p>
-                  <p class="item-total free-text" v-else>FREE</p>
-                </div>
-                
-                <!-- Package Duration Top Level -->
-                <div v-if="item.type === 'package' && item.duration" class="package-duration">
-                  <Icon icon="lucide:timer" />
-                  <span>Total Duration: {{ item.duration }} mins</span>
-                </div>
-
-                <!-- Selected Options -->
-                <div v-if="item.selected_options?.length" class="item-sub-list">
-                  <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="sub-item">
-                    <Icon icon="lucide:plus" class="sub-item-icon" />
-                    <span>{{ opt.title }}</span>
-                    <span v-if="opt.price" class="ms-auto">+₹{{ opt.price }}</span>
+                  <div class="mic-meta">
+                    <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
+                    <span class="mic-total">₹{{ item.total }}</span>
+                  </div>
+                  <div v-if="item.duration || item.type" class="mic-attributes">
+                    <span v-if="item.duration" class="mic-attr">
+                      <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
+                    </span>
+                    <span v-if="item.type" class="mic-attr">
+                      <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
+                    </span>
                   </div>
                 </div>
 
-                <!-- Free Items -->
-                <div v-if="item.selected_free_items?.length" class="item-sub-list free-items">
-                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="sub-item">
-                    <Icon icon="lucide:gift" class="sub-item-icon" />
-                    <span>{{ free.title }}</span>
-                    <AppBadge variant="success" size="sm" class="ms-auto">Included</AppBadge>
+                <div v-if="item.type === 'package' && item.selected_package_items?.length" class="mic-sub-section">
+                  <div class="mic-sub-header">Included Services</div>
+                  <div class="mic-sub-list">
+                    <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
+                      <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
+                      <span>{{ service.title }}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div v-if="canUpgrade && item.type !== 'package'" class="item-actions">
+                <div v-if="item.selected_options?.length" class="mic-sub-section">
+                  <div class="mic-sub-header">Add-ons / Options</div>
+                  <div class="mic-sub-list">
+                    <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
+                      <div class="mic-item-info">
+                        <span class="mic-item-title">{{ opt.title }}</span>
+                      </div>
+                      <span class="mic-item-price">₹{{ opt.price ?? 0 }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="item.selected_free_items?.length" class="mic-sub-section">
+                  <div class="mic-sub-header">Free Perks</div>
+                  <div class="mic-sub-list">
+                    <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
+                      <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
+                      <span>{{ free.title }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="canUpgrade && item.type !== 'package'" class="mic-actions">
                   <AppButton variant="outline" size="sm" icon="lucide:arrow-up" @click="openUpgradeModal(item as any)">
                     Upgrade
                   </AppButton>
@@ -213,22 +232,25 @@
               </div>
             </div>
 
-            <div class="order-summary-footer">
-              <div class="summary-row">
-                <span>Subtotal</span>
-                <span>₹{{ order.subtotal }}</span>
+            <div class="order-summary-footer modern-summary-card">
+              <div class="summary-card-header">
+                <div>
+                  <p class="summary-label">Order summary</p>
+                </div>
               </div>
-              <div v-if="order.discount_total" class="summary-row discount">
-                <span>Discount</span>
-                <span>-₹{{ order.discount_total }}</span>
-              </div>
-              <div v-if="order.delivery_fee" class="summary-row">
-                <span>Conveyance</span>
-                <span>₹{{ order.delivery_fee }}</span>
-              </div>
-              <div class="summary-row total">
-                <span>Total Amount</span>
-                <span>₹{{ order.total }}</span>
+              <div class="summary-list">
+                <div class="summary-item">
+                  <span>Subtotal</span>
+                  <strong>₹{{ order.subtotal ?? 0 }}</strong>
+                </div>
+                <div class="summary-item">
+                  <span>Other Charges</span>
+                  <strong class="text-danger"> ₹{{ Math.abs((order.subtotal ?? 0) - (order.total ?? 0)) }}</strong>
+                </div>
+                <div class="summary-total">
+                  <span>Total Amount</span>
+                  <strong>₹{{ order.total ?? 0 }}</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -244,22 +266,24 @@
             </div>
             <div class="payment-method">
               <p>Payment Type: <strong>{{ order.payment?.method?.toUpperCase() || 'COD / UPI' }}</strong></p>
+              <p v-if="order.payment?.reference">Reference: <strong>{{ order.payment.reference }}</strong></p>
             </div>
             <div class="payment-details-grid">
               <div class="payment-detail-item">
                 <span>Amount Paid</span>
-                <strong>{{ amountPaid }}</strong>
+                <strong :class="{ 'text-success': order.payment?.status?.toLowerCase() === 'paid' }">₹{{ order.payment?.amount_paid || 0 }}</strong>
               </div>
               <div class="payment-detail-item">
                 <span>Tip Amount</span>
-                <strong>{{ tipAmount }}</strong>
+                <strong v-if="order.tip" class="text-brand">₹{{ order.tip }}</strong>
+                <strong v-else>₹0</strong>
               </div>
-              <div class="payment-detail-item full-width">
-                <span>Reference / Transaction ID</span>
-                <strong>{{ paymentReference }}</strong>
+              <div class="payment-detail-item full-width" v-if="order.payment?.remark">
+                <span>Remark</span>
+                <p class="remark-text">{{ order.payment.remark }}</p>
               </div>
             </div>
-            <div class="payment-hint">
+            <div class="payment-hint" v-if="order.payment?.status?.toLowerCase() !== 'paid'">
               <p>
                 Collect cash on delivery or ask the customer to scan the office UPI QR code below.
               </p>
@@ -370,7 +394,7 @@
               expand="block"
               size="lg"
               :loading="isUpdating"
-              :disabled="!isBookingDateToday"
+              :disabled="isBookingDateFuture"
               :icon="isSelfieStep ? 'lucide:camera' : undefined"
               @click="handleMainAction"
               class="primary-action-btn-custom"
@@ -378,12 +402,12 @@
               {{ nextActionLabel }}
             </AppButton>
             
-            <div class="date-restriction-tip" v-if="!isBookingDateToday && !isCompleted && order" style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin: 8px 0; padding: 8px; background: var(--color-surface); border-radius: 8px;">
-              Note: You can only start or update this order on the scheduled date ({{ order.booking_info?.date }}).
+            <div class="date-restriction-tip" v-if="isBookingDateFuture && !isCompleted && order" style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin: 8px 0; padding: 8px; background: var(--color-surface); border-radius: 8px;">
+              {{ bookingDateRestrictionMessage }}
             </div>
  
             <AppButton 
-              v-if="canCancel && isBookingDateToday"
+              v-if="canCancel && !isBookingDateFuture"
               expand="block"
               variant="outline"
               color="danger" 
@@ -497,23 +521,26 @@
           </div>
 
           <div class="cancel-form-section">
-            <ion-label class="form-label">Reason for Cancellation</ion-label>
-            <ion-textarea
+            <div class="form-label-group">
+              <Icon icon="lucide:clipboard-edit" />
+              <label class="form-label">Reason for Cancellation</label>
+            </div>
+            <textarea
               v-model="cancelReason"
               placeholder="Provide a detailed reason for cancellation..."
-              fill="outline"
-              shape="round"
-              :rows="4"
-              class="cancel-textarea"
-              mode="md"
-            ></ion-textarea>
+              rows="4"
+              class="modern-textarea"
+            ></textarea>
           </div>
 
           <div class="cancel-form-section">
-            <ion-label class="form-label">Verification OTP</ion-label>
+            <div class="form-label-group">
+              <Icon icon="lucide:shield-check" />
+              <label class="form-label">Verification OTP</label>
+            </div>
             <p class="form-hint">Ask the customer for the 6-digit cancellation OTP code.</p>
-            <div class="otp-wrapper">
-              <OtpInput v-model="otpValue" />
+            <div class="otp-wrapper-modern">
+              <OtpInput v-model="otpValue" :length="6" />
             </div>
           </div>
 
@@ -567,7 +594,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
-import { formatISTDate, getTodayIST } from '@/shared/lib/datetime'
+import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import type { OrderProduct, PaymentStatus } from '@/shared/models'
 import { mediaUrl } from '@/shared/lib/media'
 import { useOrderDetail } from '../composables/useOrderDetail'
@@ -660,7 +687,7 @@ const statusVariant = computed(() => {
   const s = order.value?.status?.toLowerCase()
   if (s === 'completed') return 'success'
   if (s === 'ongoing' || s === 'started') return 'brand'
-  if (s === 'confirmed') return 'info'
+  if (s === 'confirmed') return 'brand'
   if (s === 'arrived_and_cancelled') return 'danger'
   return 'neutral'
 })
@@ -706,7 +733,26 @@ const proofImages = computed(() => {
 
 const isBookingDateToday = computed(() => {
   if (!order.value?.booking_info?.date) return false
-  return order.value.booking_info.date === getTodayIST()
+  return formatISTDateShort(order.value.booking_info.date) === getTodayIST()
+})
+
+const bookingDateStatus = computed(() => {
+  if (!order.value?.booking_info?.date) return 'unknown'
+  const bookingDate = formatISTDateShort(order.value.booking_info.date)
+  const today = getTodayIST()
+  if (bookingDate === today) return 'today'
+  return bookingDate > today ? 'future' : 'past'
+})
+
+const isBookingDateFuture = computed(() => bookingDateStatus.value === 'future')
+
+const bookingDateRestrictionMessage = computed(() => {
+  if (!order.value?.booking_info?.date) return ''
+  const formatted = formatISTDate(order.value.booking_info.date)
+  if (bookingDateStatus.value === 'future') {
+    return `This order is scheduled for ${formatted}. Status changes are only allowed on the scheduled date.`
+  }
+  return ''
 })
 
 watch(
@@ -1029,93 +1075,168 @@ onMounted(() => fetchOrder(orderId))
 .error-icon { font-size: 48px; color: var(--color-danger); margin-bottom: 16px; }
 
 .order-hero {
-  padding: 24px 20px 32px;
-  background: linear-gradient(to bottom, var(--color-surface) 0%, var(--color-background) 100%);
-  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(165deg, var(--color-brand) 0%, var(--color-brand-mid) 100%);
+  color: white;
+  padding: var(--spacing-6) var(--spacing-5) var(--spacing-8);
+  border-bottom-left-radius: var(--radius-2xl);
+  border-bottom-right-radius: var(--radius-2xl);
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.order-hero::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
 .customer-profile {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
 }
 
-.customer-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
-  background: var(--color-brand-pale);
-  color: var(--color-brand);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.customer-avatar-modern {
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.customer-avatar-modern :deep(.app-avatar__initials) {
+  color: white !important;
   font-size: 24px;
   font-weight: 800;
-  box-shadow: 0 8px 16px rgba(var(--color-brand-rgb), 0.1);
 }
 
-.customer-info { flex: 1; }
-.customer-name { margin: 0; font-size: 22px; font-weight: 800; color: var(--color-text); }
-.order-id { margin: 2px 0 0; font-size: 14px; color: var(--color-text-muted); font-weight: 600; }
+.customer-info {
+  flex: 1;
+}
 
-.status-badge { font-size: 11px; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.customer-name {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: white;
+}
+
+.order-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  margin-top: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+
+.hash-icon {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.status-badge-hero {
+  --background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 
 .order-meta-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  background: rgba(0, 0, 0, 0.1);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-xl);
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
+  gap: var(--spacing-3);
 }
 
-.meta-icon { font-size: 20px; color: var(--color-brand); }
-.meta-label { margin: 0; font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; }
-.meta-value { margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text); }
-
-.hero-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.meta-icon {
+  font-size: 18px;
+  opacity: 0.8;
 }
 
-.nav-btn-custom {
-  --background: linear-gradient(135deg, var(--color-brand) 0%, #6366f1 100%);
-  --background-activated: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-  --box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
+.meta-label {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.meta-value {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
 .main-hero-btns {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 12px;
+  margin-bottom: 12px;
+}
+
+.nav-btn-modern, .ride-btn-modern {
+  --background: white;
+  --color: var(--color-brand);
+  --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-weight: 800;
+}
+
+.dual-btns-modern {
+  display: flex;
+  gap: 12px;
+}
+
+.action-chip {
+  --background: white;
+  --color: var(--color-brand);
+  --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  --border-radius: var(--radius-lg);
+  flex: 1;
+  font-weight: 800;
 }
 
 .payment-status-row {
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-3);
   align-items: center;
   flex-wrap: wrap;
 }
 
 .context-grid {
   display: grid;
-  gap: 12px;
-  margin-top: 12px;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
 }
 
 .context-box {
-  padding: 16px;
-  border-radius: 18px;
+  padding: var(--spacing-4);
+  border-radius: var(--radius-xl);
   background: var(--color-background);
   border: 1px solid var(--color-border);
 }
@@ -1123,9 +1244,9 @@ onMounted(() => fetchOrder(orderId))
 .box-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 11px;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+  font-size: var(--font-size-xs);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1140,7 +1261,7 @@ onMounted(() => fetchOrder(orderId))
 
 .context-box p {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   line-height: 1.5;
   color: var(--color-text);
   font-weight: 500;
@@ -1149,7 +1270,7 @@ onMounted(() => fetchOrder(orderId))
 .preset-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--spacing-2);
 }
 
 .note-box {
@@ -1174,45 +1295,47 @@ onMounted(() => fetchOrder(orderId))
   flex: 1;
   min-width: 160px;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 .payment-status-editor .hint {
-  margin-top: 12px;
+  margin-top: var(--spacing-3);
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-xs);
 }
 
 .payment-details-grid {
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-4);
 }
 
 .payment-detail-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
+  padding: var(--spacing-3) var(--spacing-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 
 .payment-detail-item span {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  font-weight: 700;
 }
 
 .payment-detail-item strong {
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
 }
 
 .payment-detail-item.full-width {
@@ -1220,85 +1343,354 @@ onMounted(() => fetchOrder(orderId))
 }
 
 .primary-action-btn-custom {
-  --background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%);
-  --box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3);
+  --background: var(--color-brand);
+  --box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+  font-weight: 800;
 }
 
-.cancel-btn-custom {
-  margin-top: 12px;
+.order-content { 
+  padding: var(--spacing-5); 
+  display: flex; 
+  flex-direction: column; 
+  gap: var(--spacing-5); 
 }
 
-.item-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
+.line-items { 
+  display: flex; 
+  flex-direction: column; 
+  gap: var(--spacing-3); 
+  margin-bottom: var(--spacing-6); 
+}
 
-.order-content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
-
-.content-card {
-  padding: 20px;
-  background: var(--color-surface);
-  border-radius: 24px;
+.modern-item-card {
+  background: var(--color-background);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-4);
   border: 1px solid var(--color-border);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
 }
 
-.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.card-header h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--color-text); }
-.header-icon { font-size: 18px; color: var(--color-brand); }
+.mic-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
-.proof-label-row {
+.mic-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.proof-actions {
-  display: flex;
+  align-items: flex-start;
   gap: 8px;
 }
 
-.action-btn-sm {
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --height: 32px;
-  font-size: 13px;
+.mic-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ion-color-step-900, #1a1a1a);
+  line-height: 1.3;
+}
+
+.mic-badges {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.mic-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.9rem;
+  color: var(--ion-color-step-600, #666);
+}
+
+.mic-total {
   font-weight: 700;
-  margin: 0;
+  color: var(--ion-color-primary);
+  font-size: 1rem;
 }
 
-.address-text { margin: 0; font-size: 15px; line-height: 1.6; color: var(--color-text-secondary); font-weight: 500; }
-
-.line-items { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
-.line-item { 
-  padding-bottom: 16px; 
-  border-bottom: 1px dashed var(--color-border);
+.mic-attributes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 2px;
 }
-.line-item:last-child { border-bottom: none; padding-bottom: 0; }
 
-.item-main { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.item-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--color-text); }
-.item-qty { margin: 4px 0 0; font-size: 13px; color: var(--color-text-muted); font-weight: 500; }
-.item-total { margin: 0; font-size: 15px; font-weight: 800; color: var(--color-text); }
+.mic-attr {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--ion-color-step-500, #888);
+}
+
+.mic-icon {
+  font-size: 14px;
+}
+
+.mic-sub-section {
+  border-top: 1px dashed var(--ion-color-step-200, #d0d0d0);
+  padding-top: 8px;
+}
+
+.mic-sub-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ion-color-step-400, #aaa);
+  margin-bottom: 6px;
+}
+
+.mic-sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mic-sub-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--ion-color-step-700, #444);
+}
+
+.mic-sub-icon {
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.mic-item-row {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mic-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.mic-item-title {
+  font-weight: 500;
+}
+
+.mic-item-meta {
+  font-size: 0.75rem;
+  color: var(--ion-color-step-500, #888);
+}
+
+.mic-item-price {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.mic-actions {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
 
 .order-summary-footer {
   padding-top: 16px;
   border-top: 2px solid var(--color-background);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 
-.summary-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); }
-.summary-row.total { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--color-border); font-size: 18px; font-weight: 800; color: var(--color-text); }
+.modern-summary-card {
+  padding: 20px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,250,255,0.95) 100%);
+  box-shadow: 0 20px 40px rgba(14, 30, 77, 0.08);
+  border: 1px solid rgba(51, 65, 85, 0.08);
+}
+
+.summary-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.summary-label {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+  text-transform: uppercase;
+}
+
+.summary-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.summary-status {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.summary-status.paid {
+  color: var(--color-success);
+  background: rgba(var(--color-success-rgb), 0.12);
+}
+
+.summary-status.pending {
+  color: var(--color-warning);
+  background: rgba(var(--color-warning-rgb), 0.14);
+}
+
+.summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-item,
+.summary-total {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.summary-item span,
+.summary-total span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.summary-item strong,
+.summary-total strong {
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.summary-total {
+  grid-column: span 2;
+  background: linear-gradient(90deg, rgba(99,102,241,0.12), rgba(16,185,129,0.12));
+  border-color: rgba(99,102,241,0.18);
+}
+
+.summary-total strong {
+  font-size: 1.2rem;
+}
+
+.content-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--color-border);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--spacing-4);
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.card-header .header-icon {
+  font-size: 20px;
+  color: var(--color-brand);
+}
+
+.address-text {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  font-weight: 500;
+}
 
 .action-footer {
   position: sticky;
   bottom: 0;
-  padding: 20px;
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  box-shadow: 0 -8px 24px rgba(0,0,0,0.05);
+  padding: var(--spacing-5) var(--spacing-5) max(var(--spacing-5), env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.cancel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.form-label-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.form-label-group svg {
+  color: var(--color-brand);
+  font-size: 14px;
+}
+
+.modern-textarea {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  transition: border-color 0.2s ease;
+}
+
+.modern-textarea:focus {
+  outline: none;
+  border-color: var(--color-brand);
+}
+
+.otp-wrapper-modern {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--color-background);
+  border-radius: 20px;
+  border: 1px dashed var(--color-border);
 }
 
 /* ── Cancel Modal Styling ─────────────────────────────────────────────────── */
@@ -1470,6 +1862,10 @@ onMounted(() => fetchOrder(orderId))
   border-radius: 8px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
+
+.text-success { color: var(--color-success); }
+.text-brand { color: var(--color-brand); }
+.text-danger { color: var(--color-danger); }
 
 /* ── Animations ──────────────────────────────────────────────────────────── */
 </style>

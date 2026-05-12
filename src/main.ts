@@ -89,6 +89,7 @@ import './core/theme/animations.css'
 import './core/theme/global.css'
 import '@aejkatappaja/phantom-ui/ssr.css'
 import OrderCard from './features/orders/components/OrderCard.vue'
+import PackageSelectionModal from './features/orders/components/PackageSelectionModal.vue'
 
 const app = createApp(App).use(IonicVue).use(createPinia()).use(router)
 app.component('Icon', Icon)
@@ -146,6 +147,7 @@ app.component('AppLoadingSpinner', AppLoadingSpinner)
 app.component('OtpInput', OtpInput)
 app.component('RideSelectorModal', RideSelectorModal)
 app.component('OrderCard', OrderCard)
+app.component('PackageSelectionModal', PackageSelectionModal)
 
 // Mount regardless of whether the initial navigation succeeded or was aborted.
 // A rejected isReady() (e.g. guard returning false on cold start) must not

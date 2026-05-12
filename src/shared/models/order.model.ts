@@ -119,6 +119,9 @@ export interface Order {
   total?: number
   discount_total?: number
   delivery_fee?: number
+  convenience_fees?: number
+  hygiene_fees?: number
+  rounding?: number
   payment?: PaymentInfo
   tip?: number
   cod_collected_amount?: number
@@ -150,8 +153,13 @@ export interface OrderProduct {
     product_option_id: string
     title: string
     price?: number
+    min_price?: number
+    base_price?: number
   }[]
-  selected_package_items?: string[] // Array of product IDs
+  selected_package_items?: {
+    product_id: string
+    title: string
+  }[]
   selected_free_items?: {
     order_free_item_id?: string
     product_id: string

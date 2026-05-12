@@ -32,7 +32,8 @@ export interface Product {
     choose_any: boolean
     min_selection?: number
     max_selection?: number
-    services?: string[] // Product IDs included in package
+    services?: Array<{ _id: string; title: string }>
+    selection_type?: 'fixed' | 'limit' | 'choose_any'
   }
   /** Product options (addons/variations) */
   options?: ProductOption[]
@@ -41,6 +42,13 @@ export interface Product {
     is_unlimited: boolean
     min_selection?: number
     max_selection?: number
+  }
+  /** Complimentary free products available with this item */
+  free_products?: Array<{ _id: string; product_id?: string; title: string }>
+  free_product_limits?: {
+    is_unlimited: boolean
+    min_qty?: number
+    max_qty?: number
   }
 }
 
@@ -52,6 +60,8 @@ export interface ProductOption {
   _id?: string
   product_option_id?: string
   title: string
-  price: number
+  price?: number
+  min_price?: number
+  base_price?: number
   is_active?: boolean
 }

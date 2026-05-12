@@ -15,7 +15,8 @@ const emit = defineEmits<{
     data: {
       product: Product
       selectedOptions: ProductOption[]
-      selectedPackageItems: string[]
+      selectedPackageItems: { product_id: string; title: string }[]
+      selectedFreeItems: { product_id: string; title: string }[]
     }
   ): void
 }>()
@@ -25,6 +26,63 @@ const isLoading = ref(true)
 const selectedOptionIds = ref<string[]>([])
 const selectedPackageItemIds = ref<string[]>([])
 const packageItemDetails = ref<Product[]>([])
+const selectedFreeItemIds = ref<string[]>([])
+
+const freeProducts = computed(() => product.value?.free_products ?? [])
+const freeProductLimits = computed(
+  () =>
+    product.value?.free_product_limits ?? {
+      is_unlimited: true,
+      min_qty: undefined,
+      max_qty: undefined,
+    }
+)
+const isFreeSelectionRequired = computed(
+  () => freeProducts.value.length > 0 && !freeProductLimits.value.is_unlimited
+)
+
+const packageSelectionType = computed<'fixed' | 'limit' | 'choose_any'>(() => {
+  const cfg = product.value?.package_config
+  if (!cfg || product.value?.type !== 'package') return 'fixed'
+  if (cfg.selection_type) return cfg.selection_type
+  if (cfg.choose_any && (cfg.min_selection ?? 0) > 0) return 'choose_any'
+  if ((cfg.min_selection ?? 0) > 0) return 'limit'
+  return 'fixed'
+})
+
+const packageSelectionMax = computed(() => {
+  const cfg = product.value?.package_config
+  if (!cfg) return undefined
+  return cfg.max_selection ?? cfg.min_selection
+})
+
+const packageSelectionLabel = computed(() => {
+  if (packageSelectionType.value === 'fixed') return 'Fixed Items'
+
+  const min = product.value?.package_config?.min_selection ?? 0
+  const max = packageSelectionMax.value ?? min
+  if (packageSelectionType.value === 'choose_any') {
+    return min === max ? `Choose ${min} Services` : `Choose ${min}-${max} Services`
+  }
+
+  return min === max ? `Select exactly ${min} Services` : `Select ${min}-${max} Services`
+})
+
+const packageSelectionOverflow = computed(() => {
+  const max = packageSelectionMax.value
+  return max != null && selectedPackageItemIds.value.length >= max
+})
+
+const freeSelectionLabel = computed(() => {
+  if (!isFreeSelectionRequired.value) return 'Included'
+  const min = freeProductLimits.value.min_qty ?? 0
+  const max = freeProductLimits.value.max_qty
+  if (min && max && min === max) return `Choose ${min} free item${min > 1 ? 's' : ''}`
+  if (min && max) return `Choose ${min}-${max} free items`
+  if (min) return `Choose at least ${min}`
+  if (max) return `Choose up to ${max}`
+  return 'Choose free items'
+})
 
 async function fetchDetails() {
   try {
@@ -32,19 +90,23 @@ async function fetchDetails() {
     const data = await getProduct(props.productId)
     product.value = data
 
+    const packageServiceIds = (data.package_config?.services ?? []).map(service =>
+      String((service as any)._id ?? service)
+    )
+
     // Auto-select fixed package items if not "choose_any"
-    if (
-      data.type === 'package' &&
-      !data.package_config?.choose_any &&
-      data.package_config?.services
-    ) {
-      selectedPackageItemIds.value = [...data.package_config.services]
+    if (data.type === 'package' && !data.package_config?.choose_any && packageServiceIds.length) {
+      selectedPackageItemIds.value = [...packageServiceIds]
+    }
+
+    if (data.free_products?.length && (data.free_product_limits?.is_unlimited ?? true)) {
+      selectedFreeItemIds.value = data.free_products.map(fp => String(fp._id || fp.product_id))
     }
 
     // Fetch details for package services to show names
-    if (data.type === 'package' && data.package_config?.services?.length) {
+    if (data.type === 'package' && packageServiceIds.length) {
       const details = await Promise.all(
-        data.package_config.services.map(id => getProduct(id).catch(() => null))
+        packageServiceIds.map(id => getProduct(id).catch(() => null))
       )
       packageItemDetails.value = details.filter((d): d is Product => d !== null)
     }
@@ -66,12 +128,21 @@ const canConfirm = computed(() => {
     if (!is_unlimited && max_selection && count > max_selection) return false
   }
 
+  // Check free-product limits if selection is required
+  if (isFreeSelectionRequired.value) {
+    const count = selectedFreeItemIds.value.length
+    const { min_qty, max_qty } = freeProductLimits.value
+    if (min_qty != null && count < min_qty) return false
+    if (max_qty != null && count > max_qty) return false
+  }
+
   // Check Package Limits
-  if (product.value.type === 'package' && product.value.package_config?.choose_any) {
+  if (product.value.type === 'package' && packageSelectionType.value !== 'fixed') {
     const count = selectedPackageItemIds.value.length
-    const { min_selection, max_selection } = product.value.package_config
+    const min_selection = product.value.package_config?.min_selection ?? 0
+    const max_selection = packageSelectionMax.value
     if (min_selection && count < min_selection) return false
-    if (max_selection && count > max_selection) return false
+    if (max_selection != null && count > max_selection) return false
   }
 
   return true
@@ -80,14 +151,34 @@ const canConfirm = computed(() => {
 function handleConfirm() {
   if (!product.value || !canConfirm.value) return
 
-  const selectedOptions = (product.value.options || []).filter(opt =>
-    selectedOptionIds.value.includes(String(opt._id || opt.id || opt.product_option_id))
-  )
+  const selectedOptions = (product.value.options || [])
+    .filter(opt =>
+      selectedOptionIds.value.includes(String(opt._id || opt.id || opt.product_option_id))
+    )
+    .map(opt => ({
+      ...opt,
+      price: opt.price ?? opt.min_price ?? opt.base_price ?? 0,
+    }))
+
+  const selectedFreeItems = freeProducts.value
+    .filter(fp => selectedFreeItemIds.value.includes(String(fp._id || fp.product_id)))
+    .map(fp => ({
+      product_id: String(fp._id || fp.product_id),
+      title: fp.title,
+    }))
+
+  const selectedPackageItems = packageItemDetails.value
+    .filter(p => selectedPackageItemIds.value.includes(String(p._id || p.id)))
+    .map(p => ({
+      product_id: String(p._id || p.id),
+      title: p.name || p.title || '',
+    }))
 
   emit('confirm', {
     product: product.value,
     selectedOptions,
-    selectedPackageItems: selectedPackageItemIds.value,
+    selectedPackageItems,
+    selectedFreeItems,
   })
 }
 
@@ -123,10 +214,11 @@ function togglePackageItem(id: string) {
   if (index > -1) {
     selectedPackageItemIds.value.splice(index, 1)
   } else {
-    const limits = product.value?.package_config
-    if (limits?.max_selection && selectedPackageItemIds.value.length >= limits.max_selection) {
-      if (limits.max_selection === 1) {
+    const maxSelection = packageSelectionMax.value
+    if (maxSelection != null && selectedPackageItemIds.value.length >= maxSelection) {
+      if (maxSelection === 1) {
         selectedPackageItemIds.value = [id]
+        return
       }
       return
     }
@@ -136,6 +228,28 @@ function togglePackageItem(id: string) {
 
 function isOptionSelected(id: string) {
   return selectedOptionIds.value.includes(id)
+}
+
+function toggleFreeItem(id: string) {
+  const index = selectedFreeItemIds.value.indexOf(id)
+  if (index > -1) {
+    selectedFreeItemIds.value.splice(index, 1)
+    return
+  }
+
+  const { max_qty, is_unlimited } = freeProductLimits.value
+  if (!is_unlimited && max_qty && selectedFreeItemIds.value.length >= max_qty) {
+    if (max_qty === 1) {
+      selectedFreeItemIds.value = [id]
+    }
+    return
+  }
+
+  selectedFreeItemIds.value.push(id)
+}
+
+function isFreeItemSelected(id: string) {
+  return selectedFreeItemIds.value.includes(id)
 }
 
 function isPackageItemSelected(id: string) {
@@ -164,10 +278,7 @@ function isPackageItemSelected(id: string) {
         <div v-if="product.type === 'package'" class="selection-section">
           <div class="section-header">
             <h3>Package Includes</h3>
-            <AppBadge v-if="product.package_config?.choose_any" variant="info">
-              Choose {{ product.package_config.min_selection === product.package_config.max_selection ? product.package_config.min_selection : `${product.package_config.min_selection}-${product.package_config.max_selection}` }}
-            </AppBadge>
-            <AppBadge v-else variant="success">Fixed Items</AppBadge>
+            <AppBadge variant="info">{{ packageSelectionLabel }}</AppBadge>
           </div>
           
           <ion-list lines="none">
@@ -175,6 +286,7 @@ function isPackageItemSelected(id: string) {
               v-for="item in packageItemDetails" 
               :key="String(item._id || item.id)"
               class="selection-item"
+              :disabled="!product.package_config?.choose_any || (packageSelectionOverflow && !isPackageItemSelected(String(item._id || item.id)))"
               @click="togglePackageItem(String(item._id || item.id))"
             >
               <ion-checkbox 
@@ -185,6 +297,33 @@ function isPackageItemSelected(id: string) {
               <ion-label>
                 <h2>{{ item.name || item.title }}</h2>
                 <p v-if="item.duration_minutes">{{ item.duration_minutes }} mins</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </div>
+
+        <div v-if="freeProducts.length" class="selection-section">
+          <div class="section-header">
+            <h3>Free Items</h3>
+            <AppBadge :variant="isFreeSelectionRequired ? 'info' : 'success'">
+              {{ freeSelectionLabel }}
+            </AppBadge>
+          </div>
+
+          <ion-list lines="none">
+            <ion-item
+              v-for="fp in freeProducts"
+              :key="String(fp._id || fp.product_id)"
+              class="selection-item"
+              @click="isFreeSelectionRequired ? toggleFreeItem(String(fp._id || fp.product_id)) : null"
+            >
+              <ion-checkbox
+                slot="start"
+                :checked="isFreeItemSelected(String(fp._id || fp.product_id))"
+                :disabled="!isFreeSelectionRequired"
+              ></ion-checkbox>
+              <ion-label>
+                <h2>{{ fp.title }}</h2>
               </ion-label>
             </ion-item>
           </ion-list>
@@ -212,7 +351,7 @@ function isPackageItemSelected(id: string) {
               ></ion-checkbox>
               <ion-label>
                 <h2>{{ opt.title }}</h2>
-                <p>+ ₹{{ opt.price }}</p>
+                <p>+ ₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</p>
               </ion-label>
             </ion-item>
           </ion-list>

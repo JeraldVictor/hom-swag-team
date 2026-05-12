@@ -16,13 +16,26 @@ interface CartItem {
   quantity: number
   title: string
   price: number
+  duration?: number
   image?: string
+  type?: 'service' | 'package'
+  total?: number
   selected_options?: {
     product_option_id: string
     title: string
     price: number
+    duration?: number
+    min_price?: number
+    base_price?: number
   }[]
-  selected_package_items?: string[]
+  selected_package_items?: {
+    product_id: string
+    title: string
+  }[]
+  selected_free_items?: {
+    product_id: string
+    title: string
+  }[]
 }
 
 const route = useRoute()
@@ -159,6 +172,7 @@ async function handleVerifyAndSubmit() {
         item.quantity,
       selected_options: item.selected_options,
       selected_package_items: item.selected_package_items,
+      selected_free_items: item.selected_free_items,
     }))
 
     await updateOrder(orderId, { products: productsToUpdate })
@@ -276,13 +290,58 @@ onMounted(fetchOrderData)
         <div class="items-comparison">
           <div class="items-column">
             <h4 class="column-header old">Original Items</h4>
-            <div v-for="item in order.products" :key="item.product_id" class="item-mini-card old">
-              <div class="item-name">{{ item.title }}</div>
-              <div class="item-meta">Qty: {{ item.quantity }} × ₹{{ item.price }}</div>
-              <!-- Options -->
-              <div v-if="item.selected_options?.length" class="sub-items-list">
-                <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="sub-item">
-                  <Icon icon="lucide:plus" /> {{ opt.title }} (₹{{ opt.price }})
+            <div v-for="item in order.products" :key="item.product_id" class="modern-item-card old">
+              <div class="mic-header">
+                <div class="mic-title-row">
+                  <span class="mic-title">{{ item.title }}</span>
+                  <div class="mic-badges">
+                    <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
+                    <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
+                  </div>
+                </div>
+                <div class="mic-meta">
+                  <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
+                  <span class="mic-total">₹{{ item.total }}</span>
+                </div>
+                <div v-if="item.duration || item.type" class="mic-attributes">
+                  <span v-if="item.duration" class="mic-attr">
+                    <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
+                  </span>
+                  <span v-if="item.type" class="mic-attr">
+                    <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
+                  </span>
+                </div>
+              </div>
+
+              <div v-if="item.selected_package_items?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Included Services</div>
+                <div class="mic-sub-list">
+                  <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
+                    <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
+                    <span>{{ service.title }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="item.selected_options?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Add-ons / Options</div>
+                <div class="mic-sub-list">
+                  <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
+                    <div class="mic-item-info">
+                      <span class="mic-item-title">{{ opt.title }}</span>
+                    </div>
+                    <span class="mic-item-price">₹{{ opt.price ?? 0 }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="item.selected_free_items?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Free Perks</div>
+                <div class="mic-sub-list">
+                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
+                    <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
+                    <span>{{ free.title }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -290,12 +349,30 @@ onMounted(fetchOrderData)
 
           <div class="items-column">
             <h4 class="column-header new">New Items</h4>
-            <div v-for="item in newCartItems" :key="item.product_id" class="item-mini-card new">
-              <div class="item-name">{{ item.title }}</div>
-              <div class="item-meta">₹{{ item.price }}</div>
-              
-              <!-- Quantity Controls -->
-              <div class="qty-control-wrapper">
+            <div v-for="item in newCartItems" :key="item.product_id" class="modern-item-card new">
+              <div class="mic-header">
+                <div class="mic-title-row">
+                  <span class="mic-title">{{ item.title }}</span>
+                  <div class="mic-badges">
+                    <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
+                    <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
+                  </div>
+                </div>
+                <div class="mic-meta">
+                  <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
+                  <span class="mic-total">₹{{ (item.price + (item.selected_options || []).reduce((sum, o) => sum + o.price, 0)) * item.quantity }}</span>
+                </div>
+                <div v-if="item.duration || item.type" class="mic-attributes">
+                  <span v-if="item.duration" class="mic-attr">
+                    <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
+                  </span>
+                  <span v-if="item.type" class="mic-attr">
+                    <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mic-actions">
                 <div class="qty-control">
                   <button @click="updateQuantity(item.product_id, -1)" class="qty-btn">
                     <Icon icon="lucide:minus" />
@@ -310,16 +387,35 @@ onMounted(fetchOrderData)
                 </button>
               </div>
 
-              <!-- Options -->
-              <div v-if="item.selected_options?.length" class="sub-items-list">
-                <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="sub-item">
-                  <Icon icon="lucide:plus" /> {{ opt.title }} (₹{{ opt.price }})
+              <div v-if="item.selected_options?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Add-ons / Options</div>
+                <div class="mic-sub-list">
+                  <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
+                    <div class="mic-item-info">
+                      <span class="mic-item-title">{{ opt.title }}</span>
+                      <span v-if="opt.duration" class="mic-item-meta">{{ opt.duration }} min</span>
+                    </div>
+                    <span class="mic-item-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
+                  </div>
                 </div>
               </div>
-              <!-- Package Items count -->
-              <div v-if="item.selected_package_items?.length" class="sub-items-list">
-                <div class="sub-item">
-                   <Icon icon="lucide:package" /> {{ item.selected_package_items.length }} items selected
+              <div v-if="item.selected_package_items?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Included Services</div>
+                <div class="mic-sub-list">
+                  <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
+                    <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
+                    <span>{{ service.title }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="item.selected_free_items?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Free Perks</div>
+                <div class="mic-sub-list">
+                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
+                    <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
+                    <span>{{ free.title }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -530,71 +626,178 @@ onMounted(fetchOrderData)
 .column-header.old { color: var(--color-text-muted); }
 .column-header.new { color: var(--color-brand); }
 
-.item-mini-card {
+.modern-item-card {
+  background: var(--ion-color-step-50, #f9f9f9);
+  border-radius: 12px;
   padding: 10px;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  min-height: 80px;
+  margin-bottom: 8px;
+  border: 1px solid var(--ion-color-step-150, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.item-mini-card.old {
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
+.modern-item-card.old {
   opacity: 0.8;
+  background: var(--color-background);
 }
 
-.item-mini-card.new {
+.modern-item-card.new {
   background: var(--color-surface);
   border: 1px solid var(--color-brand-light);
 }
 
-.item-name {
-  font-weight: var(--font-weight-semibold);
-  margin-bottom: 4px;
+.mic-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mic-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.mic-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--ion-color-step-900, #1a1a1a);
   line-height: 1.2;
 }
 
-.item-meta {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-bottom: 8px;
+.mic-badges {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
-.qty-control-wrapper {
+.mic-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.8rem;
+  color: var(--ion-color-step-600, #666);
+}
+
+.mic-total {
+  font-weight: 700;
+  color: var(--ion-color-primary);
+  font-size: 0.9rem;
+}
+
+.mic-attributes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 1px;
+}
+
+.mic-attr {
   display: flex;
   align-items: center;
+  gap: 3px;
+  font-size: 0.75rem;
+  color: var(--ion-color-step-500, #888);
+}
+
+.mic-icon {
+  font-size: 12px;
+}
+
+.mic-sub-section {
+  border-top: 1px dashed var(--ion-color-step-200, #d0d0d0);
+  padding-top: 6px;
+}
+
+.mic-sub-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ion-color-step-400, #aaa);
+  margin-bottom: 4px;
+}
+
+.mic-sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mic-sub-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--ion-color-step-700, #444);
+}
+
+.mic-sub-icon {
+  font-size: 12px;
+  margin-top: 1px;
+}
+
+.mic-item-row {
   justify-content: space-between;
-  margin-bottom: 8px;
+  align-items: center;
+}
+
+.mic-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.mic-item-title {
+  font-weight: 500;
+}
+
+.mic-item-meta {
+  font-size: 0.7rem;
+  color: var(--ion-color-step-500, #888);
+}
+
+.mic-item-price {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.mic-actions {
+  margin-top: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .qty-control {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 2px;
+  border-radius: 6px;
+  padding: 1px;
 }
 
 .qty-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   background: white;
   color: var(--color-text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   cursor: pointer;
 }
 
 .qty-val {
   font-weight: 700;
-  font-size: 13px;
-  min-width: 14px;
+  font-size: 12px;
+  min-width: 12px;
   text-align: center;
 }
 
@@ -602,29 +805,14 @@ onMounted(fetchOrderData)
   color: var(--color-danger);
   background: var(--color-danger-bg, #fee2e2);
   border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
-}
-
-.sub-items-list {
-  margin-top: 4px;
-  border-top: 1px solid var(--color-border);
-  padding-top: 4px;
-}
-
-.sub-item {
-  font-size: 10px;
-  color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 2px;
 }
 
 .footer-actions {

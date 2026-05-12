@@ -1,6 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
+    <ion-header class="ion-no-border">
       <ion-toolbar>
         <ion-buttons slot="start">
           <ion-button class="header-icon-btn" aria-label="Open menu" @click="openMenu">
@@ -12,15 +12,14 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <ion-refresher slot="fixed" @ionRefresh="handleRefresh">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh" class="modern-refresher">
         <ion-refresher-content
-          pulling-text="Pull to refresh orders"
-          refreshing-spinner="circles"
-          refreshing-text="Refreshing orders..."
+          pulling-text="Pull to refresh"
+          refreshing-spinner="crescent"
         />
       </ion-refresher>
 
-      <!-- Filters -->
+      <!-- Filters with Glassmorphism -->
       <div class="filters-container">
         <div class="date-filters">
           <ion-segment v-model="dateFilter" mode="md">
@@ -53,14 +52,20 @@
 
       <!-- Loading state & Orders list -->
       <div v-if="error && filteredOrders.length === 0" class="orders-empty">
-        <Icon icon="lucide:wifi-off" class="orders-empty__icon" aria-hidden="true" />
+        <div class="empty-icon-wrapper">
+          <Icon icon="lucide:wifi-off" class="orders-empty__icon" aria-hidden="true" />
+        </div>
         <p class="orders-empty__title">Could not load orders</p>
         <p class="orders-empty__text">{{ error }}</p>
-        <ion-button fill="outline" size="small" @click="fetchOrders()">Retry</ion-button>
+        <AppButton variant="outline" size="sm" @click="fetchOrders()" style="margin-top: 16px;">
+          Retry
+        </AppButton>
       </div>
 
       <div v-else-if="!isLoading && filteredOrders.length === 0" class="orders-empty">
-        <Icon icon="lucide:briefcase" class="orders-empty__icon" aria-hidden="true" />
+        <div class="empty-icon-wrapper">
+          <Icon icon="lucide:briefcase" class="orders-empty__icon" aria-hidden="true" />
+        </div>
         <p class="orders-empty__title">No orders found</p>
         <p class="orders-empty__text">Adjust your filters or check back later.</p>
       </div>
@@ -184,10 +189,6 @@ function goToDetail(id: string | number): void {
 
 <style scoped>
 .header-icon-btn {
-  --background: transparent;
-  --background-activated: transparent;
-  --background-hover: transparent;
-  --box-shadow: none;
   --padding-start: 8px;
   --padding-end: 8px;
   --color: var(--color-text);
@@ -196,65 +197,77 @@ function goToDetail(id: string | number): void {
 .header-icon { font-size: 22px; }
 
 .filters-container {
-  background: var(--color-background);
-  padding: 12px 16px;
+  background: rgba(249, 250, 251, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: var(--spacing-3) var(--spacing-4);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-3);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
 }
 
 .date-filters {
-  --background: var(--color-surface);
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  padding: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 ion-segment {
-  --background: var(--color-surface);
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
+  --background: transparent;
+  background: transparent;
+}
+
+ion-segment-button {
+  --indicator-color: var(--color-brand);
+  --color-checked: var(--color-brand);
+  --border-radius: var(--radius-md);
+  font-weight: 600;
+  min-height: 36px;
 }
 
 .filter-chips {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-2);
   overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  padding: 4px 0;
+  scrollbar-width: none;
 }
 
 .filter-chips::-webkit-scrollbar {
-  display: none; /* Hide scrollbar for Chrome/Safari */
+  display: none;
 }
 
 .filter-chip {
-  padding: 6px 16px;
-  border-radius: 100px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
   background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
 .filter-chip--active {
-  background: var(--color-primary-light, #f0f4ff);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: white;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
 }
 
 .orders-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
 }
 
 .orders-empty {
@@ -262,21 +275,24 @@ ion-segment {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 64px 32px;
+  padding: 80px 40px;
   text-align: center;
-  animation: fade-in 0.3s ease both;
 }
 
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+.empty-icon-wrapper {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-2xl);
+  background: var(--color-brand-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-4);
 }
 
 .orders-empty__icon {
-  font-size: 48px;
-  color: var(--color-text-muted);
-  margin-bottom: 8px;
+  font-size: 32px;
+  color: var(--color-brand);
 }
 
 .orders-empty__title {
@@ -287,7 +303,7 @@ ion-segment {
 }
 
 .orders-empty__text {
-  margin: 0;
+  margin: 4px 0 0;
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
 }
@@ -296,17 +312,25 @@ ion-segment {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 12px 16px 0;
-  padding: 10px 14px;
+  margin: 16px 16px 0;
+  padding: 12px;
   background: var(--color-error-bg);
   color: var(--color-error-text);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+.modern-refresher {
+  z-index: 101;
+}
+
+.anim-list > * {
+  animation: slide-up-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
