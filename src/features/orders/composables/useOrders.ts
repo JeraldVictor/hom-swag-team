@@ -85,7 +85,6 @@ export function useOrders() {
 
     const allowedStatuses = [
       'confirmed',
-      'assigned',
       'completed',
       'on going',
       'ongoing',

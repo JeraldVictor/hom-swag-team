@@ -7,6 +7,7 @@ import {
   updateOrderStatus,
   upgradeOrderProduct,
   uploadArrivalSelfie,
+  uploadCompletionProof,
   verifyServiceOtp,
 } from '@/shared/api'
 import { useCamera, useDirections } from '@/shared/composables'
@@ -127,6 +128,34 @@ export function useOrderDetail() {
     }
   }
 
+  async function uploadCompletionProofFiles(files: FileList | File[]): Promise<boolean> {
+    if (!order.value) return false
+    const id = order.value._id || order.value.id
+    const formData = new FormData()
+
+    const fileArray = Array.from(files)
+    if (fileArray.length === 0) {
+      error.value = 'Please select at least one photo.'
+      return false
+    }
+
+    fileArray.forEach((file, index) => {
+      formData.append('image', file, file.name || `completion_${index + 1}.jpg`)
+    })
+
+    isUpdating.value = true
+    error.value = null
+    try {
+      order.value = await uploadCompletionProof(id, formData)
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to upload completion proof'
+      return false
+    } finally {
+      isUpdating.value = false
+    }
+  }
+
   async function cancelAfterArrival(reason: string, otp?: string): Promise<void> {
     if (!order.value) return
     isUpdating.value = true
@@ -233,6 +262,7 @@ export function useOrderDetail() {
     fetchOrder,
     advanceStatus,
     uploadSelfie,
+    uploadCompletionProof: uploadCompletionProofFiles,
     cancelAfterArrival,
     generateOtp,
     verifyOtp,

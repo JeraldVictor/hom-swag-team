@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from '@/shared/api'
 import type { Notification, RawNotification } from '@/shared/models/notification.model'
-import { getNotifications, markNotificationRead, markAllNotificationsRead } from '@/shared/api'
 
 export const useNotificationStore = defineStore('notifications', () => {
   const notifications = ref<Notification[]>([])

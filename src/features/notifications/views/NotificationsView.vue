@@ -145,35 +145,35 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { Icon } from '@iconify/vue'
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
   IonBackButton,
+  IonBadge,
   IonButton,
+  IonButtons,
   IonContent,
+  IonHeader,
+  IonItem,
+  IonItemOption,
+  IonItemOptions,
+  IonItemSliding,
+  IonLabel,
+  IonList,
+  IonListHeader,
+  IonModal,
+  IonPage,
   IonRefresher,
   IonRefresherContent,
   IonSegment,
   IonSegmentButton,
-  IonLabel,
-  IonBadge,
-  IonList,
-  IonListHeader,
-  IonItemSliding,
-  IonItem,
-  IonItemOptions,
-  IonItemOption,
-  IonModal,
+  IonTitle,
+  IonToolbar,
 } from '@ionic/vue'
-import { Icon } from '@iconify/vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useNotificationStore } from '@/shared/stores/notification'
 import { useToast } from '@/shared/composables'
 import type { Notification, NotificationData } from '@/shared/models/notification.model'
+import { useNotificationStore } from '@/shared/stores/notification'
 
 const { showError, showSuccess } = useToast()
 const notificationStore = useNotificationStore()

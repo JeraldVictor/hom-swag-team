@@ -25,23 +25,23 @@
 <script setup lang="ts">
 import { App } from '@capacitor/app'
 import type { PluginListenerHandle } from '@capacitor/core'
+import { Icon } from '@iconify/vue'
+import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
 import { onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import logo from '@/shared/images/HomSwagLogo.png'
-import { Icon } from '@iconify/vue'
-import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import NoInternetView from '@/features/home/views/NoInternetView.vue'
 import PermissionSplashView from '@/features/home/views/PermissionSplashView.vue'
 import { locationTracker } from '@/shared/composables/useLocationTracker'
 import { getIsOnline, useNetwork } from '@/shared/composables/useNetwork'
 import { usePermissions } from '@/shared/composables/usePermissions'
 import { useToast } from '@/shared/composables/useToast'
+import logo from '@/shared/images/HomSwagLogo.png'
 import { webSocketService } from '@/shared/lib/websocket.service'
+import type { RawNotification } from '@/shared/models/notification.model'
 import { useAppStore } from '@/shared/stores/app'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useNotificationStore } from '@/shared/stores/notification'
-import type { RawNotification } from '@/shared/models/notification.model'
 
 const router = useRouter()
 const authStore = useAuthStore()

@@ -106,9 +106,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import logo from '@/shared/images/HomSwagLogo.png'
 import type { PermissionState } from '@/shared/composables/usePermissions'
 import { usePermissions } from '@/shared/composables/usePermissions'
+import logo from '@/shared/images/HomSwagLogo.png'
 
 const emit = defineEmits<(e: 'granted') => void>()
 const logoSrc = logo

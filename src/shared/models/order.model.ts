@@ -85,8 +85,10 @@ export interface Order {
   payment_method?: string
   /** Photo taken on arrival */
   arrival_selfie?: { url?: string; key?: string }
-  /** Photo taken on completion */
-  proof_of_service?: { url?: string; key?: string }
+  /** Photos/screenshots uploaded for completion proof */
+  proof_of_service?: Array<{ url?: string; key?: string }>
+  /** Office-specific payment QR code image returned with the order */
+  office_payment_qr_code?: { url?: string; key?: string }
 }
 
 /**

@@ -13,6 +13,14 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
+      <input
+        ref="proofInput"
+        type="file"
+        accept="image/*"
+        multiple
+        class="hidden"
+        @change="handleCompletionProofChange"
+      />
       <div v-if="isLoading && !order" class="loading-state">
         <ion-spinner name="crescent" />
         <p>Loading order details...</p>
@@ -190,7 +198,41 @@
               </AppBadge>
             </div>
             <div class="payment-method">
-              <p>Method: <strong>{{ order.payment_method?.toUpperCase() || 'Online' }}</strong></p>
+              <p>Method: <strong>{{ order.payment_method?.toUpperCase() || 'COD / UPI' }}</strong></p>
+            </div>
+            <div class="payment-hint">
+              <p>
+                Collect cash on delivery or ask the customer to scan the office UPI QR code below.
+              </p>
+            </div>
+            <div v-if="order.office_payment_qr_code?.url" class="qr-code-block">
+              <p class="qr-title">Office UPI QR Code</p>
+              <img :src="order.office_payment_qr_code.url" alt="Office payment QR code" />
+            </div>
+          </div>
+
+          <div class="content-card proof-card">
+            <div class="card-header">
+              <Icon icon="lucide:camera" class="header-icon" />
+              <h3>Verification Photos</h3>
+            </div>
+            <div class="proof-group">
+              <div class="proof-entry">
+                <p class="proof-label">Arrival Selfie</p>
+                <div class="proof-preview" v-if="order.arrival_selfie?.url">
+                  <img :src="order.arrival_selfie?.url" alt="Arrival selfie" />
+                </div>
+                <p v-else class="proof-empty">No arrival selfie uploaded yet.</p>
+              </div>
+              <div class="proof-entry">
+                <p class="proof-label">Payment Proof</p>
+                <div v-if="proofImages.length" class="proof-list">
+                  <div v-for="(image, index) in proofImages" :key="index" class="proof-thumbnail">
+                    <img :src="image.url" :alt="`Payment proof ${index + 1}`" />
+                  </div>
+                </div>
+                <p v-else class="proof-empty">No payment proof uploaded yet.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -409,6 +451,7 @@ const {
   fetchOrder,
   advanceStatus,
   uploadSelfie,
+  uploadCompletionProof,
   cancelAfterArrival,
   upgradeProduct,
   getUpgradableProducts,
@@ -426,6 +469,7 @@ const showUpgradeModal = ref(false)
 const isFetchingUpgrades = ref(false)
 const selectedItem = ref<OrderProduct | null>(null)
 const upgradableProducts = ref<any[]>([])
+const proofInput = ref<HTMLInputElement | null>(null)
 const { openNavigationMenu } = useNavigation()
 
 // ── Computed ───────────────────────────────────────────────────────────────
@@ -476,6 +520,15 @@ const canCancel = computed(() => {
 
 const isSelfieStep = computed(() => {
   return order.value?.status?.toLowerCase() === 'ongoing' && !order.value?.arrival_selfie
+})
+
+const proofImages = computed(() => {
+  if (!order.value?.proof_of_service) return []
+  return Array.isArray(order.value.proof_of_service)
+    ? order.value.proof_of_service.filter(p => !!p?.url)
+    : order.value.proof_of_service
+      ? [order.value.proof_of_service]
+      : []
 })
 
 const isBookingDateToday = computed(() => {
@@ -532,6 +585,23 @@ async function handleMainAction() {
     } else {
       showOtpInput.value = true
     }
+  } else if (s === 'started') {
+    if (!proofImages.value.length) {
+      const confirmed = await presentConfirm(
+        'Upload Payment Proof',
+        'Upload payment screenshot(s) before completing the service.'
+      )
+      if (!confirmed) return
+      proofInput.value?.click()
+      return
+    }
+
+    const confirmed = await presentConfirm(
+      'Complete Service',
+      'Have you finished all services? This will mark the order as completed.'
+    )
+    if (!confirmed) return
+    await advanceStatus()
   } else {
     // Started -> Completed (Complete Service)
     const confirmed = await presentConfirm(
@@ -571,6 +641,21 @@ async function handleVerifyOtp() {
 function openCancelModal() {
   showCancelModal.value = true
   otpValue.value = ''
+}
+
+async function handleCompletionProofChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  if (!files || files.length === 0) return
+
+  const uploaded = await uploadCompletionProof(files)
+  if (uploaded) {
+    showSuccess('Payment proof uploaded successfully')
+    await advanceStatus()
+  }
+  if (proofInput.value) {
+    proofInput.value.value = ''
+  }
 }
 
 async function handleCancel() {

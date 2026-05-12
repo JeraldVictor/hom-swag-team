@@ -373,10 +373,10 @@ import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getComplaints, getDashboard, getOrders, getTrips } from '@/shared/api'
+import { AppButton } from '@/shared/components/ui'
 import { useDrawer } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDateShort } from '@/shared/lib/datetime'
-import { AppButton } from '@/shared/components/ui'
 import type { DashboardData, Order, Trip } from '@/shared/models'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 
@@ -439,11 +439,8 @@ function isToday(iso?: string | Date): boolean {
 const upcomingOrders = computed(() =>
   orders.value.filter(o => {
     const s = o.status?.toLowerCase()
-    // Include valid upcoming statuses for TODAY
-    return (
-      (s === 'confirmed' || s === 'pending' || s === 'assigned' || s === 'assigned_draft') &&
-      isToday(o.booking_info?.date)
-    )
+    // Only show confirmed orders as upcoming work for beauticians
+    return s === 'confirmed' && isToday(o.booking_info?.date)
   })
 )
 
