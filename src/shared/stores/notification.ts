@@ -10,11 +10,27 @@ export const useNotificationStore = defineStore('notifications', () => {
 
   const hasUnread = computed(() => unreadCount.value > 0)
 
+  const sortNotifications = (items: Notification[]) => {
+    return items.slice().sort((a, b) => {
+      if (a.is_read === b.is_read) {
+        return new Date(b.created_at ?? '').getTime() - new Date(a.created_at ?? '').getTime()
+      }
+      return Number(a.is_read) - Number(b.is_read)
+    })
+  }
+
+  const normalizeNotifications = (items: Notification[]) => {
+    return items.map(item => ({
+      ...item,
+      id: item.id || item._id || '',
+    }))
+  }
+
   const fetchNotifications = async () => {
     isLoading.value = true
     try {
       const res = await getNotifications({ is_read: null, page: '1', limit: '50' })
-      notifications.value = res.data ?? []
+      notifications.value = sortNotifications(normalizeNotifications(res.data ?? []))
       // We assume the API might return unread_count, but if not we calculate it
       unreadCount.value = res.unread_count ?? notifications.value.filter(n => !n.is_read).length
     } catch (err) {
@@ -24,10 +40,26 @@ export const useNotificationStore = defineStore('notifications', () => {
     }
   }
 
-  const markAsRead = async (id: string | number) => {
+  const markAsRead = async (idOrNotification: string | number | Notification) => {
+    const idValue =
+      typeof idOrNotification === 'object'
+        ? idOrNotification.id || idOrNotification._id || ''
+        : idOrNotification
+
+    if (!idValue) {
+      console.error('Failed to mark notification as read: missing notification id')
+      return
+    }
+
     try {
-      await markNotificationRead(id.toString())
-      const notif = notifications.value.find(n => n.id === id || n._id === id)
+      await markNotificationRead(idValue.toString())
+      const notif = notifications.value.find(
+        n =>
+          n.id === idValue ||
+          n._id === idValue ||
+          n.id === String(idValue) ||
+          n._id === String(idValue)
+      )
       if (notif && !notif.is_read) {
         notif.is_read = true
         unreadCount.value = Math.max(0, unreadCount.value - 1)

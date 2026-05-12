@@ -16,15 +16,38 @@ export async function getNotifications(params?: {
   page?: string | null
   limit?: string | null
 }): Promise<NotificationsResponse> {
-  const response = await apiClient.get<{ data: NotificationsResponse }>('/notifications', {
+  const response = await apiClient.get<{ data: unknown }>('/notifications', {
     params,
   })
-  // API may return { data: Notification[] } or { data: { data: Notification[], unread_count } }
-  const raw = response.data.data
+
+  const raw = response.data.data as unknown
   if (Array.isArray(raw)) {
-    return { data: raw as unknown as Notification[] }
+    return { data: raw as Notification[] }
   }
-  return raw as NotificationsResponse
+
+  if (raw && typeof raw === 'object') {
+    const typed = raw as Record<string, unknown>
+    if (Array.isArray(typed.items)) {
+      return {
+        data: typed.items as Notification[],
+        total: typeof typed.total === 'number' ? typed.total : undefined,
+        unread_count: typeof typed.unread_count === 'number' ? typed.unread_count : undefined,
+        page: typeof typed.page === 'number' ? typed.page : undefined,
+        limit: typeof typed.limit === 'number' ? typed.limit : undefined,
+      }
+    }
+    if (Array.isArray(typed.data)) {
+      return {
+        data: typed.data as Notification[],
+        total: typeof typed.total === 'number' ? typed.total : undefined,
+        unread_count: typeof typed.unread_count === 'number' ? typed.unread_count : undefined,
+        page: typeof typed.page === 'number' ? typed.page : undefined,
+        limit: typeof typed.limit === 'number' ? typed.limit : undefined,
+      }
+    }
+  }
+
+  return { data: [] }
 }
 
 /**

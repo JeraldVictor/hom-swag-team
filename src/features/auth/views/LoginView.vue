@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useLogin } from '@/features/auth/composables/useLogin'
+import OtpInput from '@/features/auth/components/OtpInput.vue'
+import AppLoadingSpinner from '@/shared/components/ui/AppLoadingSpinner.vue'
 
 const {
   step,
