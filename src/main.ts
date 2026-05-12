@@ -38,6 +38,19 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './core/router'
+import {
+  AppAvatar,
+  AppBadge,
+  AppButton,
+  AppCard,
+  AppDrawer,
+  AppImage,
+  AppInput,
+  AppLabel,
+  AppLoadingSpinner,
+} from '@/shared/components/ui'
+import OtpInput from '@/features/auth/components/OtpInput.vue'
+import RideSelectorModal from '@/shared/components/business/RideSelectorModal.vue'
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css'
@@ -115,6 +128,18 @@ const ionicComponents = [
 for (const component of ionicComponents) {
   app.component(component.name, component)
 }
+
+app.component('AppButton', AppButton)
+app.component('AppAvatar', AppAvatar)
+app.component('AppBadge', AppBadge)
+app.component('AppCard', AppCard)
+app.component('AppDrawer', AppDrawer)
+app.component('AppImage', AppImage)
+app.component('AppInput', AppInput)
+app.component('AppLabel', AppLabel)
+app.component('AppLoadingSpinner', AppLoadingSpinner)
+app.component('OtpInput', OtpInput)
+app.component('RideSelectorModal', RideSelectorModal)
 
 // Mount regardless of whether the initial navigation succeeded or was aborted.
 // A rejected isReady() (e.g. guard returning false on cold start) must not

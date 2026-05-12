@@ -207,7 +207,7 @@
             </div>
             <div v-if="order.office_payment_qr_code?.url" class="qr-code-block">
               <p class="qr-title">Office UPI QR Code</p>
-              <img :src="order.office_payment_qr_code.url" alt="Office payment QR code" />
+              <img :src="mediaUrl(order.office_payment_qr_code?.url)" alt="Office payment QR code" />
             </div>
           </div>
 
@@ -432,6 +432,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, getTodayIST } from '@/shared/lib/datetime'
+import { mediaUrl } from '@/shared/lib/media'
 import type { OrderProduct } from '@/shared/models'
 import { useOrderDetail } from '../composables/useOrderDetail'
 

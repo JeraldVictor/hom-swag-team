@@ -42,7 +42,6 @@
 import { Icon } from '@iconify/vue'
 import { IonLabel, IonPage, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
-import AppDrawer from '@/shared/components/ui/AppDrawer.vue'
 import { useUserTypeStore } from '@/shared/stores'
 
 const userTypeStore = useUserTypeStore()
