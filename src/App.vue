@@ -40,6 +40,8 @@ import { useToast } from '@/shared/composables/useToast'
 import { webSocketService } from '@/shared/lib/websocket.service'
 import { useAppStore } from '@/shared/stores/app'
 import { useAuthStore } from '@/shared/stores/auth'
+import { useNotificationStore } from '@/shared/stores/notification'
+import type { RawNotification } from '@/shared/models/notification.model'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -92,6 +94,9 @@ async function finishBoot() {
       webSocketService.connect(authStore.accessToken)
       // Start background location tracking if enabled
       void locationTracker.start()
+      // Fetch initial notifications
+      const notificationStore = useNotificationStore()
+      void notificationStore.fetchNotifications()
     }
 
     if (router.currentRoute.value.path === '/login') {
@@ -156,6 +161,14 @@ onMounted(async () => {
     // Clear session and redirect
     await authStore.logout()
     await router.replace('/login')
+  })
+
+  // Listen for new notifications
+  webSocketService.on('notification:new', (data: RawNotification) => {
+    const notificationStore = useNotificationStore()
+    notificationStore.addNotification(data)
+
+    showToast(data.title || 'New notification', 'primary')
   })
 
   await boot()

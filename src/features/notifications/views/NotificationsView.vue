@@ -73,28 +73,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { getNotifications, markAllNotificationsRead, markNotificationRead } from '@/shared/api'
+import { computed, onMounted } from 'vue'
+import { useNotificationStore } from '@/shared/stores/notification'
 import { useToast } from '@/shared/composables'
 import type { Notification } from '@/shared/models'
 
 const { showError, showSuccess } = useToast()
+const notificationStore = useNotificationStore()
 
-const notifications = ref<Notification[]>([])
-const isLoading = ref(false)
-
-const hasUnread = computed(() => notifications.value.some(n => !n.is_read))
+const notifications = computed(() => notificationStore.notifications)
+const isLoading = computed(() => notificationStore.isLoading)
+const hasUnread = computed(() => notificationStore.hasUnread)
 
 async function fetchNotifications(): Promise<void> {
-  isLoading.value = true
-  try {
-    const res = await getNotifications({ is_read: null, page: '1', limit: '50' })
-    notifications.value = res.data ?? []
-  } catch (err) {
-    showError(err instanceof Error ? err.message : 'Failed to load notifications')
-  } finally {
-    isLoading.value = false
-  }
+  await notificationStore.fetchNotifications()
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
@@ -104,18 +96,12 @@ async function handleRefresh(event: CustomEvent): Promise<void> {
 
 async function handleRead(notif: Notification): Promise<void> {
   if (notif.is_read) return
-  try {
-    await markNotificationRead(notif.id)
-    notif.is_read = true
-  } catch {
-    // silent
-  }
+  await notificationStore.markAsRead(notif.id)
 }
 
 async function handleMarkAll(): Promise<void> {
   try {
-    await markAllNotificationsRead()
-    notifications.value.forEach(n => (n.is_read = true))
+    await notificationStore.markAllRead()
     showSuccess('All notifications marked as read')
   } catch (err) {
     showError(err instanceof Error ? err.message : 'Failed to mark all read')
@@ -137,7 +123,9 @@ function formatTime(iso?: string): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-onMounted(fetchNotifications)
+onMounted(() => {
+  notificationStore.fetchNotifications()
+})
 </script>
 
 <style scoped>

@@ -18,6 +18,11 @@ export interface Notification {
   reference_type?: string
 }
 
+export interface RawNotification extends Omit<Notification, 'id' | 'is_read'> {
+  id: string | number
+  is_read?: boolean
+}
+
 /**
  * Paginated notifications response.
  */
