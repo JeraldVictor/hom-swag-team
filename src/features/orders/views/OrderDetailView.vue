@@ -195,11 +195,11 @@
               <Icon icon="lucide:credit-card" class="header-icon" />
               <h3>Payment</h3>
               <AppBadge :variant="(paymentStatusVariant as any)" class="ms-auto">
-                {{ order.payment?.status?.toUpperCase() || order.payment_status?.toUpperCase() || 'Pending' }}
+                {{ order.payment?.status?.toUpperCase() || 'Pending' }}
               </AppBadge>
             </div>
             <div class="payment-method">
-              <p>Payment Type: <strong>{{ (order.payment?.method || order.payment_method)?.toUpperCase() || 'COD / UPI' }}</strong></p>
+              <p>Payment Type: <strong>{{ order.payment?.method?.toUpperCase() || 'COD / UPI' }}</strong></p>
             </div>
             <div class="payment-details-grid">
               <div class="payment-detail-item">
@@ -304,7 +304,7 @@
                 variant="outline"
                 size="sm"
                 :loading="isUpdating"
-                :disabled="!paymentStatus || paymentStatus === (order.payment?.status ?? order.payment_status)?.toLowerCase()"
+                :disabled="!paymentStatus || paymentStatus === order.payment?.status?.toLowerCase()"
                 @click="handleSavePaymentStatus"
               >
                 Save status
@@ -598,8 +598,7 @@ const statusVariant = computed(() => {
 })
 
 const paymentStatusVariant = computed(() => {
-  const s =
-    order.value?.payment?.status?.toLowerCase() ?? order.value?.payment_status?.toLowerCase()
+  const s = order.value?.payment?.status?.toLowerCase() ?? ''
   return s === 'paid' ? 'success' : 'warning'
 })
 
@@ -617,9 +616,7 @@ const tipAmount = computed(() => {
   return '—'
 })
 
-const paymentReference = computed(
-  () => order.value?.payment?.reference || order.value?.payment_reference || '—'
-)
+const paymentReference = computed(() => order.value?.payment?.reference || '—')
 
 const canCancel = computed(() => {
   const s = order.value?.status?.toLowerCase()
@@ -647,7 +644,7 @@ const isBookingDateToday = computed(() => {
 watch(
   order,
   value => {
-    const status = value?.payment?.status?.toLowerCase() ?? value?.payment_status?.toLowerCase()
+    const status = value?.payment?.status?.toLowerCase() ?? ''
     const allowedStatuses = ['pending', 'paid', 'unpaid', 'conflict', 'failed', 'refunded'] as const
     paymentStatus.value = allowedStatuses.includes(status as any) ? (status as PaymentStatus) : ''
   },
@@ -713,7 +710,7 @@ async function handleMainAction() {
     }
 
     if (
-      !['paid', 'unpaid', 'conflict'].includes((order.value?.payment_status ?? '').toLowerCase())
+      !['paid', 'unpaid', 'conflict'].includes((order.value?.payment?.status ?? '').toLowerCase())
     ) {
       showError('Set payment status to Paid, Unpaid, or Conflict before completing the service.')
       return

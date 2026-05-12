@@ -36,7 +36,6 @@ export interface UpdateOrderPayload {
   products?: unknown[]
   delivery_address?: unknown
   status_reason?: string
-  payment_status?: PaymentStatus
   payment?: PaymentInfo
 }
 
@@ -108,9 +107,6 @@ export interface Order {
   total?: number
   discount_total?: number
   delivery_fee?: number
-  payment_status?: PaymentStatus
-  payment_method?: string
-  payment_reference?: string
   payment?: PaymentInfo
   tip?: number
   cod_collected_amount?: number
