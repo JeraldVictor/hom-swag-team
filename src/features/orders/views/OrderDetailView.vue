@@ -195,11 +195,11 @@
               <Icon icon="lucide:credit-card" class="header-icon" />
               <h3>Payment</h3>
               <AppBadge :variant="(paymentStatusVariant as any)" class="ms-auto">
-                {{ order.payment_status?.toUpperCase() || 'Pending' }}
+                {{ order.payment?.status?.toUpperCase() || order.payment_status?.toUpperCase() || 'Pending' }}
               </AppBadge>
             </div>
             <div class="payment-method">
-              <p>Payment Type: <strong>{{ order.payment_method?.toUpperCase() || 'COD / UPI' }}</strong></p>
+              <p>Payment Type: <strong>{{ (order.payment?.method || order.payment_method)?.toUpperCase() || 'COD / UPI' }}</strong></p>
             </div>
             <div class="payment-details-grid">
               <div class="payment-detail-item">
@@ -304,7 +304,7 @@
                 variant="outline"
                 size="sm"
                 :loading="isUpdating"
-                :disabled="!paymentStatus || paymentStatus === order.payment_status?.toLowerCase()"
+                :disabled="!paymentStatus || paymentStatus === (order.payment?.status ?? order.payment_status)?.toLowerCase()"
                 @click="handleSavePaymentStatus"
               >
                 Save status
@@ -598,23 +598,28 @@ const statusVariant = computed(() => {
 })
 
 const paymentStatusVariant = computed(() => {
-  const s = order.value?.payment_status?.toLowerCase()
+  const s =
+    order.value?.payment?.status?.toLowerCase() ?? order.value?.payment_status?.toLowerCase()
   return s === 'paid' ? 'success' : 'warning'
 })
 
 const amountPaid = computed(() => {
   if (!order.value) return '—'
+  if (order.value.payment?.amount_paid != null) return `₹${order.value.payment.amount_paid}`
   if (order.value.cod_collected_amount != null) return `₹${order.value.cod_collected_amount}`
   if (order.value.total != null) return `₹${order.value.total}`
   return '—'
 })
 
 const tipAmount = computed(() => {
-  if (order.value?.tip != null) return `₹${order.value.tip}`
+  const tip = order.value?.payment?.tip ?? order.value?.tip
+  if (tip != null) return `₹${tip}`
   return '—'
 })
 
-const paymentReference = computed(() => order.value?.payment_reference || '—')
+const paymentReference = computed(
+  () => order.value?.payment?.reference || order.value?.payment_reference || '—'
+)
 
 const canCancel = computed(() => {
   const s = order.value?.status?.toLowerCase()
@@ -642,10 +647,11 @@ const isBookingDateToday = computed(() => {
 watch(
   order,
   value => {
-    const status = value?.payment_status?.toLowerCase()
+    const status = value?.payment?.status?.toLowerCase() ?? value?.payment_status?.toLowerCase()
     const allowedStatuses = ['pending', 'paid', 'unpaid', 'conflict', 'failed', 'refunded'] as const
     paymentStatus.value = allowedStatuses.includes(status as any) ? (status as PaymentStatus) : ''
   },
+
   { immediate: true }
 )
 
@@ -747,7 +753,7 @@ async function handleSavePaymentStatus() {
     return
   }
 
-  await updateOrderDetails({ payment_status: paymentStatus.value as PaymentStatus })
+  await updateOrderDetails({ payment: { status: paymentStatus.value as PaymentStatus } })
   if (!error.value) {
     showSuccess('Payment status updated successfully')
   }

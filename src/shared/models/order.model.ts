@@ -15,11 +15,29 @@ export type OrderStatus =
 
 export type PaymentStatus = 'pending' | 'paid' | 'unpaid' | 'conflict' | 'failed' | 'refunded'
 
+export interface PaymentInfo {
+  status?: PaymentStatus
+  method?: string
+  reference?: string
+  amount_paid?: number
+  order_amount?: number
+  extra_amount?: number
+  actual_paid_amount?: number
+  change_given?: number
+  refund_amount?: number
+  partial_refund_amount?: number
+  tip?: number
+  remark?: string
+  staff_comment?: string
+  internal_comment?: string
+}
+
 export interface UpdateOrderPayload {
   products?: unknown[]
   delivery_address?: unknown
   status_reason?: string
   payment_status?: PaymentStatus
+  payment?: PaymentInfo
 }
 
 /**
@@ -93,6 +111,7 @@ export interface Order {
   payment_status?: PaymentStatus
   payment_method?: string
   payment_reference?: string
+  payment?: PaymentInfo
   tip?: number
   cod_collected_amount?: number
   /** Photo taken on arrival */
