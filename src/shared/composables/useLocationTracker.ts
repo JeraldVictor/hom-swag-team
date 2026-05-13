@@ -32,6 +32,7 @@ import type { Ref } from 'vue'
 import { ref } from 'vue'
 import {
   getTrackingStatus,
+  getOfficeId,
   pushLocation,
   setTrackingMasterStatus,
 } from '@/shared/api/location.service'
@@ -68,7 +69,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
   const isTracking = ref(false)
   let intervalId: ReturnType<typeof setInterval> | null = null
   let appStateListener: PluginListenerHandle | null = null
-  let socketUnsubscribe: (() => void) | null = null
+  let statusSocketUnsubscribe: (() => void) | null = null
   let isAppActive = true
 
   // Current tracking status — updated via WebSocket or initial fetch
@@ -168,7 +169,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
 
       // Step 4 — also push to REST API as fallback
       try {
-        await pushLocation(coords)
+        await pushLocation({ ...coords, office_id: await getOfficeId() })
       } catch (err) {
         if (err instanceof ApiError) {
           if (err.status === 503) {
@@ -220,19 +221,30 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       }
 
       // Listen for status updates pushed from the server
-      socketUnsubscribe = webSocketService.on(
-        'tracking:status_updated',
-        (status: TrackingStatus) => {
-          console.log('[useLocationTracker] Received status update from socket:', status)
-          currentStatus.value = status
-          setTrackingMasterStatus(status.is_enabled)
+      if (!statusSocketUnsubscribe) {
+        statusSocketUnsubscribe = webSocketService.on(
+          'tracking:status_updated',
+          async (status: TrackingStatus) => {
+            console.log('[useLocationTracker] Received status update from socket:', status)
+            currentStatus.value = status
+            setTrackingMasterStatus(status.is_enabled)
 
-          // If status changed to disabled, stop immediately
-          if (!status.is_enabled && isTracking.value) {
-            stop()
+            if (!status.is_enabled && isTracking.value) {
+              stop()
+              return
+            }
+
+            if (status.is_enabled && !isTracking.value && isAppActive) {
+              console.log('[useLocationTracker] Tracking enabled by server; restarting tracker')
+              try {
+                await start()
+              } catch (err) {
+                console.warn('[useLocationTracker] Failed to restart tracking after enable', err)
+              }
+            }
           }
-        }
-      )
+        )
+      }
     } catch (err) {
       console.warn(
         '[useLocationTracker] Initial status fetch/socket setup failed — continuing with defaults',
@@ -269,12 +281,8 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       appStateListener = null
     }
 
-    // Unsubscribe from socket events
-    if (socketUnsubscribe) {
-      socketUnsubscribe()
-      socketUnsubscribe = null
-    }
-
+    // Keep the tracking status socket listener active so the worker can
+    // receive re-enable events and restart tracking automatically.
     isTracking.value = false
   }
 

@@ -32,6 +32,7 @@ export interface UserProfile {
   name: string
   phone: string
   user_type: UserType
+  office_id?: string
   photo?: {
     url: string
   }

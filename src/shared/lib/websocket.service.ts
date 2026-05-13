@@ -25,7 +25,24 @@ class WebSocketService {
 
   /** WebSocket server URL — falls back to http://localhost:3000 if not set. */
   private get wsUrl(): string {
-    return ENV.VITE_WS_URL || 'http://localhost:3000'
+    const configuredUrl = ENV.VITE_WS_URL || 'http://localhost:3000'
+
+    try {
+      const parsed = new URL(configuredUrl)
+      const isLoopback = ['localhost', '127.0.0.1'].includes(parsed.hostname)
+
+      if (
+        isLoopback &&
+        typeof window !== 'undefined' &&
+        !['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ) {
+        return `${parsed.protocol}//${window.location.hostname}${parsed.port ? `:${parsed.port}` : ''}`
+      }
+
+      return configuredUrl
+    } catch {
+      return configuredUrl
+    }
   }
 
   /**
@@ -110,6 +127,7 @@ class WebSocketService {
    */
   emit(event: string, payload: any): void {
     if (!this.socket?.connected) return
+    console.log('[WebSocketService] Emitting event', event, payload)
     this.socket.emit(event, payload)
   }
 

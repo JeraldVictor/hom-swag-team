@@ -10,6 +10,9 @@
 
 import apiClient from '@/shared/lib/api'
 import { webSocketService } from '@/shared/lib/websocket.service'
+import { getProfile } from '@/shared/api/profile.service'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
+import type { UserProfile } from '@/shared/models/user.model'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,6 +37,7 @@ export interface PushLocationPayload {
   latitude: number
   longitude: number
   accuracy?: number
+  office_id: string
 }
 
 // ---------------------------------------------------------------------------
@@ -49,6 +53,21 @@ export interface PushLocationPayload {
 export async function getTrackingStatus(): Promise<TrackingStatusResponse> {
   const response = await apiClient.get<{ data: TrackingStatusResponse }>('/tracking-status')
   return response.data.data
+}
+
+export async function getOfficeId(): Promise<string> {
+  const storedProfile = await Storage_Service.getJSON<UserProfile>(STORAGE_KEYS.userProfile)
+  if (storedProfile?.office_id) {
+    return storedProfile.office_id
+  }
+
+  const profile = await getProfile()
+  if (profile.office_id) {
+    await Storage_Service.setJSON(STORAGE_KEYS.userProfile, profile)
+    return profile.office_id
+  }
+
+  throw new Error('Unable to resolve office_id for location push')
 }
 
 /**
@@ -82,8 +101,11 @@ export async function pushLocation(coords: PushLocationPayload): Promise<void> {
   }
 
   if (webSocketService.isConnected) {
+    console.log('[location.service] Sending location over WebSocket', coords)
     webSocketService.emitLocation(coords)
     return
   }
+
+  console.log('[location.service] WebSocket disconnected, posting location to /location', coords)
   await apiClient.post('/location', coords)
 }

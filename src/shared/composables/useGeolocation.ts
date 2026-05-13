@@ -77,6 +77,7 @@ export function useGeolocation(): UseGeolocationReturn {
       watchId = await locationService.startWatching(coords => {
         currentPosition.value = coords
         // Emit over WebSocket for real-time admin tracking
+        console.log('[useGeolocation] Sending WebSocket location update', coords)
         webSocketService.emitLocation(coords)
       }, intervalMs)
       isWatching.value = true

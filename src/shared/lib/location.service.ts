@@ -7,7 +7,7 @@
  */
 
 import { Geolocation } from '@capacitor/geolocation'
-import { pushLocation } from '@/shared/api/location.service'
+import { getOfficeId, pushLocation } from '@/shared/api/location.service'
 import type { Coordinates } from '@/shared/models/location.model'
 
 /** Maximum watch interval in milliseconds (30 seconds). */
@@ -73,6 +73,7 @@ class LocationService {
             latitude: coords.latitude,
             longitude: coords.longitude,
             accuracy: position.coords.accuracy ?? undefined,
+            office_id: await getOfficeId(),
           })
         } catch {
           // Silently swallow API errors — location tracking must not crash.
