@@ -1,6 +1,7 @@
 package io.ionic.starter
 
 import android.content.Intent
+import android.os.Build
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
@@ -13,7 +14,11 @@ class LocationServicePlugin : Plugin() {
     fun startForegroundService(call: PluginCall) {
         try {
             val intent = Intent(context, LocationForegroundService::class.java)
-            context.startForegroundService(intent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
             call.resolve()
         } catch (e: Exception) {
             call.reject("Failed to start foreground service", e)
