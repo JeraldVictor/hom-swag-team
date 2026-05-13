@@ -48,5 +48,6 @@ export interface WsMessage {
 export interface TrackingStatus {
   is_enabled: boolean
   is_blocked: boolean
+  interval_ms?: number
   blocked_reason?: 'leave' | 'week_off' | 'block_time'
 }

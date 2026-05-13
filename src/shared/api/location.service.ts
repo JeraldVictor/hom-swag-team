@@ -27,6 +27,7 @@ export interface TrackingStatusResponse {
   is_enabled: boolean
   /** Worker is on leave / week-off / block_time right now — if true, skip tick */
   is_blocked: boolean
+  interval_ms?: number
   blocked_reason?: 'leave' | 'week_off' | 'block_time'
 }
 

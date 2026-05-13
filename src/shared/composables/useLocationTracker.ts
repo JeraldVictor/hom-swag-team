@@ -64,13 +64,22 @@ export interface UseLocationTrackerReturn {
 // ---------------------------------------------------------------------------
 
 export function useLocationTracker(options: LocationTrackerOptions = {}): UseLocationTrackerReturn {
-  const intervalMs = options.intervalMs ?? 60_000
+  const intervalMs = ref(options.intervalMs ?? 60_000)
 
   const isTracking = ref(false)
   let intervalId: ReturnType<typeof setInterval> | null = null
   let appStateListener: PluginListenerHandle | null = null
   let statusSocketUnsubscribe: (() => void) | null = null
   let isAppActive = true
+
+  const resetInterval = (): void => {
+    if (intervalId !== null) {
+      clearInterval(intervalId)
+    }
+    intervalId = setInterval(() => {
+      void tick()
+    }, intervalMs.value)
+  }
 
   // Current tracking status — updated via WebSocket or initial fetch
   const currentStatus = ref<TrackingStatus>({
@@ -107,7 +116,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
 
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
-        timeout: 10_000,
+        timeout: 30_000,
         // backgroundMode: true,  // Capacitor 5+ — keeps GPS active when app is backgrounded on iOS
       })
 
@@ -212,6 +221,9 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       const initialStatus = await getTrackingStatus()
       console.log('[useLocationTracker] Initial status fetched:', initialStatus)
       currentStatus.value = initialStatus
+      if (typeof initialStatus.interval_ms === 'number') {
+        intervalMs.value = initialStatus.interval_ms
+      }
       setTrackingMasterStatus(initialStatus.is_enabled)
 
       // Connect socket if not already connected
@@ -228,6 +240,14 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
             console.log('[useLocationTracker] Received status update from socket:', status)
             currentStatus.value = status
             setTrackingMasterStatus(status.is_enabled)
+
+            if (typeof status.interval_ms === 'number' && status.interval_ms !== intervalMs.value) {
+              intervalMs.value = status.interval_ms
+              if (intervalId !== null) {
+                resetInterval()
+                console.log('[useLocationTracker] Tracking interval updated to', intervalMs.value)
+              }
+            }
 
             if (!status.is_enabled && isTracking.value) {
               stop()
@@ -264,9 +284,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
     // Run the first tick immediately, then on the interval
     await tick()
 
-    intervalId = setInterval(() => {
-      void tick()
-    }, intervalMs)
+    resetInterval()
   }
 
   function stop(): void {
