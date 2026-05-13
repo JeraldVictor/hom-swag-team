@@ -2,22 +2,23 @@
  * useLocationTracker
  *
  * Composable that acquires GPS coordinates every `intervalMs` milliseconds
- * (default 60 s) and pushes them to the BFF field API.
+ * (default 60 s) and sends them to the server when the app is in foreground.
  *
  * Per-tick flow:
- *  1. GET /tracking-status
+ *  1. Check if app is active (in foreground) — skip if backgrounded
+ *  2. GET /tracking-status
  *     - is_enabled = false → stop interval
  *     - is_blocked = true  → skip tick
- *  2. Acquire GPS via @capacitor/geolocation (enableHighAccuracy: true)
- *  3. POST /location with { latitude, longitude, accuracy }
- *  4. Any error → log warning and skip tick (no crash)
+ *  3. Acquire GPS via @capacitor/geolocation (enableHighAccuracy: true)
+ *  4. Emit location to WebSocket when app is open
+ *  5. Also POST /location with { latitude, longitude, accuracy } as fallback
+ *  6. Any error → log warning and skip tick (no crash)
  *
- * Android background support:
- *  - On app background (appStateChange isActive=false): start foreground service
- *  - On app foreground (appStateChange isActive=true): stop foreground service
- *  - Only active on Android; iOS uses BackgroundLocationMode (Info.plist)
- *
- * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 7.1, 7.5, 1.4, 3.1, 3.2, 3.3
+ * Tracking behavior:
+ *  - Only active when app is in foreground (isActive = true)
+ *  - Pauses automatically when app goes to background
+ *  - Resumes automatically when app returns to foreground
+ *  - No background tracking, no foreground service, no persistent notification
  *
  * A module-level singleton (`locationTracker`) is exported for use in app
  * lifecycle hooks (login, logout, app resume) so all callers share the same
@@ -26,7 +27,6 @@
 
 import { App } from '@capacitor/app'
 import type { PluginListenerHandle } from '@capacitor/core'
-import { Capacitor } from '@capacitor/core'
 import { Geolocation } from '@capacitor/geolocation'
 import type { Ref } from 'vue'
 import { ref } from 'vue'
@@ -69,43 +69,13 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
   let intervalId: ReturnType<typeof setInterval> | null = null
   let appStateListener: PluginListenerHandle | null = null
   let socketUnsubscribe: (() => void) | null = null
+  let isAppActive = true
 
   // Current tracking status — updated via WebSocket or initial fetch
   const currentStatus = ref<TrackingStatus>({
     is_enabled: true,
     is_blocked: false,
   })
-
-  function getLocationService(): {
-    startForegroundService?: () => void
-    stopForegroundService?: () => void
-  } | null {
-    return ((Capacitor as unknown as { Plugins?: Record<string, unknown> }).Plugins
-      ?.LocationService ?? null) as {
-      startForegroundService?: () => void
-      stopForegroundService?: () => void
-    } | null
-  }
-
-  // -------------------------------------------------------------------------
-  // Android foreground service helpers (Requirement 2.2)
-  // -------------------------------------------------------------------------
-
-  function startForegroundService(): void {
-    try {
-      getLocationService()?.startForegroundService?.()
-    } catch (err) {
-      console.warn('[useLocationTracker] Failed to start foreground service', err)
-    }
-  }
-
-  function stopForegroundService(): void {
-    try {
-      getLocationService()?.stopForegroundService?.()
-    } catch (err) {
-      console.warn('[useLocationTracker] Failed to stop foreground service', err)
-    }
-  }
 
   // -------------------------------------------------------------------------
   // GPS acquisition
@@ -157,8 +127,13 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
 
   async function tick(): Promise<void> {
     try {
-      // Step 1 — check tracking status from local reactive state (Requirement 2.2)
-      // No longer polling the API on every tick to reduce server load.
+      // Only track when the app is active (in foreground)
+      if (!isAppActive) {
+        console.log('[useLocationTracker] App is in background — skipping tick')
+        return
+      }
+
+      // Step 1 — check tracking status from local reactive state
       const status = currentStatus.value
 
       if (!status.is_enabled) {
@@ -183,9 +158,16 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
         return
       }
 
-      // Step 3 — push location to server
+      // Step 3 — emit location to WebSocket (when app is open)
+      console.log('[useLocationTracker] Emitting location to WebSocket:', coords)
       try {
-        console.log('[useLocationTracker] Pushing location:', coords)
+        webSocketService.emitLocation(coords)
+      } catch (err) {
+        console.warn('[useLocationTracker] WebSocket emit failed:', err)
+      }
+
+      // Step 4 — also push to REST API as fallback
+      try {
         await pushLocation(coords)
       } catch (err) {
         if (err instanceof ApiError) {
@@ -209,7 +191,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
         console.warn('[useLocationTracker] pushLocation failed — skipping tick', err)
       }
     } catch (err) {
-      // Catch-all: getTrackingStatus or any unexpected error → skip tick
+      // Catch-all: any unexpected error → skip tick
       console.warn('[useLocationTracker] Tick error — skipping tick', err)
     }
   }
@@ -258,19 +240,14 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       )
     }
 
-    // 2. Set up Android foreground service listener (Requirement 2.2)
-    if (Capacitor.getPlatform() === 'android') {
-      appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
-        if (!isTracking.value) return
-        if (!isActive) {
-          // App moved to background — start foreground service to keep tracking alive
-          startForegroundService()
-        } else {
-          // App returned to foreground — stop foreground service
-          stopForegroundService()
-        }
-      })
-    }
+    // 2. Set up app state listener to pause/resume tracking based on foreground/background
+    appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
+      if (!isTracking.value) return
+      console.log('[useLocationTracker] App state changed: isActive =', isActive)
+      isAppActive = isActive
+      // App will skip ticks when isAppActive is false (in background)
+      // No need to pause the interval — just skip ticks
+    })
 
     // Run the first tick immediately, then on the interval
     await tick()
@@ -286,14 +263,10 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       intervalId = null
     }
 
-    // Clean up the app state listener and stop any running foreground service
+    // Clean up the app state listener
     if (appStateListener !== null) {
       appStateListener.remove()
       appStateListener = null
-      // Ensure the foreground service is stopped when tracking ends
-      if (Capacitor.getPlatform() === 'android') {
-        stopForegroundService()
-      }
     }
 
     // Unsubscribe from socket events
