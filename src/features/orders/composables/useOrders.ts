@@ -9,7 +9,7 @@ import { getOrders } from '@/shared/api'
 import { formatISTDateShort } from '@/shared/lib/datetime'
 import type { Order, OrderStatus } from '@/shared/models'
 
-export type OrderDateFilter = 'today' | 'tomorrow' | 'past' | 'all'
+export type OrderDateFilter = 'today' | 'tomorrow' | 'past'
 
 const STATUS_PRIORITY: Record<string, number> = {
   confirmed: 1,
@@ -27,7 +27,7 @@ export function useOrders() {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  const statusFilter = ref<OrderStatus | 'all'>('all')
+  const statusFilter = ref<OrderStatus>('Confirmed')
   const dateFilter = ref<OrderDateFilter>('today')
 
   const currentPage = ref(1)
@@ -48,12 +48,8 @@ export function useOrders() {
     if (dateFilter.value === 'today') dateParam = todayStr
     else if (dateFilter.value === 'tomorrow') dateParam = tomorrowStr
 
-    const rawStatus = String(statusFilter.value ?? '')
-      .toLowerCase()
-      .trim()
-    const activeFilter = rawStatus === '' || rawStatus === 'undefined' ? 'all' : rawStatus
-    console.log('Fetching orders with filters:', { status: activeFilter, date: dateParam, page })
-    const statusParam = activeFilter === 'all' ? undefined : activeFilter
+    const statusParam = undefined
+    console.log('Fetching orders with filters:', { status: statusParam, date: dateParam, page })
 
     try {
       const res = await getOrders(page, limit, statusParam, dateParam)
@@ -129,7 +125,7 @@ export function useOrders() {
         const isAnyCancelled =
           s === 'cancelled' || s === 'arrived_and_cancelled' || s === 'cancelled_and_refunded'
         if (!isAnyCancelled) return false
-      } else if (activeFilter !== 'all' && s !== activeFilter) {
+      } else if (s !== activeFilter) {
         return false
       }
 
@@ -172,6 +168,56 @@ export function useOrders() {
     refresh()
   })
 
+  const statusCounts = computed(() => {
+    const counts: Record<string, number> = {
+      Confirmed: 0,
+      Started: 0,
+      Ongoing: 0,
+      Completed: 0,
+      cancelled: 0,
+    }
+
+    const nowISO = new Date().toISOString()
+    const todayStr = formatISTDateShort(nowISO)
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    const tomorrowStr = formatISTDateShort(tomorrow.toISOString())
+
+    for (const order of orders.value) {
+      const dateToFormat = order.booking_info?.date || order.service_date || order.created_at
+      if (!dateToFormat) continue
+
+      const sDateStr = formatISTDateShort(dateToFormat)
+      const isToday = sDateStr === todayStr
+      const isTomorrow = sDateStr === tomorrowStr
+      const isPast = sDateStr < todayStr
+      const s = order.status?.toLowerCase()
+      const isCompleted =
+        s === 'completed' ||
+        s === 'arrived_and_cancelled' ||
+        s === 'cancelled' ||
+        s === 'cancelled_and_refunded'
+      const isActive = s === 'ongoing' || s === 'started' || s === 'on going'
+
+      if (dateFilter.value === 'today' && !isToday && !isActive) continue
+      if (dateFilter.value === 'tomorrow' && !isTomorrow) continue
+      if (dateFilter.value === 'past' && !isPast) continue
+
+      if (s === 'cancelled' || s === 'arrived_and_cancelled' || s === 'cancelled_and_refunded') {
+        counts.cancelled += 1
+      } else if (s === 'completed') {
+        counts.Completed += 1
+      } else if (s === 'ongoing' || s === 'on going') {
+        counts.Ongoing += 1
+      } else if (s === 'started') {
+        counts.Started += 1
+      } else if (s === 'confirmed') {
+        counts.Confirmed += 1
+      }
+    }
+
+    return counts
+  })
+
   return {
     orders: readonly(orders),
     filteredOrders,
@@ -185,5 +231,6 @@ export function useOrders() {
     fetchOrders,
     loadMore,
     refresh,
+    statusCounts,
   }
 }

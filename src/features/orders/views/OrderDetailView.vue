@@ -41,7 +41,7 @@
         <!-- Hero Section: Customer & Quick Info -->
         <div class="order-hero">
           <div class="hero-content">
-            <div class="customer-profile">
+            <div v-if="!isCustomerHidden" class="customer-profile">
               <AppAvatar 
                 :initials="customerInitials" 
                 size="64" 
@@ -60,24 +60,48 @@
               </AppBadge>
             </div>
 
-            <div class="order-meta-grid">
-              <div class="meta-item">
-                <Icon icon="lucide:calendar" class="meta-icon" />
+            <div v-else class="masked-hero">
+              <div class="masked-hero-header">
                 <div>
+                  <p class="masked-hero-label">Order</p>
+                  <h2 class="masked-hero-number">#{{ order.order_number }}</h2>
+                </div>
+                <AppBadge :variant="(statusVariant as any)" class="status-badge-hero">
+                  {{ order.status }}
+                </AppBadge>
+              </div>
+              <div class="masked-hero-grid">
+                <div class="masked-meta-item">
+                  <p class="meta-label">Amount</p>
+                  <p class="meta-value">₹{{ order.total ?? 0 }}</p>
+                </div>
+                <div class="masked-meta-item">
                   <p class="meta-label">Date</p>
                   <p class="meta-value">{{ formattedDate }}</p>
                 </div>
               </div>
-              <div class="meta-item">
-                <Icon icon="lucide:clock" class="meta-icon" />
-                <div>
-                  <p class="meta-label">Timing</p>
-                  <p class="meta-value">{{ order.booking_info?.timing || 'Not set' }}</p>
+            </div>
+
+            <div v-if="!isCustomerHidden">
+              <div class="order-meta-grid">
+                <div class="meta-item">
+                  <Icon icon="lucide:calendar" class="meta-icon" />
+                  <div>
+                    <p class="meta-label">Date</p>
+                    <p class="meta-value">{{ formattedDate }}</p>
+                  </div>
+                </div>
+                <div class="meta-item">
+                  <Icon icon="lucide:clock" class="meta-icon" />
+                  <div>
+                    <p class="meta-label">Timing</p>
+                    <p class="meta-value">{{ order.booking_info?.timing || 'Not set' }}</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="hero-actions" v-if="!isCompleted">
+            <div class="hero-actions" v-if="!isCompleted && !isCustomerHidden">
               <div class="main-hero-btns">
                 <AppButton expand="block" size="lg" icon="lucide:navigation" class="nav-btn-modern" @click="navigateToLocation">
                   Navigate
@@ -100,7 +124,7 @@
 
         <div class="order-content anim-fade-in">
           <!-- Address Section -->
-          <div class="content-card">
+          <div v-if="!isCustomerHidden" class="content-card">
             <div class="card-header">
               <Icon icon="lucide:map-pin" class="header-icon" />
               <h3>Service Address</h3>
@@ -109,7 +133,7 @@
           </div>
 
           <!-- Order Context Section -->
-          <div class="content-card context-card" v-if="hasOrderContext">
+          <div class="content-card context-card" v-if="!isCustomerHidden && hasOrderContext">
             <div class="card-header">
               <Icon icon="lucide:notebook-tabs" class="header-icon" />
               <h3>Order Context & Info</h3>
@@ -256,7 +280,7 @@
           </div>
 
           <!-- Payment Info -->
-          <div class="content-card payment-card">
+          <div v-if="!isCustomerHidden" class="content-card payment-card">
             <div class="card-header">
               <Icon icon="lucide:credit-card" class="header-icon" />
               <h3>Payment</h3>
@@ -294,7 +318,7 @@
             </div>
           </div>
 
-          <div class="content-card proof-card">
+          <div v-if="!isCustomerHidden" class="content-card proof-card">
             <div class="card-header">
               <Icon icon="lucide:camera" class="header-icon" />
               <h3>Verification Photos</h3>
@@ -355,7 +379,7 @@
 
           <div
             class="content-card payment-status-editor"
-            v-if="order.status.toLowerCase() === 'started' && proofImages.length"
+            v-if="!isCustomerHidden && order.status.toLowerCase() === 'started' && proofImages.length"
           >
             <div class="card-header">
               <Icon icon="lucide:sliders-horizontal" class="header-icon" />
@@ -385,7 +409,7 @@
 
         </div>
 
-        <div class="action-footer" v-if="!isCompleted">
+        <div class="action-footer" v-if="!isCompleted && !isCustomerHidden">
           <div v-if="error" class="error-banner">{{ error }}</div>
           <!-- Main Actions -->
           <div class="main-actions">
@@ -681,6 +705,17 @@ const hasOrderContext = computed(() => {
     order.value?.payment?.internal_comment ||
     order.value?.instruction_presets?.length
   )
+})
+
+const isCustomerHidden = computed(() => {
+  const status = order.value?.status?.toLowerCase() || ''
+  const hiddenStatuses = ['completed', 'cancelled', 'arrived_and_cancelled']
+  const missingCustomer =
+    !order.value?.customer?.full_name &&
+    !order.value?.customer?.name &&
+    !order.value?.customer?.phone
+
+  return hiddenStatuses.includes(status) || missingCustomer
 })
 
 const statusVariant = computed(() => {
@@ -1143,6 +1178,59 @@ onMounted(() => fetchOrder(orderId))
   font-weight: 800;
   letter-spacing: -0.02em;
   color: white;
+}
+
+.masked-hero {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+}
+
+.masked-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.masked-hero-label {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+}
+
+.masked-hero-number {
+  margin: 0.35rem 0 0;
+  font-size: var(--font-size-2xl);
+  color: white;
+}
+
+.masked-hero-grid {
+  display: grid;
+  gap: var(--spacing-3);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-top: var(--spacing-4);
+}
+
+.masked-meta-item {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-4);
+}
+
+.masked-meta-item .meta-label {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+}
+
+.masked-meta-item .meta-value {
+  margin: 0.35rem 0 0;
+  color: white;
+  font-weight: 700;
 }
 
 .order-id-badge {

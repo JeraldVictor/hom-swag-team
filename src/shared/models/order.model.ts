@@ -87,6 +87,7 @@ export interface OrderBookingInfo {
   effective_start_time?: string
   surge_amount?: number
   slot_id?: string
+  beautician_start_time?: string
 }
 
 /**

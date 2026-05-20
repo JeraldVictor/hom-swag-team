@@ -32,7 +32,11 @@
       </div>
     </div>
 
-    <div class="order-card__footer" v-if="order.booking_info?.timing">
+    <div class="order-card__footer" v-if="order.booking_info?.beautician_start_time">
+      <Icon icon="lucide:clock" class="footer-icon" />
+      <span>{{ formatTime12(order.booking_info.beautician_start_time) }}</span>
+    </div>
+    <div class="order-card__footer" v-else-if="order.booking_info?.timing">
       <Icon icon="lucide:clock" class="footer-icon" />
       <span>{{ order.booking_info.timing }}</span>
     </div>
@@ -41,7 +45,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatISTDate } from '@/shared/lib/datetime'
+import { formatISTDate, formatTime12 } from '@/shared/lib/datetime'
 import type { Order } from '@/shared/models'
 
 const props = defineProps<{ order: Order }>()

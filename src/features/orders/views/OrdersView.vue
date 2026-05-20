@@ -44,7 +44,7 @@
               :class="{ 'filter-chip--active': statusFilter === status }"
               @click="statusFilter = status"
             >
-              {{ status === 'all' ? 'All' : status }}
+              {{ getStatusLabel(status) }} ({{ statusCounts[status] ?? 0 }})
             </div>
           </div>
         </div>
@@ -133,6 +133,7 @@ const {
   dateFilter,
   currentPage,
   totalPages,
+  statusCounts,
 } = useOrders()
 const { openDrawer } = useDrawer()
 const placeholderOrder: Order = {
@@ -144,14 +145,42 @@ const placeholderOrder: Order = {
   address: { street: '123 Placeholder St', city: 'Placeholder City' },
 } as Order // using as Order to satisfy the interface which has many optional but some required fields like id
 
-const statusOptions: (OrderStatus | 'all')[] = [
-  'all',
-  'Confirmed',
-  'Started',
-  'Ongoing',
-  'Completed',
-  'cancelled',
-]
+const statusOptions: OrderStatus[] = ['Confirmed', 'Started', 'Ongoing', 'Completed', 'cancelled']
+
+const statusLabels: Record<OrderStatus, string> = {
+  Confirmed: 'Confirmed',
+  Started: 'Started',
+  Ongoing: 'Ongoing',
+  Completed: 'Completed',
+  started: 'Started',
+  ongoing: 'Ongoing',
+  completed: 'Completed',
+  arrived_and_cancelled: 'Arrived & Cancelled',
+  cancelled: 'Cancelled',
+  cancelled_and_refunded: 'Cancelled & Refunded',
+}
+
+function normalizeStatus(value: string): OrderStatus | null {
+  const normalized = value.toLowerCase()
+  switch (normalized) {
+    case 'confirmed':
+      return 'Confirmed'
+    case 'started':
+      return 'Started'
+    case 'ongoing':
+      return 'Ongoing'
+    case 'completed':
+      return 'Completed'
+    case 'cancelled':
+      return 'cancelled'
+    default:
+      return null
+  }
+}
+
+function getStatusLabel(status: OrderStatus): string {
+  return statusLabels[status] ?? status
+}
 
 function openMenu(): void {
   openDrawer()
@@ -163,7 +192,8 @@ onMounted(() => {
     dateFilter.value = route.query.date as OrderDateFilter
   }
   if (route.query.status && route.query.status !== 'undefined') {
-    statusFilter.value = route.query.status as OrderStatus | 'all'
+    const normalized = normalizeStatus(String(route.query.status))
+    if (normalized) statusFilter.value = normalized
   }
   fetchOrders()
 })
