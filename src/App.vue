@@ -125,6 +125,7 @@ async function handlePermissionsGranted() {
 // ---------------------------------------------------------------------------
 
 let appStateListener: PluginListenerHandle | null = null
+let apiLogoutListener: ((event: Event) => void) | null = null
 
 async function setupAppStateListener() {
   appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
@@ -163,6 +164,15 @@ onMounted(async () => {
     await router.replace('/login')
   })
 
+  // Listen for API-triggered logout events
+  apiLogoutListener = async () => {
+    console.warn('[App] API logout event received')
+    locationTracker.stop()
+    await authStore.logout()
+    await router.replace('/login')
+  }
+  window.addEventListener('homswag:logout', apiLogoutListener)
+
   // Listen for new notifications
   webSocketService.on('notification:new', (data: RawNotification) => {
     const notificationStore = useNotificationStore()
@@ -177,6 +187,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   appStateListener?.remove()
+  if (apiLogoutListener) {
+    window.removeEventListener('homswag:logout', apiLogoutListener)
+  }
 })
 
 // Keep the store's isOnline in sync with the composable's reactive ref

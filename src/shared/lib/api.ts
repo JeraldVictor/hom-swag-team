@@ -87,6 +87,7 @@ type QueueResolver = (token: string) => void
 type QueueRejecter = (error: unknown) => void
 
 let isRefreshing = false
+let logoutInProgress = false
 const pendingQueue: Array<{ resolve: QueueResolver; reject: QueueRejecter }> = []
 
 function enqueueRequest(): Promise<string> {
@@ -126,6 +127,26 @@ async function performRefresh(instance: AxiosInstance): Promise<string> {
   await Storage_Service.setString(STORAGE_KEYS.refreshToken, refreshToken)
 
   return accessToken
+}
+
+async function logoutAndRedirect(): Promise<void> {
+  if (logoutInProgress) {
+    return
+  }
+  logoutInProgress = true
+
+  try {
+    const { useAuthStore } = await import('@/shared/stores/auth')
+    const authStore = useAuthStore()
+    await authStore.logout()
+  } catch {
+    // Ignore logout errors here.
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('homswag:logout'))
+    window.location.href = '/login'
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -326,6 +347,9 @@ apiClient.interceptors.request.use(
           } catch (err) {
             isRefreshing = false
             rejectQueue(err)
+
+            await logoutAndRedirect()
+
             throw err
           }
         } else {
@@ -359,6 +383,15 @@ apiClient.interceptors.response.use(
   },
   async error => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
+    const requestUrl = String(originalRequest.url ?? '')
+
+    // If the refresh request itself fails, logout immediately instead of queuing.
+    if (requestUrl.includes('/auth/refresh')) {
+      isRefreshing = false
+      rejectQueue(new ApiError(401, 'Token refresh failed'))
+      await logoutAndRedirect()
+      return Promise.reject(new ApiError(401, 'Session expired. Please log in again.'))
+    }
 
     // Handle 401 — attempt one token refresh then retry
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -392,12 +425,7 @@ apiClient.interceptors.response.use(
       } catch {
         isRefreshing = false
         rejectQueue(new ApiError(401, 'Token refresh failed'))
-
-        // Lazy import to avoid circular dependency
-        const { useAuthStore } = await import('@/shared/stores/auth')
-        const authStore = useAuthStore()
-        await authStore.logout()
-
+        await logoutAndRedirect()
         return Promise.reject(new ApiError(401, 'Session expired. Please log in again.'))
       }
     }
