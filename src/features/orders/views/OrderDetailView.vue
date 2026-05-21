@@ -12,7 +12,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true">
+    <ion-content :fullscreen="true" class="order-page-content">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh" class="modern-refresher">
         <ion-refresher-content pulling-icon="lucide:arrow-down" refreshing-spinner="crescent" />
       </ion-refresher>
@@ -47,443 +47,46 @@
       </div>
 
       <template v-else-if="order">
-        <!-- Hero Section: Customer & Quick Info -->
-        <div class="order-hero">
-          <div class="hero-content">
-            <div v-if="!isCustomerHidden" class="customer-compact">
-              <div class="compact-top-row">
-                <div class="order-id-badge">
-                  <Icon icon="lucide:hash" class="hash-icon" />
-                  <span>{{ order.order_number }}</span>
-                </div>
-                <AppBadge :variant="(statusVariant as any)" class="status-badge-hero">
-                  {{ orderStatusLabel }}
-                </AppBadge>
-              </div>
-              <h2 class="customer-name-compact">{{ order.customer?.full_name || 'Customer' }}</h2>
-              <div class="compact-details">
-                <div class="compact-detail-row">
-                  <Icon icon="lucide:map-pin" class="compact-icon" />
-                  <span>{{ fullAddress }}</span>
-                </div>
-                <div class="compact-detail-row">
-                  <Icon icon="lucide:clock" class="compact-icon" />
-                  <span>Total duration: {{ serviceDurationLabel }}</span>
-                </div>
-                <div v-if="order.customer?.phone" class="compact-detail-row">
-                  <Icon icon="lucide:phone" class="compact-icon" />
-                  <span>{{ order.customer.phone }}</span>
-                </div>
-              </div>
-            </div>
+        <!-- Compact Hero Card -->
+        <OrderHeroCard
+          :order-number="order.order_number ?? ''"
+          :status-label="orderStatusLabel"
+          :status-variant="statusVariant"
+          :customer-name="order.customer?.full_name || 'Customer'"
+          :address="fullAddress"
+          :phone="order.customer?.phone"
+          :duration="serviceDurationLabel"
+          :is-customer-hidden="isCustomerHidden"
+          :show-actions="!isCompleted && !isCustomerHidden"
+          :total="order.total ?? 0"
+          :date="formattedDate"
+          @navigate="navigateToLocation"
+          @book-ride="showRideModal = true"
+          @copy-address="copyAddress"
+        />
 
-            <div v-else class="masked-hero">
-              <div class="masked-hero-header">
-                <div>
-                  <p class="masked-hero-label">Order</p>
-                  <h2 class="masked-hero-number">#{{ order.order_number }}</h2>
-                </div>
-                <AppBadge :variant="(statusVariant as any)" class="status-badge-hero">
-                  {{ orderStatusLabel }}
-                </AppBadge>
-              </div>
-              <div class="masked-hero-grid">
-                <div class="masked-meta-item">
-                  <p class="meta-label">Amount</p>
-                  <p class="meta-value">₹{{ order.total ?? 0 }}</p>
-                </div>
-                <div class="masked-meta-item">
-                  <p class="meta-label">Date</p>
-                  <p class="meta-value">{{ formattedDate }}</p>
-                </div>
-                <div class="masked-meta-item">
-                  <p class="meta-label">Duration</p>
-                  <p class="meta-value">{{ serviceDurationLabel }}</p>
-                </div>
-              </div>
-            </div>
+        <OrderBodyCards
+          :order="(order as unknown as Order)"
+          :assigned-trip="(assignedTrip as unknown as OrderTrip | null)"
+          :show-assigned-trip-info="showAssignedTripInfo"
+          :is-customer-hidden="isCustomerHidden"
+          :has-order-context="hasOrderContext"
+          :is-completed="isCompleted"
+          :parsed-payment-remark="parsedPaymentRemark"
+          :proof-images="proofImages"
+          :setup-photos="setupPhotos"
+          v-model:payment-status="paymentStatus"
+          :payment-status-options="paymentStatusOptions"
+          :is-updating="isUpdating"
+          @open-gallery="openGallery"
+          @trigger-proof-input="triggerProofInput"
+          @trigger-setup-input="triggerSetupInput"
+          @upload-selfie="handleUploadSelfie"
+          @capture-setup-photo="handleCaptureSetupPhoto"
+          @capture-payment-proof="handleCapturePaymentProof"
+          @save-payment-status="handleSavePaymentStatus"
+        />
 
-
-            <div class="hero-actions" v-if="!isCompleted && !isCustomerHidden">
-              <div class="main-hero-btns">
-                <AppButton expand="block" size="lg" icon="lucide:navigation" class="nav-btn-modern" @click="navigateToLocation">
-                  Navigate
-                </AppButton>
-                <AppButton v-if="order && !isCompleted" expand="block" size="lg" icon="lucide:car-taxi-front" class="ride-btn-modern" @click="showRideModal = true">
-                  Book Ride
-                </AppButton>
-              </div>
-              <div class="dual-btns-modern">
-                <AppButton icon="lucide:copy" size="sm" @click="copyAddress" class="action-chip">
-                  Copy Address
-                </AppButton>
-                <AppButton icon="lucide:phone" size="sm" :href="'tel:' + order.customer?.phone" class="action-chip">
-                  Call
-                </AppButton>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="order-content anim-fade-in">
-          <div class="content-card trip-card" v-if="showAssignedTripInfo && assignedTrip">
-            <div class="card-header">
-              <Icon icon="lucide:truck" class="header-icon" />
-              <h3>Assigned Rider & Trip</h3>
-            </div>
-            <div class="trip-info-grid">
-              <div class="trip-info-row">
-                <span>Trip number</span>
-                <strong>{{ assignedTrip.trip_number || '—' }}</strong>
-              </div>
-              <div class="trip-info-row" v-if="assignedTrip.rider?.name">
-                <span>Rider</span>
-                <strong>{{ assignedTrip.rider.name }}</strong>
-              </div>
-              <div class="trip-info-row" v-if="assignedTrip.rider?.phone">
-                <span>Rider phone</span>
-                <a :href="`tel:${assignedTrip.rider.phone}`">{{ assignedTrip.rider.phone }}</a>
-              </div>
-              <div class="trip-info-row" v-if="assignedTrip.rider?.vehicle_number || assignedTrip.rider?.registration_number">
-                <span>Vehicle</span>
-                <strong>
-                  {{ assignedTrip.rider?.vehicle_number || assignedTrip.rider?.registration_number }}
-                </strong>
-              </div>
-              <div class="trip-info-row">
-                <span>Trip status</span>
-                <strong>{{ assignedTrip.kanban_state || 'Assigned' }}</strong>
-              </div>
-              <div class="trip-info-row" v-if="assignedTrip.start_time">
-                <span>Start</span>
-                <strong>{{ assignedTrip.start_time }}</strong>
-              </div>
-              <div class="trip-info-row" v-if="assignedTrip.end_time">
-                <span>End</span>
-                <strong>{{ assignedTrip.end_time }}</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="content-card context-card" v-if="!isCustomerHidden && hasOrderContext">
-            <div class="card-header">
-              <Icon icon="lucide:notebook-tabs" class="header-icon" />
-              <h3>Order Context & Info</h3>
-            </div>
-            
-            <div class="context-grid">
-              <!-- Customer Notes -->
-              <div v-if="order.notes" class="context-box note-box">
-                <div class="box-header">
-                  <Icon icon="lucide:message-square-quote" />
-                  <span>Customer Note</span>
-                </div>
-                <p>{{ order.notes }}</p>
-              </div>
-
-              <!-- Instructions -->
-              <div v-if="order.custom_instruction || order.instruction_presets?.length" class="context-box instruction-box">
-                <div class="box-header">
-                  <Icon icon="lucide:clipboard-list" />
-                  <span>Special Instructions</span>
-                </div>
-                <p v-if="order.custom_instruction" :class="{ 'mb-2': order.instruction_presets?.length }">{{ order.custom_instruction }}</p>
-                <div v-if="order.instruction_presets?.length" class="preset-chips">
-                  <AppBadge v-for="preset in order.instruction_presets" :key="preset._id" variant="info" size="sm">
-                    {{ preset.text || preset.description }}
-                  </AppBadge>
-                </div>
-              </div>
-
-              <!-- Staff/Internal -->
-              <div v-if="order.staff_notes || order.payment?.internal_comment" class="context-box internal-box">
-                <div class="box-header">
-                  <Icon icon="lucide:shield-alert" />
-                  <span>Internal Reference</span>
-                </div>
-                <p v-if="order.staff_notes"><strong>Staff:</strong> {{ order.staff_notes }}</p>
-                <p v-if="order.payment?.internal_comment" :class="{ 'mt-1': order.staff_notes }">
-                  <strong>Payment:</strong> {{ order.payment.internal_comment }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Items Section -->
-          <div class="content-card">
-            <div class="card-header">
-              <Icon icon="lucide:shopping-bag" class="header-icon" />
-              <h3>Services & Items</h3>
-              <AppButton 
-                v-if="canUpgrade" 
-                variant="outline" 
-                size="sm" 
-                class="ms-auto"
-                @click="router.push(`/orders/${orderId}/edit`)"
-              >
-                Add / Edit Items
-              </AppButton>
-            </div>
-            <div class="line-items">
-              <div v-for="item in order.products" :key="item.product_id" class="modern-item-card">
-                <div class="mic-header">
-                  <div class="mic-title-row">
-                    <span class="mic-title">{{ item.title }}</span>
-                    <div class="mic-badges">
-                      <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
-                      <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
-                    </div>
-                  </div>
-                  <div class="mic-meta">
-                    <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
-                    <span class="mic-total">₹{{ item.total }}</span>
-                  </div>
-                  <div v-if="item.duration || item.type" class="mic-attributes">
-                    <span v-if="item.duration" class="mic-attr">
-                      <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
-                    </span>
-                    <span v-if="item.type" class="mic-attr">
-                      <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
-                    </span>
-                  </div>
-                </div>
-
-                <div v-if="item.type === 'package' && getSelectedServiceItems(item).length" class="mic-sub-section">
-                  <div class="mic-sub-header">Included Services</div>
-                  <div class="mic-sub-list">
-                    <div v-for="service in getSelectedServiceItems(item)" :key="service.product_id || service._id" class="mic-sub-item">
-                      <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                      <span>{{ service.title || service.name }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="getSelectedOptions(item).length" class="mic-sub-section">
-                  <div class="mic-sub-header">Add-ons / Options</div>
-                  <div class="mic-sub-list">
-                    <div v-for="opt in getSelectedOptions(item)" :key="opt.product_option_id || opt.id || opt._id" class="mic-sub-item mic-item-row">
-                      <div class="mic-item-info">
-                        <span class="mic-item-title">{{ opt.title }}</span>
-                      </div>
-                      <span class="mic-item-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="getSelectedFreeItems(item).length" class="mic-sub-section">
-                  <div class="mic-sub-header">Free Perks</div>
-                  <div class="mic-sub-list">
-                    <div v-for="free in getSelectedFreeItems(item)" :key="free.product_id || free._id" class="mic-sub-item">
-                      <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
-                      <span>{{ free.title }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="canUpgrade && item.type !== 'package'" class="mic-actions">
-                  <AppButton variant="outline" size="sm" icon="lucide:arrow-up" @click="openUpgradeModal(item as any)">
-                    Upgrade
-                  </AppButton>
-                </div>
-              </div>
-            </div>
-
-            <div class="order-summary-footer modern-summary-card">
-              <div class="summary-card-header">
-                <div>
-                  <p class="summary-label">Order summary</p>
-                </div>
-              </div>
-              <div class="summary-list">
-                <div class="summary-item">
-                  <span>Subtotal</span>
-                  <strong>₹{{ order.subtotal ?? 0 }}</strong>
-                </div>
-                <div class="summary-item">
-                  <span>Other Charges</span>
-                  <strong class="text-danger"> ₹{{ Math.abs((order.subtotal ?? 0) - (order.total ?? 0)) }}</strong>
-                </div>
-                <div class="summary-total">
-                  <span>Total Amount</span>
-                  <strong>₹{{ order.total ?? 0 }}</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Payment Info -->
-          <div v-if="!isCustomerHidden || isCompleted" class="content-card payment-card">
-            <div class="card-header">
-              <Icon icon="lucide:credit-card" class="header-icon" />
-              <h3>Payment</h3>
-              <AppBadge :variant="(paymentStatusVariant as any)" class="ms-auto">
-                {{ order.payment?.status?.toUpperCase() || 'Pending' }}
-              </AppBadge>
-            </div>
-            <div class="payment-method">
-              <p>Payment Type: <strong>{{ order.payment?.method?.toUpperCase() || 'COD / UPI' }}</strong></p>
-              <p v-if="order.payment?.reference">Reference: <strong>{{ order.payment.reference }}</strong></p>
-            </div>
-            <div class="payment-details-grid">
-              <div class="payment-detail-item" v-if="(order.payment?.cod_amount ?? parsedPaymentRemark?.cod ?? 0) > 0">
-                <span>Cash (COD)</span>
-                <strong>₹{{ order.payment?.cod_amount ?? parsedPaymentRemark?.cod }}</strong>
-              </div>
-              <div class="payment-detail-item" v-if="(order.payment?.upi_amount ?? parsedPaymentRemark?.upi ?? 0) > 0">
-                <span>UPI</span>
-                <strong>₹{{ order.payment?.upi_amount ?? parsedPaymentRemark?.upi }}</strong>
-              </div>
-              <div class="payment-detail-item" v-if="(order.payment?.tip ?? order.tip ?? parsedPaymentRemark?.tip ?? 0) > 0">
-                <span>Tip</span>
-                <strong class="text-brand">₹{{ order.payment?.tip ?? order.tip ?? parsedPaymentRemark?.tip }}</strong>
-              </div>
-              <div class="payment-detail-item">
-                <span>Total Collected</span>
-                <strong :class="{ 'text-success': order.payment?.status?.toLowerCase() === 'paid' }">
-                  {{ order.payment?.amount_paid != null ? `₹${order.payment.amount_paid}` : '—' }}
-                </strong>
-              </div>
-              <div class="payment-detail-item full-width" v-if="order.payment?.remark && !parsedPaymentRemark">
-                <span>Remark</span>
-                <p class="remark-text">{{ order.payment.remark }}</p>
-              </div>
-            </div>
-            <div class="payment-hint" v-if="order.payment?.status?.toLowerCase() !== 'paid' && !isCompleted">
-              <p>
-                Collect cash on delivery or ask the customer to scan the office UPI QR code below.
-              </p>
-            </div>
-            <div v-if="order.office_payment_qr_code?.url && !isCompleted" class="qr-code-block">
-              <p class="qr-title">Office UPI QR Code</p>
-              <img :src="mediaUrl(order.office_payment_qr_code?.url)" alt="Office payment QR code" />
-            </div>
-          </div>
-
-          <div v-if="!isCustomerHidden || isCompleted" class="content-card proof-card">
-            <div class="card-header">
-              <Icon icon="lucide:camera" class="header-icon" />
-              <h3>Verification Photos</h3>
-            </div>
-            <div class="proof-group">
-              <div class="proof-entry">
-                <div class="proof-label-row">
-                  <p class="proof-label">Arrival Selfie</p>
-                  <AppButton 
-                    v-if="order.status.toLowerCase() === 'ongoing' && !order.arrival_selfie"
-                    variant="clear" 
-                    size="sm" 
-                    icon="lucide:camera"
-                    @click="handleUploadSelfie"
-                    class="action-btn-sm"
-                  >
-                    Take Selfie
-                  </AppButton>
-                </div>
-                <div class="proof-preview" v-if="order.arrival_selfie?.url" @click="openGallery(mediaUrl(order.arrival_selfie.url))">
-                  <img :src="mediaUrl(order.arrival_selfie?.url)" alt="Arrival selfie" />
-                </div>
-                <p v-else class="proof-empty">No arrival selfie uploaded yet.</p>
-              </div>
-              <div class="proof-entry">
-                <div class="proof-label-row">
-                  <p class="proof-label">Setup Photos</p>
-                  <div
-                    class="proof-actions"
-                    v-if="order.status.toLowerCase() === 'reached_customer_place' && order.arrival_selfie"
-                  >
-                    <AppButton 
-                      variant="clear" 
-                      size="sm" 
-                      icon="lucide:camera"
-                      @click="handleCaptureSetupPhoto"
-                      class="action-btn-sm"
-                    >
-                      Camera
-                    </AppButton>
-                    <AppButton 
-                      variant="clear" 
-                      size="sm" 
-                      icon="lucide:upload"
-                      @click="triggerSetupInput"
-                      class="action-btn-sm"
-                    >
-                      Upload
-                    </AppButton>
-                  </div>
-                </div>
-                <div v-if="setupPhotos.length" class="proof-list">
-                  <div v-for="(image, index) in setupPhotos" :key="index" class="proof-thumbnail" @click="openGallery(mediaUrl(image.url))">
-                    <img :src="mediaUrl(image.url)" :alt="`Setup photo ${index + 1}`" />
-                  </div>
-                </div>
-                <p v-else class="proof-empty">No setup photos uploaded yet.</p>
-              </div>
-
-              <div class="proof-entry">
-                <div class="proof-label-row">
-                  <p class="proof-label">Payment Proof</p>
-                  <div class="proof-actions" v-if="order.status.toLowerCase() === 'started'">
-                    <AppButton 
-                      variant="clear" 
-                      size="sm" 
-                      icon="lucide:camera"
-                      @click="handleCapturePaymentProof"
-                      class="action-btn-sm"
-                    >
-                      Camera
-                    </AppButton>
-                    <AppButton 
-                      variant="clear" 
-                      size="sm" 
-                      icon="lucide:upload"
-                      @click="triggerProofInput"
-                      class="action-btn-sm"
-                    >
-                      Upload
-                    </AppButton>
-                  </div>
-                </div>
-                <div v-if="proofImages.length" class="proof-list">
-                  <div v-for="(image, index) in proofImages" :key="index" class="proof-thumbnail" @click="openGallery(mediaUrl(image.url))">
-                    <img :src="mediaUrl(image.url)" :alt="`Payment proof ${index + 1}`" />
-                  </div>
-                </div>
-                <p v-else class="proof-empty">No payment proof uploaded yet.</p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="content-card payment-status-editor"
-            v-if="!isCustomerHidden && order.status.toLowerCase() === 'started' && proofImages.length"
-          >
-            <div class="card-header">
-              <Icon icon="lucide:sliders-horizontal" class="header-icon" />
-              <h3>Payment Status</h3>
-            </div>
-            <div class="payment-status-row">
-              <select v-model="paymentStatus" class="form-select">
-                <option value="" disabled>Select payment status</option>
-                <option v-for="option in paymentStatusOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-              <AppButton
-                variant="outline"
-                size="sm"
-                :loading="isUpdating"
-                :disabled="!paymentStatus || paymentStatus === order.payment?.status?.toLowerCase()"
-                @click="handleSavePaymentStatus"
-              >
-                Save status
-              </AppButton>
-            </div>
-            <p class="hint">
-              Choose Paid, Unpaid, or Conflict after uploading payment proof. This must be updated before completing the order.
-            </p>
-          </div>
-
-        </div>
 
         <div class="action-footer" v-if="!isCompleted && !isCustomerHidden">
           <div v-if="error" class="error-banner">{{ error }}</div>
@@ -559,38 +162,6 @@
           </AppButton>
         </div>
       </div>
-    </ion-modal>
-
-    <!-- Upgrade Modal -->
-    <ion-modal :is-open="showUpgradeModal" @didDismiss="showUpgradeModal = false" class="upgrade-modal">
-      <ion-header class="ion-no-border">
-        <ion-toolbar>
-          <ion-title>Upgrade Service</ion-title>
-          <ion-buttons slot="end">
-            <AppButton variant="clear" @click="showUpgradeModal = false">Close</AppButton>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        <div v-if="isFetchingUpgrades" class="modal-loading">
-          <ion-spinner name="crescent" />
-          <p>Finding better options...</p>
-        </div>
-        <div v-else-if="upgradableProducts.length === 0" class="modal-empty">
-          <Icon icon="lucide:info" />
-          <p>No upgrades available for this item.</p>
-        </div>
-        <div v-else class="upgrade-list">
-          <div v-for="p in upgradableProducts" :key="p._id || p.id" class="upgrade-option" @click="handleUpgrade(p)">
-            <div class="upgrade-option__info">
-              <h4>{{ p.title || p.name }}</h4>
-              <p>{{ p.short_description || p.description }}</p>
-              <span class="price-diff">Upgrade for +₹{{ (p.base_price || p.price) - (selectedItem?.price || 0) }}</span>
-            </div>
-            <Icon icon="lucide:chevron-right" />
-          </div>
-        </div>
-      </ion-content>
     </ion-modal>
 
     <!-- Cancel Modal -->
@@ -898,9 +469,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
-import type { OrderProduct, PaymentStatus } from '@/shared/models'
+import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import { mediaUrl } from '@/shared/lib/media'
 import { useOrderDetail } from '../composables/useOrderDetail'
+import OrderHeroCard from '../components/OrderHeroCard.vue'
+import OrderBodyCards from '../components/OrderBodyCards.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -1579,1173 +1152,196 @@ onMounted(() => fetchOrder(orderId))
 </script>
 
 <style scoped>
-/* ── Layout & Sections ───────────────────────────────────────────────────── */
+/* ── Page background ─────────────────────────────────────────────────────── */
+.order-page-content {
+  --background: #f2f3f8;
+}
 
+/* ── States ──────────────────────────────────────────────────────────────── */
 .loading-state, .error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 80vh;
+  height: 70vh;
   padding: 40px;
   text-align: center;
   color: var(--color-text-muted);
 }
-
-.error-icon { font-size: 48px; color: var(--color-danger); margin-bottom: 16px; }
-
-.order-hero {
-  background: linear-gradient(165deg, var(--color-brand) 0%, var(--color-brand-mid) 100%);
-  color: white;
-  padding: var(--spacing-3) var(--spacing-4) var(--spacing-5);
-  border-bottom-left-radius: var(--radius-2xl);
-  border-bottom-right-radius: var(--radius-2xl);
-  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.25);
-  position: relative;
-  overflow: hidden;
-}
-
-.order-hero::before {
-  content: '';
-  position: absolute;
-  top: -20%;
-  right: -10%;
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 1;
-}
-
-.customer-compact {
-  margin-bottom: var(--spacing-3);
-}
-
-.compact-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-1);
-}
-
-.customer-name-compact {
-  margin: 0 0 var(--spacing-2);
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: white;
-}
-
-.compact-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.compact-detail-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: var(--font-size-sm);
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.compact-icon {
-  font-size: 14px;
-  opacity: 0.75;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.masked-hero {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-3);
-  margin-bottom: var(--spacing-3);
-}
-
-.masked-hero-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.masked-hero-label {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.75);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.65rem;
-}
-
-.masked-hero-number {
-  margin: 0.2rem 0 0;
-  font-size: 1.05rem;
-  line-height: 1.2;
-  color: white;
-}
-
-.masked-hero-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  margin-top: var(--spacing-2);
-}
-
-.status-badge-hero {
-  --background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: white;
-  padding: 6px 10px;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-.main-hero-btns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.dual-btns-modern {
-  display: flex;
-  gap: 8px;
-}
-
-.masked-meta-item {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-4);
-}
-
-.masked-meta-item .meta-label {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.8rem;
-}
-
-.masked-meta-item .meta-value {
-  margin: 0.35rem 0 0;
-  color: white;
-  font-weight: 700;
-}
-
-.order-id-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 10px;
-  border-radius: var(--radius-full);
-  margin-top: 4px;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  backdrop-filter: blur(4px);
-}
-
-.hash-icon {
-  font-size: 10px;
-  opacity: 0.7;
-}
-
-.status-badge-hero {
-  --background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.meta-label {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  opacity: 0.6;
-}
-
-.meta-value {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-
-.main-hero-btns {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.nav-btn-modern, .ride-btn-modern {
-  --background: white;
-  --color: var(--color-brand);
-  --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  font-weight: 800;
-}
-
-.dual-btns-modern {
-  display: flex;
-  gap: 12px;
-}
-
-.action-chip {
-  --background: white;
-  --color: var(--color-brand);
-  --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  --border-radius: var(--radius-lg);
-  flex: 1;
-  font-weight: 800;
-}
-
-.payment-status-row {
-  display: flex;
-  gap: var(--spacing-3);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.context-grid {
-  display: grid;
-  gap: var(--spacing-3);
-  margin-top: var(--spacing-3);
-}
-
-.context-box {
-  padding: var(--spacing-4);
-  border-radius: var(--radius-xl);
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-}
-
-.box-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  margin-bottom: var(--spacing-2);
-  font-size: var(--font-size-xs);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-muted);
-}
-
-.box-header svg {
-  width: 14px;
-  height: 14px;
-  color: var(--color-brand);
-}
-
-.context-box p {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-  color: var(--color-text);
-  font-weight: 500;
-}
-
-.preset-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-2);
-}
-
-.note-box {
-  background: var(--color-brand-pale);
-  border-color: rgba(var(--color-brand-rgb), 0.1);
-}
-
-.instruction-box {
-  background: #fffbe6;
-  border-color: #ffe58f;
-}
-
-.internal-box {
-  background: var(--color-surface);
-  border-style: dashed;
-}
-
-.mb-2 { margin-bottom: 8px; }
-.mt-1 { margin-top: 4px; }
-
-.form-select {
-  flex: 1;
-  min-width: 160px;
-  padding: 12px 14px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-}
-
-.payment-status-editor .hint {
-  margin-top: var(--spacing-3);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
-.payment-details-grid {
-  display: grid;
-  gap: var(--spacing-3);
-  margin-top: var(--spacing-4);
-}
-
-.payment-detail-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-3) var(--spacing-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-.payment-detail-item span {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 700;
-}
-
-.payment-detail-item strong {
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-}
-
-.payment-detail-item.full-width {
-  grid-column: span 2;
-}
-
-.primary-action-btn-custom {
-  --background: var(--color-brand);
-  --box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
-  font-weight: 800;
-}
-
-.order-content { 
-  padding: var(--spacing-5); 
-  display: flex; 
-  flex-direction: column; 
-  gap: var(--spacing-5); 
-}
-
-.line-items { 
-  display: flex; 
-  flex-direction: column; 
-  gap: var(--spacing-3); 
-  margin-bottom: var(--spacing-6); 
-}
-
-.modern-item-card {
-  background: var(--color-background);
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-4);
-  border: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-}
-
-.mic-header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mic-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.mic-title {
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--ion-color-step-900, #1a1a1a);
-  line-height: 1.3;
-}
-
-.mic-badges {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.mic-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 0.9rem;
-  color: var(--ion-color-step-600, #666);
-}
-
-.mic-total {
-  font-weight: 700;
-  color: var(--ion-color-primary);
-  font-size: 1rem;
-}
-
-.mic-attributes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 2px;
-}
-
-.mic-attr {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.8rem;
-  color: var(--ion-color-step-500, #888);
-}
-
-.mic-icon {
-  font-size: 14px;
-}
-
-.mic-sub-section {
-  border-top: 1px dashed var(--ion-color-step-200, #d0d0d0);
-  padding-top: 8px;
-}
-
-.mic-sub-header {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ion-color-step-400, #aaa);
-  margin-bottom: 6px;
-}
-
-.mic-sub-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.mic-sub-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: var(--ion-color-step-700, #444);
-}
-
-.mic-sub-icon {
-  font-size: 14px;
-  margin-top: 2px;
-}
-
-.mic-item-row {
-  justify-content: space-between;
-  align-items: center;
-}
-
-.mic-item-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.mic-item-title {
-  font-weight: 500;
-}
-
-.mic-item-meta {
-  font-size: 0.75rem;
-  color: var(--ion-color-step-500, #888);
-}
-
-.mic-item-price {
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.mic-actions {
-  margin-top: 4px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.order-summary-footer {
-  padding-top: 16px;
-  border-top: 2px solid var(--color-background);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.modern-summary-card {
-  padding: 20px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,250,255,0.95) 100%);
-  box-shadow: 0 20px 40px rgba(14, 30, 77, 0.08);
-  border: 1px solid rgba(51, 65, 85, 0.08);
-}
-
-.summary-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.summary-label {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--color-text);
-  text-transform: uppercase;
-}
-
-.summary-subtitle {
-  margin: 6px 0 0;
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-  line-height: 1.5;
-}
-
-.summary-status {
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-}
-
-.summary-status.paid {
-  color: var(--color-success);
-  background: rgba(var(--color-success-rgb), 0.12);
-}
-
-.summary-status.pending {
-  color: var(--color-warning);
-  background: rgba(var(--color-warning-rgb), 0.14);
-}
-
-.summary-list {
+.error-icon { font-size: 44px; color: var(--color-danger); margin-bottom: 12px; }
+
+/* ── Body Layout ─────────────────────────────────────────────────────────── */
+.order-content {
+  padding: 12px 14px 110px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.summary-item,
-.summary-total {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(15, 23, 42, 0.05);
-}
-
-.summary-item span,
-.summary-total span {
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-}
-
-.summary-item strong,
-.summary-total strong {
-  color: var(--color-text);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.summary-total {
-  grid-column: span 2;
-  background: linear-gradient(90deg, rgba(99,102,241,0.12), rgba(16,185,129,0.12));
-  border-color: rgba(99,102,241,0.18);
-}
-
-.summary-total strong {
-  font-size: 1.2rem;
-}
-
-.content-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-2xl);
-  padding: var(--spacing-5);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  border: 1px solid var(--color-border);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: var(--spacing-4);
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: 800;
-  color: var(--color-text);
-  letter-spacing: -0.01em;
-}
-
-.card-header .header-icon {
-  font-size: 20px;
-  color: var(--color-brand);
-}
-
-.trip-info-grid {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-
-.trip-info-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px;
-  background: rgba(99, 102, 241, 0.04);
-  border-radius: var(--radius-xl);
-}
-
-.trip-info-row span {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.trip-info-row strong {
-  font-size: 1rem;
-  color: var(--color-text);
-  line-height: 1.4;
-}
-
-.address-text {
-  margin: 0;
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  font-weight: 500;
-}
-
+/* ── Action Footer ───────────────────────────────────────────────────────── */
 .action-footer {
   position: sticky;
   bottom: 0;
-  padding: var(--spacing-5) var(--spacing-5) max(var(--spacing-5), env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.85);
+  padding: 12px 14px max(12px, env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
-}
-
-.cancel-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.form-label-group {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
-.form-label-group svg {
-  color: var(--color-brand);
-  font-size: 14px;
+.main-actions { display: flex; flex-direction: column; gap: 8px; }
+
+.primary-action-btn-custom, .primary-action-btn {
+  --background: var(--color-brand);
+  --box-shadow: 0 6px 20px rgba(124, 58, 237, 0.28);
+  font-weight: 800;
 }
 
-.modern-textarea {
-  width: 100%;
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid var(--color-border);
-  background: var(--color-background);
-  color: var(--color-text);
-  font-family: inherit;
-  font-size: 14px;
-  resize: none;
-  transition: border-color 0.2s ease;
+.cancel-btn { margin-top: 4px; }
+
+.date-restriction-tip, .date-tip {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  padding: 8px;
+  background: var(--color-surface);
+  border-radius: 8px;
 }
 
-.modern-textarea:focus {
-  outline: none;
-  border-color: var(--color-brand);
+.error-banner {
+  padding: 10px 12px;
+  background: var(--color-danger-pale);
+  color: var(--color-danger);
+  border-radius: 10px;
+  font-size: 13px;
 }
 
-.otp-wrapper-modern {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-  padding: 20px;
-  background: var(--color-background);
-  border-radius: 20px;
-  border: 1px dashed var(--color-border);
-}
-
-/* ── Cancel Modal Styling ─────────────────────────────────────────────────── */
-
-.cancel-modal { --border-radius: 28px 28px 0 0; }
-
-.cancel-container { padding: 8px 4px 24px; display: flex; flex-direction: column; gap: 28px; }
-
-.cancel-warning { text-align: center; }
-.warning-icon-wrapper { 
-  width: 56px; height: 56px; border-radius: 18px; background: var(--color-danger-pale); 
-  color: var(--color-danger); display: flex; align-items: center; justify-content: center; 
-  margin: 0 auto 16px; font-size: 28px; 
-}
-.cancel-warning h3 { margin: 0; font-size: 20px; font-weight: 800; color: var(--color-text); }
-.cancel-warning p { margin: 8px 0 0; font-size: 14px; color: var(--color-text-muted); line-height: 1.5; }
-
-.cancel-form-section { display: flex; flex-direction: column; gap: 8px; }
-.form-label { font-size: 14px; font-weight: 700; color: var(--color-text); }
-.form-hint { margin: 0; font-size: 13px; color: var(--color-text-muted); }
-
-.cancel-textarea { 
-  --padding-start: 16px; --padding-end: 16px; --padding-top: 16px; --padding-bottom: 16px;
-  --border-radius: 16px; --border-color: var(--color-border); font-size: 15px;
-}
-
-.otp-wrapper { margin-top: 8px; }
-
-.cancel-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-
-/* ── Modals & Helpers ────────────────────────────────────────────────────── */
+/* ── OTP Modal ───────────────────────────────────────────────────────────── */
 .otp-modal { --border-radius: 32px 32px 0 0; }
-.otp-drawer-content { padding: 32px 24px; display: flex; flex-direction: column; gap: 32px; }
-.otp-icon-wrapper { 
-  width: 64px; height: 64px; border-radius: 20px; background: var(--color-brand-pale); 
-  color: var(--color-brand); display: flex; align-items: center; justify-content: center; 
-  margin: 0 auto; font-size: 32px; 
+.otp-drawer-content { padding: 28px 20px; display: flex; flex-direction: column; gap: 28px; }
+.otp-icon-wrapper {
+  width: 56px; height: 56px; border-radius: 18px;
+  background: var(--color-brand-pale); color: var(--color-brand);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto; font-size: 28px;
 }
 .otp-header { text-align: center; }
-.otp-header h3 { margin: 16px 0 8px; font-size: 22px; font-weight: 800; color: var(--color-text); }
-.otp-header p { margin: 0; font-size: 14px; color: var(--color-text-muted); line-height: 1.5; }
+.otp-header h3 { margin: 12px 0 6px; font-size: 20px; font-weight: 800; color: var(--color-text); }
+.otp-header p { margin: 0; font-size: 13px; color: var(--color-text-muted); line-height: 1.5; }
 .otp-input-section { display: flex; justify-content: center; }
-.otp-footer { display: flex; flex-direction: column; gap: 12px; }
+.otp-footer { display: flex; flex-direction: column; gap: 10px; }
 
-.upgrade-modal { --height: 70%; --border-radius: 24px 24px 0 0; }
-
-.modal-loading, .modal-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 40px;
-  text-align: center;
+/* ── Cancel Modal ────────────────────────────────────────────────────────── */
+.cancel-modal { --border-radius: 28px 28px 0 0; }
+.cancel-container { padding: 6px 4px 20px; display: flex; flex-direction: column; gap: 22px; }
+.cancel-warning { text-align: center; }
+.warning-icon-wrapper {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--color-danger-pale); color: var(--color-danger);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px; font-size: 24px;
 }
-
-.upgrade-list { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.upgrade-option {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  background: var(--color-surface);
-  border-radius: 16px;
-  border: 1px solid var(--color-border);
+.cancel-warning h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--color-text); }
+.cancel-warning p { margin: 6px 0 0; font-size: 13px; color: var(--color-text-muted); line-height: 1.5; }
+.cancel-form-section { display: flex; flex-direction: column; gap: 6px; }
+.form-label-group { display: flex; align-items: center; gap: 6px; }
+.form-label-group svg { color: var(--color-brand); font-size: 14px; }
+.form-label { font-size: 13px; font-weight: 700; color: var(--color-text); }
+.modern-textarea {
+  width: 100%; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--color-border); background: var(--color-background);
+  color: var(--color-text); font-family: inherit; font-size: 13px;
+  resize: none; transition: border-color 0.2s;
+  box-sizing: border-box;
 }
-.upgrade-option:active { background: var(--color-background); }
-.upgrade-option__info { flex: 1; }
-.upgrade-option__info h4 { margin: 0; font-size: 16px; font-weight: 700; }
-.upgrade-option__info p { margin: 4px 0 8px; font-size: 13px; color: var(--color-text-muted); }
-.price-diff { font-size: 12px; font-weight: 700; color: var(--color-success); background: var(--color-success-pale); padding: 4px 8px; border-radius: 6px; }
+.modern-textarea:focus { outline: none; border-color: var(--color-brand); }
+.cancel-actions { display: flex; flex-direction: column; gap: 8px; }
 
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.ms-auto { margin-left: auto; }
-
-.proof-group {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.proof-entry {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.proof-label {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.proof-preview, .proof-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.proof-preview img, .proof-thumbnail img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-
-.proof-empty {
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
-  font-style: italic;
-}
-
-.proof-preview, .proof-thumbnail {
-  cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.proof-preview:active, .proof-thumbnail:active {
-  transform: scale(0.95);
-  opacity: 0.8;
-}
-
-/* ── Gallery Modal Styling ────────────────────────────────────────────────── */
-.gallery-modal {
-  --background: rgba(0, 0, 0, 0.95);
-  --width: 100%;
-  --height: 100%;
-}
-
-/* ── Payment Details Modal ───────────────────────────────────────────────── */
+/* ── Payment Modal ───────────────────────────────────────────────────────── */
 .payment-modal { --border-radius: 28px 28px 0 0; }
-
-.payment-modal-toolbar {
-  --background: transparent;
-}
-
-.payment-modal-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--color-text);
-}
-
+.payment-modal-toolbar { --background: transparent; }
+.payment-modal-title { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 800; color: var(--color-text); }
 .payment-modal-title-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--color-brand-pale);
-  color: var(--color-brand);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--color-brand-pale); color: var(--color-brand);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
 }
-
-.payment-dialog-body {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding-bottom: max(24px, env(safe-area-inset-bottom));
-}
-
+.payment-dialog-body { display: flex; flex-direction: column; gap: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 .pdb-bill-banner {
   background: linear-gradient(135deg, var(--color-brand) 0%, color-mix(in srgb, var(--color-brand) 80%, #000) 100%);
-  border-radius: 20px;
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  color: #fff;
+  border-radius: 16px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px; color: #fff;
 }
-
-.pdb-bill-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.pdb-bill-row--sub {
-  font-size: 13px;
-  opacity: 0.75;
-}
-
-.pdb-bill-label {
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 0.9;
-}
-
-.pdb-bill-amount {
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: -0.5px;
-}
-
-.pdb-bill-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.2);
-  margin: 2px 0;
-}
-
-.pdb-section { display: flex; flex-direction: column; gap: 10px; }
-
-.pdb-section-label {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--color-text-muted);
-  padding-left: 4px;
-}
-
-.pdb-optional {
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--color-text-muted);
-  opacity: 0.7;
-}
-
-.pdb-list {
-  background: var(--color-surface);
-  border-radius: 18px;
-  overflow: hidden;
-  --ion-item-background: transparent;
-  --ion-item-border-color: var(--color-border);
-  padding: 0;
-}
-
-.pdb-item {
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --inner-padding-end: 0;
-  --min-height: 56px;
-  --border-color: var(--color-border);
-  font-size: 15px;
-}
-
-.pdb-item--textarea {
-  --min-height: auto;
-  align-items: flex-start;
-  padding-top: 12px;
-}
-
-.pdb-item-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
+.pdb-bill-row { display: flex; align-items: center; justify-content: space-between; }
+.pdb-bill-row--sub { font-size: 12px; opacity: 0.75; }
+.pdb-bill-label { font-size: 13px; font-weight: 600; opacity: 0.9; }
+.pdb-bill-amount { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; }
+.pdb-bill-divider { height: 1px; background: rgba(255,255,255,0.2); margin: 2px 0; }
+.pdb-section { display: flex; flex-direction: column; gap: 8px; }
+.pdb-section-label { margin: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--color-text-muted); padding-left: 2px; }
+.pdb-optional { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: 0.7; }
+.pdb-list { background: var(--color-surface); border-radius: 14px; overflow: hidden; --ion-item-background: transparent; --ion-item-border-color: var(--color-border); padding: 0; }
+.pdb-item { --padding-start: 10px; --padding-end: 10px; --inner-padding-end: 0; --min-height: 52px; --border-color: var(--color-border); font-size: 14px; }
+.pdb-item--textarea { --min-height: auto; align-items: flex-start; padding-top: 10px; }
+.pdb-item-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-right: 10px; flex-shrink: 0; }
 .pdb-icon-cash  { background: #e8f5e9; color: #2e7d32; }
 .pdb-icon-upi   { background: #e3f2fd; color: #1565c0; }
 .pdb-icon-tip   { background: #fce4ec; color: #c62828; }
 .pdb-icon-ref   { background: var(--color-brand-pale); color: var(--color-brand); }
 .pdb-icon-proof { background: #f3e5f5; color: #7b1fa2; }
-
-.pdb-item-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text);
-  margin: 0;
-}
-
-.pdb-amount-input {
-  text-align: right;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text);
-  max-width: 100px;
-  --placeholder-color: var(--color-text-muted);
-}
-
-.pdb-total {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--color-brand);
-  border-radius: 16px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.pdb-total strong {
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.status-chip-row {
-  display: flex;
-  gap: 10px;
-}
-
+.pdb-item-label { font-size: 14px; font-weight: 600; color: var(--color-text); margin: 0; }
+.pdb-amount-input { text-align: right; font-size: 17px; font-weight: 700; max-width: 90px; --placeholder-color: var(--color-text-muted); }
+.pdb-total { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--color-brand); border-radius: 12px; color: #fff; font-size: 13px; font-weight: 600; }
+.pdb-total strong { font-size: 20px; font-weight: 800; }
+.status-chip-row { display: flex; gap: 8px; }
 .status-chip {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 14px 8px;
-  border-radius: 16px;
-  border: 2px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.18s ease;
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; padding: 12px 6px; border-radius: 12px;
+  border: 2px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-muted); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s ease;
 }
-
-.status-chip svg { font-size: 20px; }
-
-.status-chip--paid   { border-color: transparent; background: var(--color-surface); }
-.status-chip--unpaid { border-color: transparent; background: var(--color-surface); }
-.status-chip--conflict { border-color: transparent; background: var(--color-surface); }
-
+.status-chip svg { font-size: 18px; }
 .status-chip--active.status-chip--paid    { border-color: var(--color-success); background: #e8f5e9; color: var(--color-success); }
-.status-chip--active.status-chip--unpaid  { border-color: var(--color-warning, #f59e0b); background: #fffbeb; color: #b45309; }
+.status-chip--active.status-chip--unpaid  { border-color: #f59e0b; background: #fffbeb; color: #b45309; }
 .status-chip--active.status-chip--conflict { border-color: var(--color-danger); background: var(--color-danger-pale); color: var(--color-danger); }
-
-.pdb-proof-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--color-surface);
-  border-radius: 18px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
+.pdb-proof-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--color-surface); border-radius: 14px; cursor: pointer; }
 .pdb-proof-row:active { background: var(--color-background); }
+.pdb-proof-left { display: flex; align-items: center; gap: 10px; }
+.pdb-proof-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text); }
+.pdb-proof-sub   { margin: 2px 0 0; font-size: 11px; color: var(--color-text-muted); }
+.pdb-proof-badge { --border-radius: 6px; font-size: 11px; font-weight: 700; }
+.pdb-proof-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+.pdb-thumb { width: 64px; height: 64px; border-radius: 10px; overflow: hidden; border: 2px solid var(--color-border); cursor: pointer; }
+.pdb-thumb:active { opacity: 0.8; }
+.pdb-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pdb-actions { display: flex; flex-direction: column; gap: 8px; }
 
-.pdb-proof-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+/* ── Gallery Modal ───────────────────────────────────────────────────────── */
+.gallery-modal { --background: rgba(0,0,0,0.95); --width: 100%; --height: 100%; }
+.gallery-container { width: 100%; height: 100%; display: flex; flex-direction: column; }
+.gallery-header { padding: env(safe-area-inset-top, 12px) 16px 12px; display: flex; justify-content: flex-end; }
+.close-btn { --color: #fff; --background: rgba(255,255,255,0.1); --border-radius: 50%; width: 40px; height: 40px; }
+.gallery-content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.full-image { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
 
-.pdb-proof-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--color-text); }
-.pdb-proof-sub   { margin: 2px 0 0; font-size: 12px; color: var(--color-text-muted); }
-
-.pdb-proof-badge {
-  --border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
-}
-
-.pdb-proof-thumbs {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-left: 2px;
-}
-
-.pdb-thumb {
-  width: 72px;
-  height: 72px;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 2px solid var(--color-border);
-  cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.pdb-thumb:active { transform: scale(0.93); opacity: 0.8; }
-
-.pdb-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.pdb-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 4px;
-}
-
-.gallery-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.gallery-header {
-  padding: env(safe-area-inset-top) 16px 16px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.close-btn {
-  --color: #fff;
-  --background: rgba(255, 255, 255, 0.1);
-  --border-radius: 50%;
-  width: 44px;
-  height: 44px;
-}
-
-.gallery-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.full-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-}
-
+/* ── Utilities ───────────────────────────────────────────────────────────── */
+.ms-auto { margin-left: auto; }
 .text-success { color: var(--color-success); }
 .text-brand { color: var(--color-brand); }
 .text-danger { color: var(--color-danger); }
+.spin { animation: spin 1s linear infinite; }
 
-/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim-fade-in { animation: fadeIn 0.25s ease both; }
 </style>

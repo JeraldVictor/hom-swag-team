@@ -58,6 +58,8 @@ export type {
   OrderCustomer,
   OrderProduct,
   OrderStatus,
+  OrderTrip,
+  OrderTripRider,
   PaymentStatus,
   UpdateOrderPayload,
   UpdateOrderStatusBody,
