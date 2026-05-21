@@ -6,6 +6,7 @@ export type OrderStatus =
   | 'Ongoing'
   | 'Started'
   | 'Completed'
+  | 'cancel_requested'
   | 'started'
   | 'ongoing'
   | 'completed'
@@ -190,7 +191,13 @@ export interface UpgradeProductBody {
  * Sent to PATCH /orders/:id/status
  */
 export interface UpdateOrderStatusBody {
-  status: 'started' | 'ongoing' | 'completed' | 'arrived_and_cancelled' | 'cancelled'
+  status:
+    | 'started'
+    | 'ongoing'
+    | 'completed'
+    | 'arrived_and_cancelled'
+    | 'cancelled'
+    | 'cancel_requested'
   status_reason?: string
   otp?: string
 }

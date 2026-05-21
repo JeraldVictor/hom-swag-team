@@ -157,6 +157,7 @@ const statusLabels: Record<OrderStatus, string> = {
   completed: 'Completed',
   arrived_and_cancelled: 'Arrived & Cancelled',
   cancelled: 'Cancelled',
+  cancel_requested: 'Cancellation Requested',
   cancelled_and_refunded: 'Cancelled & Refunded',
 }
 
@@ -173,6 +174,8 @@ function normalizeStatus(value: string): OrderStatus | null {
       return 'Completed'
     case 'cancelled':
       return 'cancelled'
+    case 'cancel_requested':
+      return 'cancel_requested'
     default:
       return null
   }

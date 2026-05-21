@@ -18,8 +18,9 @@ const STATUS_PRIORITY: Record<string, number> = {
   'on going': 3,
   completed: 4,
   arrived_and_cancelled: 5,
-  cancelled: 6,
-  cancelled_and_refunded: 7,
+  cancel_requested: 6,
+  cancelled: 7,
+  cancelled_and_refunded: 8,
 }
 
 export function useOrders() {
@@ -89,6 +90,7 @@ export function useOrders() {
       'ongoing',
       'started',
       'arrived_and_cancelled',
+      'cancel_requested',
       'cancelled',
       'cancelled_and_refunded',
     ]
@@ -123,7 +125,10 @@ export function useOrders() {
       const activeFilter = statusFilter.value.toLowerCase()
       if (activeFilter === 'cancelled') {
         const isAnyCancelled =
-          s === 'cancelled' || s === 'arrived_and_cancelled' || s === 'cancelled_and_refunded'
+          s === 'cancelled' ||
+          s === 'cancel_requested' ||
+          s === 'arrived_and_cancelled' ||
+          s === 'cancelled_and_refunded'
         if (!isAnyCancelled) return false
       } else if (s !== activeFilter) {
         return false
@@ -202,7 +207,12 @@ export function useOrders() {
       if (dateFilter.value === 'tomorrow' && !isTomorrow) continue
       if (dateFilter.value === 'past' && !isPast) continue
 
-      if (s === 'cancelled' || s === 'arrived_and_cancelled' || s === 'cancelled_and_refunded') {
+      if (
+        s === 'cancelled' ||
+        s === 'cancel_requested' ||
+        s === 'arrived_and_cancelled' ||
+        s === 'cancelled_and_refunded'
+      ) {
         counts.cancelled += 1
       } else if (s === 'completed') {
         counts.Completed += 1

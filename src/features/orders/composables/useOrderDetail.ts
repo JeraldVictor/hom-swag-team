@@ -184,17 +184,14 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      const nextStatus: 'cancelled' | 'arrived_and_cancelled' =
-        order.value.status.toLowerCase() === 'confirmed' ? 'cancelled' : 'arrived_and_cancelled'
-
       const id = order.value._id || order.value.id
       order.value = await updateOrderStatusApi(id, {
-        status: nextStatus,
+        status: 'cancel_requested',
         status_reason: reason,
         otp,
       })
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to cancel order'
+      error.value = err instanceof Error ? err.message : 'Failed to submit cancellation request'
     } finally {
       isUpdating.value = false
     }

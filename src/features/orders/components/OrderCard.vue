@@ -55,7 +55,8 @@ const statusVariant = computed(() => {
   const s = props.order.status?.toLowerCase()
   if (s === 'completed') return 'success'
   if (s === 'ongoing' || s === 'started' || s === 'confirmed') return 'brand'
-  if (s === 'arrived_and_cancelled' || s === 'cancelled') return 'danger'
+  if (s === 'arrived_and_cancelled' || s === 'cancelled' || s === 'cancel_requested')
+    return 'danger'
   return 'warning'
 })
 

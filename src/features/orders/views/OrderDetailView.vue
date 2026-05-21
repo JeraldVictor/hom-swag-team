@@ -41,23 +41,27 @@
         <!-- Hero Section: Customer & Quick Info -->
         <div class="order-hero">
           <div class="hero-content">
-            <div v-if="!isCustomerHidden" class="customer-profile">
-              <AppAvatar 
-                :initials="customerInitials" 
-                size="64" 
-                backgroundColor="rgba(255, 255, 255, 0.2)"
-                class="customer-avatar-modern"
-              />
-              <div class="customer-info">
-                <h2 class="customer-name">{{ order.customer?.full_name || 'Customer' }}</h2>
+            <div v-if="!isCustomerHidden" class="customer-compact">
+              <div class="compact-top-row">
                 <div class="order-id-badge">
                   <Icon icon="lucide:hash" class="hash-icon" />
                   <span>{{ order.order_number }}</span>
                 </div>
+                <AppBadge :variant="(statusVariant as any)" class="status-badge-hero">
+                  {{ orderStatusLabel }}
+                </AppBadge>
               </div>
-              <AppBadge :variant="(statusVariant as any)" class="status-badge-hero">
-                {{ order.status }}
-              </AppBadge>
+              <h2 class="customer-name-compact">{{ order.customer?.full_name || 'Customer' }}</h2>
+              <div class="compact-details">
+                <div class="compact-detail-row">
+                  <Icon icon="lucide:map-pin" class="compact-icon" />
+                  <span>{{ fullAddress }}</span>
+                </div>
+                <div v-if="order.customer?.phone" class="compact-detail-row">
+                  <Icon icon="lucide:phone" class="compact-icon" />
+                  <span>{{ order.customer.phone }}</span>
+                </div>
+              </div>
             </div>
 
             <div v-else class="masked-hero">
@@ -67,7 +71,7 @@
                   <h2 class="masked-hero-number">#{{ order.order_number }}</h2>
                 </div>
                 <AppBadge :variant="(statusVariant as any)" class="status-badge-hero">
-                  {{ order.status }}
+                  {{ orderStatusLabel }}
                 </AppBadge>
               </div>
               <div class="masked-hero-grid">
@@ -82,24 +86,6 @@
               </div>
             </div>
 
-            <div v-if="!isCustomerHidden">
-              <div class="order-meta-grid">
-                <div class="meta-item">
-                  <Icon icon="lucide:calendar" class="meta-icon" />
-                  <div>
-                    <p class="meta-label">Date</p>
-                    <p class="meta-value">{{ formattedDate }}</p>
-                  </div>
-                </div>
-                <div class="meta-item">
-                  <Icon icon="lucide:clock" class="meta-icon" />
-                  <div>
-                    <p class="meta-label">Timing</p>
-                    <p class="meta-value">{{ order.booking_info?.timing || 'Not set' }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <div class="hero-actions" v-if="!isCompleted && !isCustomerHidden">
               <div class="main-hero-btns">
@@ -123,15 +109,6 @@
         </div>
 
         <div class="order-content anim-fade-in">
-          <!-- Address Section -->
-          <div v-if="!isCustomerHidden" class="content-card">
-            <div class="card-header">
-              <Icon icon="lucide:map-pin" class="header-icon" />
-              <h3>Service Address</h3>
-            </div>
-            <p class="address-text">{{ fullAddress }}</p>
-          </div>
-
           <!-- Order Context Section -->
           <div class="content-card context-card" v-if="!isCustomerHidden && hasOrderContext">
             <div class="card-header">
@@ -558,21 +535,14 @@
           </div>
 
           <div class="cancel-form-section">
-            <div class="form-label-group">
-              <Icon icon="lucide:shield-check" />
-              <label class="form-label">Verification OTP</label>
-            </div>
-            <p class="form-hint">Ask the customer for the 6-digit cancellation OTP code.</p>
-            <div class="otp-wrapper-modern">
-              <OtpInput v-model="otpValue" :length="6" />
-            </div>
+            <p class="form-hint">A cancellation request will be sent to admin for review.</p>
           </div>
 
           <div class="cancel-actions">
             <AppButton
               variant="danger"
               expand="block"
-              :disabled="!cancelReason.trim() || otpValue.length < 6"
+              :disabled="!cancelReason.trim()"
               :loading="isUpdating"
               @click="handleCancel"
             >
@@ -709,7 +679,7 @@ const hasOrderContext = computed(() => {
 
 const isCustomerHidden = computed(() => {
   const status = order.value?.status?.toLowerCase() || ''
-  const hiddenStatuses = ['completed', 'cancelled', 'arrived_and_cancelled']
+  const hiddenStatuses = ['completed', 'cancelled', 'cancel_requested', 'arrived_and_cancelled']
   const missingCustomer =
     !order.value?.customer?.full_name &&
     !order.value?.customer?.name &&
@@ -723,8 +693,30 @@ const statusVariant = computed(() => {
   if (s === 'completed') return 'success'
   if (s === 'ongoing' || s === 'started') return 'brand'
   if (s === 'confirmed') return 'brand'
-  if (s === 'arrived_and_cancelled') return 'danger'
+  if (s === 'arrived_and_cancelled' || s === 'cancel_requested') return 'danger'
   return 'neutral'
+})
+
+const orderStatusLabel = computed(() => {
+  const status = order.value?.status?.toLowerCase() || ''
+  switch (status) {
+    case 'cancel_requested':
+      return 'Cancellation Requested'
+    case 'arrived_and_cancelled':
+      return 'Arrived & Cancelled'
+    case 'cancelled':
+      return 'Cancelled'
+    case 'completed':
+      return 'Completed'
+    case 'started':
+      return 'Started'
+    case 'ongoing':
+      return 'Ongoing'
+    case 'confirmed':
+      return 'Confirmed'
+    default:
+      return order.value?.status ?? 'Unknown'
+  }
 })
 
 const paymentStatusVariant = computed(() => {
@@ -829,9 +821,9 @@ async function handleMainAction() {
   const s = order.value?.status?.toLowerCase()
 
   if (s === 'confirmed') {
-    // Confirmed -> Ongoing (Start to Customer)
+    // Confirmed -> Ongoing (Start travel)
     const confirmed = await presentConfirm(
-      'Start to Customer',
+      'Start travel',
       'Are you sure you want to start moving to the customer location?'
     )
     if (!confirmed) return
@@ -993,25 +985,15 @@ async function handleCancel() {
     return
   }
 
-  if (otpValue.value.length !== 6) {
-    const toast = await toastController.create({
-      message: 'Please enter the 6-digit cancellation OTP.',
-      duration: 2000,
-      color: 'warning',
-    })
-    await toast.present()
-    return
-  }
-
   // API Trigger
-  await cancelAfterArrival(cancelReason.value, otpValue.value)
+  await cancelAfterArrival(cancelReason.value)
 
   if (!error.value) {
     showCancelModal.value = false
     cancelReason.value = ''
     otpValue.value = ''
     const toast = await toastController.create({
-      message: 'Order cancelled successfully',
+      message: 'Cancellation request submitted',
       duration: 2000,
       color: 'success',
       position: 'top',
@@ -1126,7 +1108,7 @@ onMounted(() => fetchOrder(orderId))
 .order-hero {
   background: linear-gradient(165deg, var(--color-brand) 0%, var(--color-brand-mid) 100%);
   color: white;
-  padding: var(--spacing-6) var(--spacing-5) var(--spacing-8);
+  padding: var(--spacing-4) var(--spacing-5) var(--spacing-6);
   border-bottom-left-radius: var(--radius-2xl);
   border-bottom-right-radius: var(--radius-2xl);
   box-shadow: 0 12px 32px rgba(124, 58, 237, 0.25);
@@ -1150,34 +1132,46 @@ onMounted(() => fetchOrder(orderId))
   z-index: 1;
 }
 
-.customer-profile {
+.customer-compact {
+  margin-bottom: var(--spacing-4);
+}
+
+.compact-top-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-4);
-  margin-bottom: var(--spacing-6);
+  justify-content: space-between;
+  margin-bottom: var(--spacing-2);
 }
 
-.customer-avatar-modern {
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.customer-avatar-modern :deep(.app-avatar__initials) {
-  color: white !important;
-  font-size: 24px;
-  font-weight: 800;
-}
-
-.customer-info {
-  flex: 1;
-}
-
-.customer-name {
-  margin: 0;
-  font-size: var(--font-size-2xl);
+.customer-name-compact {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--font-size-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: white;
+}
+
+.compact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compact-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.compact-icon {
+  font-size: 14px;
+  opacity: 0.75;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .masked-hero {
@@ -1258,27 +1252,6 @@ onMounted(() => fetchOrder(orderId))
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-.order-meta-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-4);
-  margin-bottom: var(--spacing-6);
-  background: rgba(0, 0, 0, 0.1);
-  padding: var(--spacing-4);
-  border-radius: var(--radius-xl);
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-}
-
-.meta-icon {
-  font-size: 18px;
-  opacity: 0.8;
 }
 
 .meta-label {
