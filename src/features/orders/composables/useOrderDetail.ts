@@ -14,19 +14,6 @@ import {
 import { useCamera, useDirections } from '@/shared/composables'
 import type { Order, OrderProduct, UpgradeProductBody, UpdateOrderPayload } from '@/shared/models'
 
-/** Helper to convert base64 data URL to Blob */
-function dataUrlToBlob(dataUrl: string): Blob {
-  const parts = dataUrl.split(';base64,')
-  const contentType = parts[0].split(':')[1]
-  const raw = window.atob(parts[1])
-  const rawLength = raw.length
-  const uInt8Array = new Uint8Array(rawLength)
-  for (let i = 0; i < rawLength; ++i) {
-    uInt8Array[i] = raw.charCodeAt(i)
-  }
-  return new Blob([uInt8Array], { type: contentType })
-}
-
 /** Status progression for beautician */
 const NEXT_STATUS: Partial<
   Record<string, 'ongoing' | 'reached_customer_place' | 'started' | 'completed'>
@@ -124,10 +111,7 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      const dataUrl = await takePhoto()
-      if (!dataUrl) return false
-
-      const blob = dataUrlToBlob(dataUrl)
+      const blob = await takePhoto()
       const formData = new FormData()
       formData.append('image', blob, `selfie_${order.value._id || order.value.id}.jpg`)
 
@@ -147,10 +131,7 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      const dataUrl = await takePhoto()
-      if (!dataUrl) return false
-
-      const blob = dataUrlToBlob(dataUrl)
+      const blob = await takePhoto()
       const formData = new FormData()
       formData.append(
         'image',
@@ -202,10 +183,7 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      const dataUrl = await takePhoto()
-      if (!dataUrl) return false
-
-      const blob = dataUrlToBlob(dataUrl)
+      const blob = await takePhoto()
       const id = order.value._id || order.value.id
       const formData = new FormData()
       formData.append('image', blob, `payment_proof_${id}_${Date.now()}.jpg`)
