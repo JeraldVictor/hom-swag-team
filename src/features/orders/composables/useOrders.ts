@@ -14,13 +14,14 @@ export type OrderDateFilter = 'today' | 'tomorrow' | 'past'
 const STATUS_PRIORITY: Record<string, number> = {
   confirmed: 1,
   started: 2,
-  ongoing: 3,
-  'on going': 3,
-  completed: 4,
-  arrived_and_cancelled: 5,
-  cancel_requested: 6,
-  cancelled: 7,
-  cancelled_and_refunded: 8,
+  reached_customer_place: 3,
+  ongoing: 4,
+  'on going': 4,
+  completed: 5,
+  arrived_and_cancelled: 6,
+  cancel_requested: 7,
+  cancelled: 8,
+  cancelled_and_refunded: 9,
 }
 
 export function useOrders() {
@@ -88,6 +89,7 @@ export function useOrders() {
       'completed',
       'on going',
       'ongoing',
+      'reached_customer_place',
       'started',
       'arrived_and_cancelled',
       'cancel_requested',
@@ -112,7 +114,8 @@ export function useOrders() {
         s === 'cancelled' ||
         s === 'cancelled_and_refunded'
 
-      const isActive = s === 'ongoing' || s === 'started' || s === 'on going'
+      const isActive =
+        s === 'ongoing' || s === 'started' || s === 'on going' || s === 'reached_customer_place'
 
       // Filter by tab
       if (dateFilter.value === 'today' && !isToday && !isActive) return false
@@ -201,7 +204,8 @@ export function useOrders() {
         s === 'arrived_and_cancelled' ||
         s === 'cancelled' ||
         s === 'cancelled_and_refunded'
-      const isActive = s === 'ongoing' || s === 'started' || s === 'on going'
+      const isActive =
+        s === 'ongoing' || s === 'started' || s === 'on going' || s === 'reached_customer_place'
 
       if (dateFilter.value === 'today' && !isToday && !isActive) continue
       if (dateFilter.value === 'tomorrow' && !isTomorrow) continue
@@ -216,7 +220,7 @@ export function useOrders() {
         counts.cancelled += 1
       } else if (s === 'completed') {
         counts.Completed += 1
-      } else if (s === 'ongoing' || s === 'on going') {
+      } else if (s === 'ongoing' || s === 'on going' || s === 'reached_customer_place') {
         counts.Ongoing += 1
       } else if (s === 'started') {
         counts.Started += 1

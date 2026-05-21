@@ -27,11 +27,14 @@ function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 /** Status progression for beautician */
-const NEXT_STATUS: Partial<Record<string, 'ongoing' | 'started' | 'completed'>> = {
+const NEXT_STATUS: Partial<
+  Record<string, 'ongoing' | 'reached_customer_place' | 'started' | 'completed'>
+> = {
   Confirmed: 'ongoing',
   confirmed: 'ongoing',
-  ongoing: 'started',
-  Ongoing: 'started',
+  ongoing: 'reached_customer_place',
+  Ongoing: 'reached_customer_place',
+  reached_customer_place: 'started',
   started: 'completed',
   Started: 'completed',
 }
@@ -39,8 +42,9 @@ const NEXT_STATUS: Partial<Record<string, 'ongoing' | 'started' | 'completed'>> 
 const NEXT_LABEL: Partial<Record<string, string>> = {
   Confirmed: 'Start to Customer',
   confirmed: 'Start to Customer',
-  ongoing: 'Take Selfie (Uniform)',
-  Ongoing: 'Take Selfie (Uniform)',
+  ongoing: 'Reached Customer Place',
+  Ongoing: 'Reached Customer Place',
+  reached_customer_place: 'Take Selfie',
   started: 'Complete Service',
   Started: 'Complete Service',
 }
@@ -59,7 +63,7 @@ export function useOrderDetail() {
   const nextActionLabel = computed(() => {
     if (!order.value) return null
     const s = order.value.status.toLowerCase()
-    if (s === 'ongoing' && order.value.arrival_selfie) {
+    if (s === 'reached_customer_place' && order.value.arrival_selfie) {
       return 'Enter OTP to Start'
     }
     return NEXT_LABEL[order.value.status] ?? null
@@ -69,7 +73,7 @@ export function useOrderDetail() {
 
   const canUpgrade = computed(() => {
     const s = order.value?.status?.toLowerCase()
-    return s === 'started' || s === 'ongoing'
+    return s === 'started'
   })
 
   async function fetchOrder(id: string | number): Promise<void> {

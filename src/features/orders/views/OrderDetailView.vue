@@ -691,8 +691,8 @@ const isCustomerHidden = computed(() => {
 const statusVariant = computed(() => {
   const s = order.value?.status?.toLowerCase()
   if (s === 'completed') return 'success'
-  if (s === 'ongoing' || s === 'started') return 'brand'
-  if (s === 'confirmed') return 'brand'
+  if (s === 'ongoing' || s === 'started' || s === 'confirmed' || s === 'reached_customer_place')
+    return 'brand'
   if (s === 'arrived_and_cancelled' || s === 'cancel_requested') return 'danger'
   return 'neutral'
 })
@@ -702,6 +702,8 @@ const orderStatusLabel = computed(() => {
   switch (status) {
     case 'cancel_requested':
       return 'Cancellation Requested'
+    case 'reached_customer_place':
+      return 'Reached Customer Place'
     case 'arrived_and_cancelled':
       return 'Arrived & Cancelled'
     case 'cancelled':
@@ -742,11 +744,12 @@ const paymentReference = computed(() => order.value?.payment?.reference || '—'
 
 const canCancel = computed(() => {
   const s = order.value?.status?.toLowerCase()
-  return s === 'confirmed' || s === 'ongoing' || s === 'started'
+  return s === 'confirmed' || s === 'ongoing' || s === 'reached_customer_place' || s === 'started'
 })
 
 const isSelfieStep = computed(() => {
-  return order.value?.status?.toLowerCase() === 'ongoing' && !order.value?.arrival_selfie
+  const s = order.value?.status?.toLowerCase()
+  return (s === 'ongoing' || s === 'reached_customer_place') && !order.value?.arrival_selfie
 })
 
 const proofImages = computed(() => {
@@ -829,11 +832,18 @@ async function handleMainAction() {
     if (!confirmed) return
     await advanceStatus()
   } else if (s === 'ongoing') {
-    // Ongoing -> Started (Reached Customer + Selfie + OTP)
+    // Ongoing -> Reached Customer Place
+    const confirmed = await presentConfirm(
+      'Reached Customer Place',
+      'Have you reached the customer location and want to begin arrival verification?'
+    )
+    if (!confirmed) return
+    await advanceStatus()
+  } else if (s === 'reached_customer_place') {
     if (!order.value?.arrival_selfie) {
       const confirmed = await presentConfirm(
         'Take Selfie',
-        'Are you ready to take the arrival selfie?'
+        'Are you ready to take the arrival selfie and upload setup photos?'
       )
       if (!confirmed) return
 
@@ -881,7 +891,7 @@ async function handleUploadSelfie() {
   const uploaded = await uploadSelfie()
   if (uploaded) {
     showSuccess('Selfie uploaded successfully')
-    if (order.value?.status.toLowerCase() === 'ongoing') {
+    if (order.value?.status.toLowerCase() === 'reached_customer_place') {
       showOtpInput.value = true
     }
   }

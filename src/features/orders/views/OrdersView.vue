@@ -145,12 +145,20 @@ const placeholderOrder: Order = {
   address: { street: '123 Placeholder St', city: 'Placeholder City' },
 } as Order // using as Order to satisfy the interface which has many optional but some required fields like id
 
-const statusOptions: OrderStatus[] = ['Confirmed', 'Started', 'Ongoing', 'Completed', 'cancelled']
+const statusOptions: OrderStatus[] = [
+  'Confirmed',
+  'Started',
+  'Ongoing',
+  'reached_customer_place',
+  'Completed',
+  'cancelled',
+]
 
 const statusLabels: Record<OrderStatus, string> = {
   Confirmed: 'Confirmed',
   Started: 'Started',
   Ongoing: 'Ongoing',
+  reached_customer_place: 'Reached Customer Place',
   Completed: 'Completed',
   started: 'Started',
   ongoing: 'Ongoing',
@@ -170,6 +178,8 @@ function normalizeStatus(value: string): OrderStatus | null {
       return 'Started'
     case 'ongoing':
       return 'Ongoing'
+    case 'reached_customer_place':
+      return 'reached_customer_place'
     case 'completed':
       return 'Completed'
     case 'cancelled':

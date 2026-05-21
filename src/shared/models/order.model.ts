@@ -6,6 +6,7 @@ export type OrderStatus =
   | 'Ongoing'
   | 'Started'
   | 'Completed'
+  | 'reached_customer_place'
   | 'cancel_requested'
   | 'started'
   | 'ongoing'
@@ -194,6 +195,7 @@ export interface UpdateOrderStatusBody {
   status:
     | 'started'
     | 'ongoing'
+    | 'reached_customer_place'
     | 'completed'
     | 'arrived_and_cancelled'
     | 'cancelled'
