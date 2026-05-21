@@ -1108,7 +1108,7 @@ onMounted(() => fetchOrder(orderId))
 .order-hero {
   background: linear-gradient(165deg, var(--color-brand) 0%, var(--color-brand-mid) 100%);
   color: white;
-  padding: var(--spacing-4) var(--spacing-5) var(--spacing-6);
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-5);
   border-bottom-left-radius: var(--radius-2xl);
   border-bottom-right-radius: var(--radius-2xl);
   box-shadow: 0 12px 32px rgba(124, 58, 237, 0.25);
@@ -1121,8 +1121,8 @@ onMounted(() => fetchOrder(orderId))
   position: absolute;
   top: -20%;
   right: -10%;
-  width: 300px;
-  height: 300px;
+  width: 240px;
+  height: 240px;
   background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
   pointer-events: none;
 }
@@ -1133,20 +1133,20 @@ onMounted(() => fetchOrder(orderId))
 }
 
 .customer-compact {
-  margin-bottom: var(--spacing-4);
+  margin-bottom: var(--spacing-3);
 }
 
 .compact-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-1);
 }
 
 .customer-name-compact {
   margin: 0 0 var(--spacing-2);
-  font-size: var(--font-size-xl);
-  font-weight: 800;
+  font-size: 1.05rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: white;
 }
@@ -1177,36 +1177,60 @@ onMounted(() => fetchOrder(orderId))
 .masked-hero {
   background: rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-xl);
-  padding: var(--spacing-4);
-  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
 }
 
 .masked-hero-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-3);
+  gap: 8px;
 }
 
 .masked-hero-label {
   margin: 0;
   color: rgba(255, 255, 255, 0.75);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
 }
 
 .masked-hero-number {
-  margin: 0.35rem 0 0;
-  font-size: var(--font-size-2xl);
+  margin: 0.2rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
   color: white;
 }
 
 .masked-hero-grid {
   display: grid;
-  gap: var(--spacing-3);
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  margin-top: var(--spacing-4);
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin-top: var(--spacing-2);
+}
+
+.status-badge-hero {
+  --background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: white;
+  padding: 6px 10px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.main-hero-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dual-btns-modern {
+  display: flex;
+  gap: 8px;
 }
 
 .masked-meta-item {
