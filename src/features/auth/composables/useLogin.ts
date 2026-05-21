@@ -142,7 +142,9 @@ export function useLogin(): UseLoginReturn {
         }
       }
 
-      await router.replace('/home')
+      const redirectPath =
+        (router.currentRoute.value.query.redirect as string | undefined) || '/home'
+      await router.replace(redirectPath)
 
       // Start location tracking now that the user is authenticated
       void locationTracker.start()

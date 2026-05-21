@@ -29,6 +29,8 @@ export interface PaymentInfo {
   refund_amount?: number
   partial_refund_amount?: number
   tip?: number
+  cod_amount?: number
+  upi_amount?: number
   remark?: string
   staff_comment?: string
   internal_comment?: string
@@ -92,6 +94,33 @@ export interface OrderBookingInfo {
   beautician_start_time?: string
 }
 
+export interface OrderTripRider {
+  id?: string
+  _id?: string
+  name?: string
+  phone?: string
+  vehicle_number?: string
+  registration_number?: string
+}
+
+export interface OrderTripLocation {
+  type?: 'Point'
+  coordinates?: [number, number]
+}
+
+export interface OrderTrip {
+  id?: string
+  _id?: string
+  trip_number?: string
+  kanban_state?: string
+  start_time?: string
+  end_time?: string
+  fare?: number
+  pickup_location?: OrderTripLocation
+  drop_location?: OrderTripLocation
+  rider?: OrderTripRider
+}
+
 /**
  * A service booking entity assigned to a beautician.
  */
@@ -131,10 +160,18 @@ export interface Order {
   staff_notes?: string
   custom_instruction?: string
   instruction_presets?: OrderInstructionPreset[]
+  /** Trip assignments for this order */
+  trips?: OrderTrip[]
   /** Photo taken on arrival */
   arrival_selfie?: { url?: string; key?: string }
   /** Photos/screenshots uploaded for completion proof */
   proof_of_service?: Array<{ url?: string; key?: string }>
+  /** Photos/screenshots uploaded to show setup before service start */
+  setup_photos?: Array<{ url?: string; key?: string }>
+  /** Verification metadata for service OTP generation */
+  verification?: {
+    otp_sent_at?: string
+  }
   /** Office-specific payment QR code image returned with the order */
   office_payment_qr_code?: { url?: string; key?: string }
 }

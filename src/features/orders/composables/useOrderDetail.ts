@@ -8,6 +8,7 @@ import {
   upgradeOrderProduct as upgradeOrderProductApi,
   uploadArrivalSelfie as uploadArrivalSelfieApi,
   uploadCompletionProof as uploadCompletionProofApi,
+  uploadSetupPhotos as uploadSetupPhotosApi,
   verifyServiceOtp as verifyServiceOtpApi,
 } from '@/shared/api'
 import { useCamera, useDirections } from '@/shared/composables'
@@ -60,11 +61,20 @@ export function useOrderDetail() {
   const { openDirections } = useDirections()
   const { takePhoto } = useCamera()
 
+  const hasSetupPhotos = computed(() => {
+    return Array.isArray(order.value?.setup_photos) && order.value?.setup_photos.length > 0
+  })
+
   const nextActionLabel = computed(() => {
     if (!order.value) return null
     const s = order.value.status.toLowerCase()
     if (s === 'reached_customer_place' && order.value.arrival_selfie) {
+      if (!hasSetupPhotos.value) return 'Upload Setup Photos'
+      if (!order.value.verification?.otp_sent_at) return 'Generate OTP'
       return 'Enter OTP to Start'
+    }
+    if (s === 'started') {
+      return 'Finalize payment & Complete'
     }
     return NEXT_LABEL[order.value.status] ?? null
   })
@@ -126,6 +136,61 @@ export function useOrderDetail() {
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upload selfie'
+      return false
+    } finally {
+      isUpdating.value = false
+    }
+  }
+
+  async function captureAndUploadSetupPhoto(): Promise<boolean> {
+    if (!order.value) return false
+    isUpdating.value = true
+    error.value = null
+    try {
+      const dataUrl = await takePhoto()
+      if (!dataUrl) return false
+
+      const blob = dataUrlToBlob(dataUrl)
+      const formData = new FormData()
+      formData.append(
+        'image',
+        blob,
+        `setup_photo_${order.value._id || order.value.id}_${Date.now()}.jpg`
+      )
+
+      const id = order.value._id || order.value.id
+      order.value = await uploadSetupPhotosApi(id, formData)
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to upload setup photo'
+      return false
+    } finally {
+      isUpdating.value = false
+    }
+  }
+
+  async function uploadSetupPhotosFiles(files: FileList | File[]): Promise<boolean> {
+    if (!order.value) return false
+    const id = order.value._id || order.value.id
+    const formData = new FormData()
+
+    const fileArray = Array.from(files)
+    if (fileArray.length === 0) {
+      error.value = 'Please select at least one photo.'
+      return false
+    }
+
+    fileArray.forEach((file, index) => {
+      formData.append('image', file, file.name || `setup_photo_${index + 1}.jpg`)
+    })
+
+    isUpdating.value = true
+    error.value = null
+    try {
+      order.value = await uploadSetupPhotosApi(id, formData)
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to upload setup photos'
       return false
     } finally {
       isUpdating.value = false
@@ -207,9 +272,9 @@ export function useOrderDetail() {
     error.value = null
     try {
       const id = order.value._id || order.value.id
-      const updated = await generateServiceOtpApi(id)
-      order.value = updated
-      return updated.service_otp ?? null
+      const result = await generateServiceOtpApi(id)
+      order.value = await getOrderApi(id)
+      return result?.otp ?? null
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to generate OTP'
       return null
@@ -283,6 +348,8 @@ export function useOrderDetail() {
     fetchOrder,
     advanceStatus,
     uploadSelfie,
+    uploadSetupPhotos: uploadSetupPhotosFiles,
+    captureAndUploadSetupPhoto,
     uploadCompletionProof: uploadCompletionProofFiles,
     cancelAfterArrival,
     generateOtp,

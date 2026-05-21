@@ -71,8 +71,12 @@ export async function updateOrderStatus(
  * Generate a service OTP for the order (before starting service).
  * POST /orders/:id/otp/generate
  */
-export async function generateServiceOtp(id: string | number): Promise<Order> {
-  const response = await apiClient.post<{ data: Order }>(`/orders/${id}/otp/generate`)
+export async function generateServiceOtp(
+  id: string | number
+): Promise<{ otp: string; expires_at: string }> {
+  const response = await apiClient.post<{ data: { otp: string; expires_at: string } }>(
+    `/orders/${id}/otp/generate`
+  )
   return response.data.data
 }
 
@@ -131,6 +135,18 @@ export async function uploadCompletionProof(
 ): Promise<Order> {
   const response = await apiClient.post<{ data: Order }>(
     `/orders/${String(id)}/completion-proof`,
+    formData
+  )
+  return response.data.data
+}
+
+/**
+ * Upload setup photos taken at the customer's home before starting service.
+ * POST /orders/:id/setup-photos
+ */
+export async function uploadSetupPhotos(id: string | number, formData: FormData): Promise<Order> {
+  const response = await apiClient.post<{ data: Order }>(
+    `/orders/${String(id)}/setup-photos`,
     formData
   )
   return response.data.data

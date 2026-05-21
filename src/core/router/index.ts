@@ -202,7 +202,7 @@ router.beforeEach(async to => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
   if (requiresAuth && !isAuthenticated) {
-    return { name: 'Login' }
+    return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
   if (to.name === 'Login' && isAuthenticated) {

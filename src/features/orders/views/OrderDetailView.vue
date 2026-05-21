@@ -25,6 +25,15 @@
         style="display: none"
         @change="handleCompletionProofChange"
       />
+      <input
+        ref="setupInput"
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        style="display: none"
+        @change="handleSetupPhotosChange"
+      />
       <div v-if="isLoading && !order" class="loading-state">
         <ion-spinner name="crescent" />
         <p>Loading order details...</p>
@@ -109,7 +118,45 @@
         </div>
 
         <div class="order-content anim-fade-in">
-          <!-- Order Context Section -->
+          <div class="content-card trip-card" v-if="showAssignedTripInfo && assignedTrip">
+            <div class="card-header">
+              <Icon icon="lucide:truck" class="header-icon" />
+              <h3>Assigned Rider & Trip</h3>
+            </div>
+            <div class="trip-info-grid">
+              <div class="trip-info-row">
+                <span>Trip number</span>
+                <strong>{{ assignedTrip.trip_number || '—' }}</strong>
+              </div>
+              <div class="trip-info-row" v-if="assignedTrip.rider?.name">
+                <span>Rider</span>
+                <strong>{{ assignedTrip.rider.name }}</strong>
+              </div>
+              <div class="trip-info-row" v-if="assignedTrip.rider?.phone">
+                <span>Rider phone</span>
+                <a :href="`tel:${assignedTrip.rider.phone}`">{{ assignedTrip.rider.phone }}</a>
+              </div>
+              <div class="trip-info-row" v-if="assignedTrip.rider?.vehicle_number || assignedTrip.rider?.registration_number">
+                <span>Vehicle</span>
+                <strong>
+                  {{ assignedTrip.rider?.vehicle_number || assignedTrip.rider?.registration_number }}
+                </strong>
+              </div>
+              <div class="trip-info-row">
+                <span>Trip status</span>
+                <strong>{{ assignedTrip.kanban_state || 'Assigned' }}</strong>
+              </div>
+              <div class="trip-info-row" v-if="assignedTrip.start_time">
+                <span>Start</span>
+                <strong>{{ assignedTrip.start_time }}</strong>
+              </div>
+              <div class="trip-info-row" v-if="assignedTrip.end_time">
+                <span>End</span>
+                <strong>{{ assignedTrip.end_time }}</strong>
+              </div>
+            </div>
+          </div>
+
           <div class="content-card context-card" v-if="!isCustomerHidden && hasOrderContext">
             <div class="card-header">
               <Icon icon="lucide:notebook-tabs" class="header-icon" />
@@ -257,7 +304,7 @@
           </div>
 
           <!-- Payment Info -->
-          <div v-if="!isCustomerHidden" class="content-card payment-card">
+          <div v-if="!isCustomerHidden || isCompleted" class="content-card payment-card">
             <div class="card-header">
               <Icon icon="lucide:credit-card" class="header-icon" />
               <h3>Payment</h3>
@@ -270,32 +317,41 @@
               <p v-if="order.payment?.reference">Reference: <strong>{{ order.payment.reference }}</strong></p>
             </div>
             <div class="payment-details-grid">
-              <div class="payment-detail-item">
-                <span>Amount Paid</span>
-                <strong :class="{ 'text-success': order.payment?.status?.toLowerCase() === 'paid' }">₹{{ order.payment?.amount_paid || 0 }}</strong>
+              <div class="payment-detail-item" v-if="(order.payment?.cod_amount ?? parsedPaymentRemark?.cod ?? 0) > 0">
+                <span>Cash (COD)</span>
+                <strong>₹{{ order.payment?.cod_amount ?? parsedPaymentRemark?.cod }}</strong>
+              </div>
+              <div class="payment-detail-item" v-if="(order.payment?.upi_amount ?? parsedPaymentRemark?.upi ?? 0) > 0">
+                <span>UPI</span>
+                <strong>₹{{ order.payment?.upi_amount ?? parsedPaymentRemark?.upi }}</strong>
+              </div>
+              <div class="payment-detail-item" v-if="(order.payment?.tip ?? order.tip ?? parsedPaymentRemark?.tip ?? 0) > 0">
+                <span>Tip</span>
+                <strong class="text-brand">₹{{ order.payment?.tip ?? order.tip ?? parsedPaymentRemark?.tip }}</strong>
               </div>
               <div class="payment-detail-item">
-                <span>Tip Amount</span>
-                <strong v-if="order.tip" class="text-brand">₹{{ order.tip }}</strong>
-                <strong v-else>₹0</strong>
+                <span>Total Collected</span>
+                <strong :class="{ 'text-success': order.payment?.status?.toLowerCase() === 'paid' }">
+                  {{ order.payment?.amount_paid != null ? `₹${order.payment.amount_paid}` : '—' }}
+                </strong>
               </div>
-              <div class="payment-detail-item full-width" v-if="order.payment?.remark">
+              <div class="payment-detail-item full-width" v-if="order.payment?.remark && !parsedPaymentRemark">
                 <span>Remark</span>
                 <p class="remark-text">{{ order.payment.remark }}</p>
               </div>
             </div>
-            <div class="payment-hint" v-if="order.payment?.status?.toLowerCase() !== 'paid'">
+            <div class="payment-hint" v-if="order.payment?.status?.toLowerCase() !== 'paid' && !isCompleted">
               <p>
                 Collect cash on delivery or ask the customer to scan the office UPI QR code below.
               </p>
             </div>
-            <div v-if="order.office_payment_qr_code?.url" class="qr-code-block">
+            <div v-if="order.office_payment_qr_code?.url && !isCompleted" class="qr-code-block">
               <p class="qr-title">Office UPI QR Code</p>
               <img :src="mediaUrl(order.office_payment_qr_code?.url)" alt="Office payment QR code" />
             </div>
           </div>
 
-          <div v-if="!isCustomerHidden" class="content-card proof-card">
+          <div v-if="!isCustomerHidden || isCompleted" class="content-card proof-card">
             <div class="card-header">
               <Icon icon="lucide:camera" class="header-icon" />
               <h3>Verification Photos</h3>
@@ -320,6 +376,41 @@
                 </div>
                 <p v-else class="proof-empty">No arrival selfie uploaded yet.</p>
               </div>
+              <div class="proof-entry">
+                <div class="proof-label-row">
+                  <p class="proof-label">Setup Photos</p>
+                  <div
+                    class="proof-actions"
+                    v-if="order.status.toLowerCase() === 'reached_customer_place' && order.arrival_selfie"
+                  >
+                    <AppButton 
+                      variant="clear" 
+                      size="sm" 
+                      icon="lucide:camera"
+                      @click="handleCaptureSetupPhoto"
+                      class="action-btn-sm"
+                    >
+                      Camera
+                    </AppButton>
+                    <AppButton 
+                      variant="clear" 
+                      size="sm" 
+                      icon="lucide:upload"
+                      @click="triggerSetupInput"
+                      class="action-btn-sm"
+                    >
+                      Upload
+                    </AppButton>
+                  </div>
+                </div>
+                <div v-if="setupPhotos.length" class="proof-list">
+                  <div v-for="(image, index) in setupPhotos" :key="index" class="proof-thumbnail" @click="openGallery(mediaUrl(image.url))">
+                    <img :src="mediaUrl(image.url)" :alt="`Setup photo ${index + 1}`" />
+                  </div>
+                </div>
+                <p v-else class="proof-empty">No setup photos uploaded yet.</p>
+              </div>
+
               <div class="proof-entry">
                 <div class="proof-label-row">
                   <p class="proof-label">Payment Proof</p>
@@ -555,7 +646,217 @@
         </div>
       </ion-content>
     </ion-modal>
-    
+
+    <!-- Payment Details Modal -->
+    <ion-modal
+      :is-open="showPaymentModal"
+      @didDismiss="showPaymentModal = false"
+      class="payment-modal"
+      :initial-breakpoint="0.92"
+      :breakpoints="[0, 0.92, 1]"
+      handle-behavior="cycle"
+    >
+      <ion-header class="ion-no-border">
+        <ion-toolbar class="payment-modal-toolbar">
+          <ion-title>
+            <div class="payment-modal-title">
+              <div class="payment-modal-title-icon">
+                <Icon icon="lucide:indian-rupee" />
+              </div>
+              <span>Payment details</span>
+            </div>
+          </ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" shape="round" @click="showPaymentModal = false">
+              <Icon icon="lucide:x" slot="icon-only" />
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding">
+        <div class="payment-dialog-body">
+
+          <!-- Bill summary banner -->
+          <div class="pdb-bill-banner">
+            <div class="pdb-bill-row">
+              <span class="pdb-bill-label">Order total</span>
+              <strong class="pdb-bill-amount">₹{{ order?.total ?? 0 }}</strong>
+            </div>
+            <div class="pdb-bill-divider" />
+            <div class="pdb-bill-row pdb-bill-row--sub">
+              <span>Subtotal</span>
+              <span>₹{{ order?.subtotal ?? 0 }}</span>
+            </div>
+            <div class="pdb-bill-row pdb-bill-row--sub" v-if="(order?.total ?? 0) !== (order?.subtotal ?? 0)">
+              <span>Other charges</span>
+              <span>₹{{ Math.abs((order?.subtotal ?? 0) - (order?.total ?? 0)) }}</span>
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div class="pdb-section">
+            <p class="pdb-section-label">Payment status</p>
+            <div class="status-chip-row">
+              <button
+                v-for="option in paymentStatusOptions"
+                :key="option.value"
+                class="status-chip"
+                :class="{ 'status-chip--active': paymentStatus === option.value, [`status-chip--${option.value}`]: true }"
+                @click="paymentStatus = option.value as any"
+              >
+                <Icon :icon="option.value === 'paid' ? 'lucide:check-circle' : option.value === 'unpaid' ? 'lucide:clock' : 'lucide:alert-circle'" />
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Amount breakdown -->
+          <div class="pdb-section">
+            <p class="pdb-section-label">Amount breakdown</p>
+            <ion-list lines="none" class="pdb-list">
+              <ion-item class="pdb-item">
+                <div slot="start" class="pdb-item-icon pdb-icon-cash">
+                  <Icon icon="lucide:banknote" />
+                </div>
+                <ion-label>
+                  <p class="pdb-item-label">Cash on Delivery</p>
+                </ion-label>
+                <ion-input
+                  slot="end"
+                  type="number"
+                  inputmode="numeric"
+                  :min="0"
+                  v-model="paymentCodAmount"
+                  placeholder="0"
+                  class="pdb-amount-input"
+                />
+              </ion-item>
+              <ion-item class="pdb-item">
+                <div slot="start" class="pdb-item-icon pdb-icon-upi">
+                  <Icon icon="lucide:smartphone" />
+                </div>
+                <ion-label>
+                  <p class="pdb-item-label">UPI</p>
+                </ion-label>
+                <ion-input
+                  slot="end"
+                  type="number"
+                  inputmode="numeric"
+                  :min="0"
+                  v-model="paymentUpiAmount"
+                  placeholder="0"
+                  class="pdb-amount-input"
+                />
+              </ion-item>
+              <ion-item class="pdb-item">
+                <div slot="start" class="pdb-item-icon pdb-icon-tip">
+                  <Icon icon="lucide:heart" />
+                </div>
+                <ion-label>
+                  <p class="pdb-item-label">Tip</p>
+                </ion-label>
+                <ion-input
+                  slot="end"
+                  type="number"
+                  inputmode="numeric"
+                  :min="0"
+                  v-model="paymentTipAmount"
+                  placeholder="0"
+                  class="pdb-amount-input"
+                />
+              </ion-item>
+            </ion-list>
+
+            <!-- Total pill -->
+            <div class="pdb-total">
+              <span>Total collected</span>
+              <strong>₹{{ paymentTotalCollected }}</strong>
+            </div>
+          </div>
+
+          <!-- UPI reference -->
+          <div class="pdb-section">
+            <p class="pdb-section-label">UPI reference <span class="pdb-optional">(optional)</span></p>
+            <ion-list lines="none" class="pdb-list">
+              <ion-item class="pdb-item">
+                <div slot="start" class="pdb-item-icon pdb-icon-ref">
+                  <Icon icon="lucide:hash" />
+                </div>
+                <ion-input
+                  v-model="paymentReferenceInput"
+                  placeholder="Transaction ID or UTR number"
+                  clearInput
+                />
+              </ion-item>
+            </ion-list>
+          </div>
+
+          <!-- Notes -->
+          <div class="pdb-section">
+            <p class="pdb-section-label">Notes <span class="pdb-optional">(optional)</span></p>
+            <ion-list lines="none" class="pdb-list">
+              <ion-item class="pdb-item pdb-item--textarea">
+                <ion-textarea
+                  v-model="paymentNote"
+                  :rows="3"
+                  placeholder="Any remarks or payment notes..."
+                  auto-grow
+                />
+              </ion-item>
+            </ion-list>
+          </div>
+
+          <!-- Proof upload -->
+          <div class="pdb-section">
+            <p class="pdb-section-label">Payment proof</p>
+            <div class="pdb-proof-row" @click="triggerProofInput">
+              <div class="pdb-proof-left">
+                <div class="pdb-item-icon pdb-icon-proof">
+                  <Icon icon="lucide:image-plus" />
+                </div>
+                <div>
+                  <p class="pdb-proof-title">Upload screenshot</p>
+                  <p class="pdb-proof-sub">{{ proofImages.length > 0 ? `${proofImages.length} image(s) uploaded` : 'No image yet' }}</p>
+                </div>
+              </div>
+              <ion-badge :color="proofImages.length > 0 ? 'success' : 'medium'" class="pdb-proof-badge">
+                {{ proofImages.length > 0 ? 'Done' : 'Add' }}
+              </ion-badge>
+            </div>
+            <div v-if="proofImages.length" class="pdb-proof-thumbs">
+              <div
+                v-for="(img, i) in proofImages"
+                :key="i"
+                class="pdb-thumb"
+                @click.stop="openGallery(mediaUrl(img.url))"
+              >
+                <img :src="mediaUrl(img.url)" :alt="`Proof ${i + 1}`" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="pdb-actions">
+            <AppButton
+              expand="block"
+              size="lg"
+              :loading="isUpdating"
+              :disabled="!paymentStatus"
+              icon="lucide:check-circle"
+              @click="handleSavePaymentAndComplete"
+            >
+              Save & Complete order
+            </AppButton>
+            <AppButton variant="ghost" expand="block" @click="showPaymentModal = false">
+              Cancel
+            </AppButton>
+          </div>
+
+        </div>
+      </ion-content>
+    </ion-modal>
+
     <!-- Reusable Ride Selection Modal -->
     <RideSelectorModal
       v-model:is-open="showRideModal"
@@ -610,11 +911,14 @@ const {
   advanceStatus,
   uploadSelfie,
   uploadCompletionProof,
+  uploadSetupPhotos,
   cancelAfterArrival,
   upgradeProduct,
   getUpgradableProducts,
   captureAndUploadPaymentProof,
+  captureAndUploadSetupPhoto,
   updateOrderDetails,
+  generateOtp,
 } = useOrderDetail()
 
 // ── UI State ───────────────────────────────────────────────────────────────
@@ -631,8 +935,15 @@ const showUpgradeModal = ref(false)
 const isFetchingUpgrades = ref(false)
 const selectedItem = ref<OrderProduct | null>(null)
 const upgradableProducts = ref<any[]>([])
+const setupInput = ref<HTMLInputElement | null>(null)
 const proofInput = ref<HTMLInputElement | null>(null)
 const paymentStatus = ref<PaymentStatus | ''>('')
+const showPaymentModal = ref(false)
+const paymentCodAmount = ref<number | null>(null)
+const paymentUpiAmount = ref<number | null>(null)
+const paymentTipAmount = ref<number | null>(null)
+const paymentReferenceInput = ref('')
+const paymentNote = ref('')
 const paymentStatusOptions = [
   { label: 'Paid', value: 'paid' },
   { label: 'Unpaid', value: 'unpaid' },
@@ -742,6 +1053,28 @@ const tipAmount = computed(() => {
 
 const paymentReference = computed(() => order.value?.payment?.reference || '—')
 
+/** Parses old remark-based breakdown for backward compat: "COD ₹500 | UPI ₹0 | Tip ₹50" */
+const parsedPaymentRemark = computed(() => {
+  const remark = order.value?.payment?.remark
+  if (!remark) return null
+  const codMatch = remark.match(/COD ₹(\d+(?:\.\d+)?)/)
+  const upiMatch = remark.match(/UPI ₹(\d+(?:\.\d+)?)/)
+  const tipMatch = remark.match(/Tip ₹(\d+(?:\.\d+)?)/)
+  if (!codMatch && !upiMatch && !tipMatch) return null
+  return {
+    cod: codMatch ? parseFloat(codMatch[1]) : null,
+    upi: upiMatch ? parseFloat(upiMatch[1]) : null,
+    tip: tipMatch ? parseFloat(tipMatch[1]) : null,
+  }
+})
+
+const paymentTotalCollected = computed(() => {
+  const cod = Number(paymentCodAmount.value ?? 0)
+  const upi = Number(paymentUpiAmount.value ?? 0)
+  const tip = Number(paymentTipAmount.value ?? 0)
+  return cod + upi + tip
+})
+
 const canCancel = computed(() => {
   const s = order.value?.status?.toLowerCase()
   return s === 'confirmed' || s === 'ongoing' || s === 'reached_customer_place' || s === 'started'
@@ -752,6 +1085,15 @@ const isSelfieStep = computed(() => {
   return (s === 'ongoing' || s === 'reached_customer_place') && !order.value?.arrival_selfie
 })
 
+const setupPhotos = computed(() => {
+  if (!order.value?.setup_photos) return []
+  return Array.isArray(order.value.setup_photos)
+    ? order.value.setup_photos.filter((p: { url?: string }) => !!p?.url)
+    : order.value.setup_photos
+      ? [order.value.setup_photos]
+      : []
+})
+
 const proofImages = computed(() => {
   if (!order.value?.proof_of_service) return []
   return Array.isArray(order.value.proof_of_service)
@@ -759,6 +1101,17 @@ const proofImages = computed(() => {
     : order.value.proof_of_service
       ? [order.value.proof_of_service]
       : []
+})
+
+const assignedTrip = computed(() => {
+  if (!order.value?.trips?.length) return null
+  return order.value.trips[0]
+})
+
+const showAssignedTripInfo = computed(() => {
+  if (!assignedTrip.value || !order.value) return false
+  const status = order.value.status?.toLowerCase() || ''
+  return !['completed', 'cancelled', 'arrived_and_cancelled'].includes(status)
 })
 
 const isBookingDateToday = computed(() => {
@@ -820,6 +1173,20 @@ async function presentConfirm(header: string, message: string) {
   return role === 'confirm'
 }
 
+async function promptSetupPhotoUpload(): Promise<void> {
+  const alert = await alertController.create({
+    header: 'Upload Setup Photos',
+    message: 'Choose whether to take a photo or upload existing setup images.',
+    mode: 'ios',
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      { text: 'Upload from Gallery', handler: triggerSetupInput },
+      { text: 'Take Photo', handler: handleCaptureSetupPhoto },
+    ],
+  })
+  await alert.present()
+}
+
 async function handleMainAction() {
   const s = order.value?.status?.toLowerCase()
 
@@ -848,34 +1215,25 @@ async function handleMainAction() {
       if (!confirmed) return
 
       await handleUploadSelfie()
+    } else if (setupPhotos.value.length === 0) {
+      await promptSetupPhotoUpload()
     } else {
+      if (!order.value?.verification?.otp_sent_at) {
+        const otp = await generateOtp()
+        if (otp) {
+          const toast = await toastController.create({
+            message: 'Service OTP generated. Ask the customer for the code.',
+            duration: 2500,
+            color: 'success',
+            position: 'top',
+          })
+          await toast.present()
+        }
+      }
       showOtpInput.value = true
     }
   } else if (s === 'started') {
-    if (!proofImages.value.length) {
-      const confirmed = await presentConfirm(
-        'Upload Payment Proof',
-        'Upload payment screenshot(s) or take a photo before completing the service.'
-      )
-      if (!confirmed) return
-      // We'll let them use the new buttons in the proof card or trigger upload
-      proofInput.value?.click()
-      return
-    }
-
-    if (
-      !['paid', 'unpaid', 'conflict'].includes((order.value?.payment?.status ?? '').toLowerCase())
-    ) {
-      showError('Set payment status to Paid, Unpaid, or Conflict before completing the service.')
-      return
-    }
-
-    const confirmed = await presentConfirm(
-      'Complete Service',
-      'Have you finished all services? This will mark the order as completed.'
-    )
-    if (!confirmed) return
-    await advanceStatus()
+    openPaymentModal()
   } else {
     // Started -> Completed (Complete Service)
     const confirmed = await presentConfirm(
@@ -892,7 +1250,17 @@ async function handleUploadSelfie() {
   if (uploaded) {
     showSuccess('Selfie uploaded successfully')
     if (order.value?.status.toLowerCase() === 'reached_customer_place') {
-      showOtpInput.value = true
+      if (setupPhotos.value.length === 0) {
+        const toast = await toastController.create({
+          message: 'Now upload setup photos using camera or gallery.',
+          duration: 2500,
+          color: 'warning',
+          position: 'top',
+        })
+        await toast.present()
+      } else {
+        showOtpInput.value = true
+      }
     }
   }
 }
@@ -914,23 +1282,29 @@ function triggerProofInput() {
   proofInput.value?.click()
 }
 
-function openGallery(url: string) {
-  activeImageUrl.value = url
-  showGallery.value = true
+async function handleCaptureSetupPhoto() {
+  const uploaded = await captureAndUploadSetupPhoto()
+  if (uploaded) {
+    showSuccess('Setup photo uploaded successfully')
+  }
 }
 
-function getSelectedServiceItems(item: Readonly<OrderProduct>) {
-  return (
-    item.selected_package_items || (item as any).services || (item as any).package_services || []
-  )
+function triggerSetupInput() {
+  setupInput.value?.click()
 }
 
-function getSelectedOptions(item: Readonly<OrderProduct>) {
-  return item.selected_options || (item as any).options || []
-}
+async function handleSetupPhotosChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  if (!files || files.length === 0) return
 
-function getSelectedFreeItems(item: Readonly<OrderProduct>) {
-  return item.selected_free_items || (item as any).free_products || []
+  const uploaded = await uploadSetupPhotos(files)
+  if (uploaded) {
+    showSuccess('Setup photos uploaded successfully')
+  }
+  if (setupInput.value) {
+    setupInput.value.value = ''
+  }
 }
 
 async function handleCapturePaymentProof() {
@@ -965,9 +1339,88 @@ async function handleVerifyOtp() {
   }
 }
 
+function openGallery(url: string) {
+  activeImageUrl.value = url
+  showGallery.value = true
+}
+
+function getSelectedServiceItems(item: Readonly<OrderProduct>) {
+  return (
+    item.selected_package_items || (item as any).services || (item as any).package_services || []
+  )
+}
+
+function getSelectedOptions(item: Readonly<OrderProduct>) {
+  return item.selected_options || (item as any).options || []
+}
+
+function getSelectedFreeItems(item: Readonly<OrderProduct>) {
+  return item.selected_free_items || (item as any).free_products || []
+}
+
 function openCancelModal() {
   showCancelModal.value = true
   otpValue.value = ''
+}
+
+function openPaymentModal() {
+  paymentStatus.value = (order.value?.payment?.status?.toLowerCase() ?? '') as PaymentStatus
+  paymentCodAmount.value = order.value?.payment?.cod_amount ?? null
+  paymentUpiAmount.value = order.value?.payment?.upi_amount ?? null
+  paymentReferenceInput.value = order.value?.payment?.reference || ''
+  paymentTipAmount.value = order.value?.payment?.tip ?? null
+  paymentNote.value = order.value?.payment?.remark || ''
+  showPaymentModal.value = true
+}
+
+function closePaymentModal() {
+  showPaymentModal.value = false
+}
+
+async function handleSavePaymentAndComplete() {
+  if (!order.value) return
+  if (!paymentStatus.value || !['paid', 'unpaid', 'conflict'].includes(paymentStatus.value)) {
+    showError('Please choose Paid, Unpaid, or Conflict before completing the service.')
+    return
+  }
+
+  if (!proofImages.value.length) {
+    showError('Please upload payment proof before completing the service.')
+    return
+  }
+
+  const codAmount = Number(paymentCodAmount.value ?? 0)
+  const upiAmount = Number(paymentUpiAmount.value ?? 0)
+  const tipAmount = Number(paymentTipAmount.value ?? 0)
+
+  if (codAmount < 0 || upiAmount < 0 || tipAmount < 0) {
+    showError('Amount values cannot be negative.')
+    return
+  }
+
+  const methodParts: string[] = []
+  if (codAmount > 0) methodParts.push('COD')
+  if (upiAmount > 0) methodParts.push('UPI')
+
+  const paymentPayload = {
+    status: paymentStatus.value,
+    method: methodParts.length > 0 ? methodParts.join('+') : undefined,
+    amount_paid: codAmount + upiAmount + tipAmount,
+    cod_amount: codAmount || undefined,
+    upi_amount: upiAmount || undefined,
+    tip: tipAmount || undefined,
+    remark: paymentNote.value.trim() || undefined,
+    reference: paymentReferenceInput.value.trim() || undefined,
+  }
+
+  await updateOrderDetails({ payment: paymentPayload })
+  if (error.value) return
+
+  showPaymentModal.value = false
+  await advanceStatus()
+  if (!error.value) {
+    showSuccess('Payment details saved and service completed successfully.')
+  }
 }
 
 async function handleCompletionProofChange(event: Event) {
@@ -1733,6 +2186,34 @@ onMounted(() => fetchOrder(orderId))
   color: var(--color-brand);
 }
 
+.trip-info-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.trip-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  background: rgba(99, 102, 241, 0.04);
+  border-radius: var(--radius-xl);
+}
+
+.trip-info-row span {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.trip-info-row strong {
+  font-size: 1rem;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
 .address-text {
   margin: 0;
   font-size: var(--font-size-base);
@@ -1933,6 +2414,270 @@ onMounted(() => fetchOrder(orderId))
   --background: rgba(0, 0, 0, 0.95);
   --width: 100%;
   --height: 100%;
+}
+
+/* ── Payment Details Modal ───────────────────────────────────────────────── */
+.payment-modal { --border-radius: 28px 28px 0 0; }
+
+.payment-modal-toolbar {
+  --background: transparent;
+}
+
+.payment-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.payment-modal-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--color-brand-pale);
+  color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.payment-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.pdb-bill-banner {
+  background: linear-gradient(135deg, var(--color-brand) 0%, color-mix(in srgb, var(--color-brand) 80%, #000) 100%);
+  border-radius: 20px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: #fff;
+}
+
+.pdb-bill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pdb-bill-row--sub {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.pdb-bill-label {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.pdb-bill-amount {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.pdb-bill-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 2px 0;
+}
+
+.pdb-section { display: flex; flex-direction: column; gap: 10px; }
+
+.pdb-section-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+  padding-left: 4px;
+}
+
+.pdb-optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.pdb-list {
+  background: var(--color-surface);
+  border-radius: 18px;
+  overflow: hidden;
+  --ion-item-background: transparent;
+  --ion-item-border-color: var(--color-border);
+  padding: 0;
+}
+
+.pdb-item {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --inner-padding-end: 0;
+  --min-height: 56px;
+  --border-color: var(--color-border);
+  font-size: 15px;
+}
+
+.pdb-item--textarea {
+  --min-height: auto;
+  align-items: flex-start;
+  padding-top: 12px;
+}
+
+.pdb-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.pdb-icon-cash  { background: #e8f5e9; color: #2e7d32; }
+.pdb-icon-upi   { background: #e3f2fd; color: #1565c0; }
+.pdb-icon-tip   { background: #fce4ec; color: #c62828; }
+.pdb-icon-ref   { background: var(--color-brand-pale); color: var(--color-brand); }
+.pdb-icon-proof { background: #f3e5f5; color: #7b1fa2; }
+
+.pdb-item-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.pdb-amount-input {
+  text-align: right;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  max-width: 100px;
+  --placeholder-color: var(--color-text-muted);
+}
+
+.pdb-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--color-brand);
+  border-radius: 16px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pdb-total strong {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.status-chip-row {
+  display: flex;
+  gap: 10px;
+}
+
+.status-chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border-radius: 16px;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.status-chip svg { font-size: 20px; }
+
+.status-chip--paid   { border-color: transparent; background: var(--color-surface); }
+.status-chip--unpaid { border-color: transparent; background: var(--color-surface); }
+.status-chip--conflict { border-color: transparent; background: var(--color-surface); }
+
+.status-chip--active.status-chip--paid    { border-color: var(--color-success); background: #e8f5e9; color: var(--color-success); }
+.status-chip--active.status-chip--unpaid  { border-color: var(--color-warning, #f59e0b); background: #fffbeb; color: #b45309; }
+.status-chip--active.status-chip--conflict { border-color: var(--color-danger); background: var(--color-danger-pale); color: var(--color-danger); }
+
+.pdb-proof-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border-radius: 18px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.pdb-proof-row:active { background: var(--color-background); }
+
+.pdb-proof-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdb-proof-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--color-text); }
+.pdb-proof-sub   { margin: 2px 0 0; font-size: 12px; color: var(--color-text-muted); }
+
+.pdb-proof-badge {
+  --border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.pdb-proof-thumbs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-left: 2px;
+}
+
+.pdb-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid var(--color-border);
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.pdb-thumb:active { transform: scale(0.93); opacity: 0.8; }
+
+.pdb-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pdb-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
 }
 
 .gallery-container {
