@@ -66,6 +66,10 @@
                   <Icon icon="lucide:map-pin" class="compact-icon" />
                   <span>{{ fullAddress }}</span>
                 </div>
+                <div class="compact-detail-row">
+                  <Icon icon="lucide:clock" class="compact-icon" />
+                  <span>Total duration: {{ serviceDurationLabel }}</span>
+                </div>
                 <div v-if="order.customer?.phone" class="compact-detail-row">
                   <Icon icon="lucide:phone" class="compact-icon" />
                   <span>{{ order.customer.phone }}</span>
@@ -91,6 +95,10 @@
                 <div class="masked-meta-item">
                   <p class="meta-label">Date</p>
                   <p class="meta-value">{{ formattedDate }}</p>
+                </div>
+                <div class="masked-meta-item">
+                  <p class="meta-label">Duration</p>
+                  <p class="meta-value">{{ serviceDurationLabel }}</p>
                 </div>
               </div>
             </div>
@@ -967,6 +975,24 @@ const formattedDate = computed(() => {
   const d = order.value?.booking_info?.date ?? order.value?.service_date ?? order.value?.created_at
   if (!d) return '...'
   return formatISTDate(d)
+})
+
+const totalServiceDuration = computed(() => {
+  const products = order.value?.products || []
+  return products.reduce((sum, item) => {
+    const duration = Number(item.duration ?? 0)
+    const multiplier = Number(item.quantity ?? 1)
+    return sum + duration * multiplier
+  }, 0)
+})
+
+const serviceDurationLabel = computed(() => {
+  if (!order.value?.products?.length) return 'N/A'
+  const minutes = totalServiceDuration.value
+  if (!minutes) return 'N/A'
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
 })
 
 const fullAddress = computed(() => {

@@ -1222,7 +1222,6 @@ The `DashboardData` interface lives in `src/shared/models/dashboard.model.ts`.
 | `week_earnings` | `number` | Earnings for the current week. |
 | `month_earnings` | `number` | Earnings for the current month. |
 | `daily_target?` | `number` | Optional daily earnings target (used for the progress bar). |
-| `today_orders?` | `Order[]` | Today's orders for beauticians (used to derive active/completed/upcoming counts). |
 | `today_trips?` | `Trip[]` | Today's trips for riders (used to derive active/completed/upcoming counts). |
 | `leave_balance?` | `LeaveBalance` | Leave balance summary (paid, sick, loss-of-pay, block time). |
 | `complaints_count?` | `number` | Number of open complaints visible to the beautician. |

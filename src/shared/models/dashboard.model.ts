@@ -15,7 +15,6 @@ export interface DashboardData {
   month_earnings: number
   pending_leaves_count: number
   unread_notifications_count: number
-  today_orders?: Order[]
   trips?: Trip[]
   leave_balance?: Record<string, number>
 }
