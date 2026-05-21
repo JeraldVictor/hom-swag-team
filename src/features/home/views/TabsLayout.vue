@@ -13,7 +13,12 @@
         </ion-tab-button>
 
         <!-- Beautician: Orders tab -->
-        <ion-tab-button v-if="isBeautician" tab="orders" href="/orders">
+        <ion-tab-button
+          v-if="isBeautician"
+          tab="orders"
+          href="/orders"
+          @click="navigateToOrders"
+        >
           <Icon icon="lucide:briefcase" class="tab-icon" />
           <ion-label>Orders</ion-label>
         </ion-tab-button>
@@ -42,10 +47,16 @@
 import { Icon } from '@iconify/vue'
 import { IonLabel, IonPage, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useUserTypeStore } from '@/shared/stores'
 
 const userTypeStore = useUserTypeStore()
 const { isBeautician, isRider } = storeToRefs(userTypeStore)
+const router = useRouter()
+
+function navigateToOrders(): void {
+  router.push('/orders')
+}
 </script>
 
 <style scoped>
