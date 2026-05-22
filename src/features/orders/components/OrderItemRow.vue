@@ -25,11 +25,13 @@
       </span>
     </div>
 
-    <!-- Package included services -->
-    <div v-if="packageServices.length" class="item-subs">
-      <span v-for="s in packageServices" :key="s.product_id || s._id" class="sub-tag">
-        <Icon icon="lucide:check" class="sub-icon" />{{ s.title || s.name }}
-      </span>
+    <!-- Package included services (Bullet points) -->
+    <div v-if="packageServices.length" class="item-subs-bullets">
+      <ul class="bullet-list">
+        <li v-for="s in packageServices" :key="s.product_id || s._id">
+          {{ s.title || s.name }}
+        </li>
+      </ul>
     </div>
 
     <!-- Add-ons / options -->
@@ -46,7 +48,7 @@
 
     <!-- Free perks -->
     <div v-if="freeItems.length" class="item-subs">
-      <span v-for="f in freeItems" :key="f.product_id || f._id" class="sub-tag sub-tag-gift">
+      <span v-for="f in freeItems" :key="f.free_product_id || f.product_id || f._id" class="sub-tag sub-tag-gift">
         <Icon icon="lucide:gift" class="sub-icon" />{{ f.title }}
       </span>
     </div>
@@ -61,6 +63,7 @@ const props = defineProps<{ item: OrderProduct }>()
 
 const packageServices = computed(
   () =>
+    props.item.selected_package_services ||
     props.item.selected_package_items ||
     (props.item as any).services ||
     (props.item as any).package_services ||
@@ -177,11 +180,31 @@ const freeItems = computed(
   font-size: 10px;
 }
 
-/* Sub-tags (package services, free items) */
+/* Package Services Bullets */
+.item-subs-bullets {
+  margin-top: 4px;
+  padding-left: 14px;
+}
+
+.bullet-list {
+  margin: 0;
+  padding: 0;
+  list-style-type: disc;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.bullet-list li {
+  margin-bottom: 2px;
+}
+
+/* Sub-tags (free items) */
 .item-subs {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  margin-top: 4px;
 }
 
 .sub-tag {
@@ -213,6 +236,7 @@ const freeItems = computed(
   gap: 3px;
   padding-top: 5px;
   border-top: 1px dashed var(--color-border);
+  margin-top: 4px;
 }
 
 .addon-row {
@@ -230,3 +254,4 @@ const freeItems = computed(
   color: var(--color-text);
 }
 </style>
+

@@ -188,6 +188,12 @@ export interface OrderProduct {
   total: number
   duration?: number
   type?: 'service' | 'package'
+  selected_package_services?: ReadonlyArray<
+    Readonly<{
+      product_id: string
+      title: string
+    }>
+  >
   selected_options?: ReadonlyArray<
     Readonly<{
       order_product_option_id?: string
