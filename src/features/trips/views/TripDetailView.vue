@@ -56,7 +56,7 @@
                 <h1 class="trip-number">{{ trip.trip_number || 'T-XXXX' }}</h1>
                 <p class="trip-time">{{ formattedTime }}</p>
               </div>
-              <TripStatusBadge :state="trip.kanban_state" />
+              <AppBadge :text="formattedStatus" :variant="statusVariant" size="md" />
             </div>
             
             <div class="trip-stats-grid">
@@ -242,7 +242,7 @@ import { FEATURES } from '@/shared/lib/feature-flags'
 import type { Coordinates, PlaceResult } from '@/shared/models/location.model'
 import type { TripKanbanState } from '@/shared/models/trip.model'
 import { useTripDetail } from '../composables/useTripDetail'
-import TripStatusBadge from '../components/TripStatusBadge.vue'
+import AppBadge from '@/shared/components/ui/AppBadge.vue'
 import GoogleMapView from '@/shared/components/ui/GoogleMapView.vue'
 import PlacesSearchInput from '@/shared/components/ui/PlacesSearchInput.vue'
 
@@ -280,6 +280,28 @@ const effectiveDrop = computed<Coordinates | null>(() => {
 const mapHeight = '40vh'
 
 // ── Computed ───────────────────────────────────────────────────────────────
+
+const formattedStatus = computed(() => {
+  const s = trip.value?.kanban_state
+  if (s === 'assigned') return 'Assigned'
+  if (s === 'viewed_by_rider') return 'Viewed'
+  if (s === 'trip_started') return 'Started'
+  if (s === 'dropped_and_waiting') return 'Waiting'
+  if (s === 'trip_completed') return 'Completed'
+  if (s === 'fare_calculation_pending') return 'Fare Pending'
+  if (s === 'completed') return 'Completed'
+  if (s === 'cancelled') return 'Cancelled'
+  return 'Pending'
+})
+
+const statusVariant = computed(() => {
+  const s = trip.value?.kanban_state
+  if (s === 'completed' || s === 'trip_completed') return 'success'
+  if (s === 'trip_started' || s === 'dropped_and_waiting' || s === 'fare_calculation_pending')
+    return 'brand'
+  if (s === 'cancelled') return 'danger'
+  return 'warning'
+})
 
 const formattedTime = computed(() => (trip.value ? formatISTTime(trip.value.start_time) : ''))
 
@@ -440,7 +462,7 @@ function formatCoords(coords?: Coordinates | null): string {
 <style scoped>
 /* ── Typography & Global ─────────────────────────────────────────────────── */
 .modern-content {
-  --background: #f8fafc;
+  --background: var(--color-background);
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
@@ -452,10 +474,10 @@ function formatCoords(coords?: Coordinates | null): string {
 .header-title {
   font-weight: 700;
   font-size: 18px;
-  color: #1e293b;
+  color: var(--color-text);
 }
 .back-btn {
-  color: #1e293b;
+  color: var(--color-text);
 }
 
 .live-tracking-pill {
@@ -473,7 +495,7 @@ function formatCoords(coords?: Coordinates | null): string {
 .pulse-dot {
   width: 8px;
   height: 8px;
-  background: #10b981;
+  background: var(--color-success);
   border-radius: 50%;
   animation: pulse 1.5s infinite;
 }
@@ -488,7 +510,7 @@ function formatCoords(coords?: Coordinates | null): string {
 .map-container {
   position: relative;
   width: 100%;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border);
   background: #cbd5e1;
 }
 
@@ -506,8 +528,8 @@ function formatCoords(coords?: Coordinates | null): string {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #ffffff;
-  color: #64748b;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -523,8 +545,8 @@ function formatCoords(coords?: Coordinates | null): string {
 }
 
 .map-fab--active {
-  background: #3b82f6;
-  color: #ffffff;
+  background: var(--color-brand);
+  color: var(--color-surface);
 }
 
 /* ── Details Container ───────────────────────────────────────────────────── */
@@ -544,7 +566,7 @@ function formatCoords(coords?: Coordinates | null): string {
 
 /* ── Cards Generic ───────────────────────────────────────────────────────── */
 .card {
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 20px;
   padding: 18px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.03);
@@ -554,7 +576,7 @@ function formatCoords(coords?: Coordinates | null): string {
 .card-title {
   font-size: 14px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text);
   margin: 0 0 16px 0;
   display: flex;
   align-items: center;
@@ -588,7 +610,7 @@ function formatCoords(coords?: Coordinates | null): string {
 
 .trip-time {
   font-size: 13px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   margin: 0;
   font-weight: 500;
 }
@@ -597,7 +619,7 @@ function formatCoords(coords?: Coordinates | null): string {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  background: #f8fafc;
+  background: var(--color-background);
   padding: 14px;
   border-radius: 14px;
 }
@@ -612,11 +634,11 @@ function formatCoords(coords?: Coordinates | null): string {
 
 .stat-icon {
   font-size: 18px;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
-.text-blue { color: #3b82f6; }
-.text-green { color: #10b981; }
-.text-gray { color: #94a3b8; }
+.text-blue { color: var(--color-brand); }
+.text-green { color: var(--color-success); }
+.text-gray { color: var(--color-text-muted); }
 
 .stat-text {
   display: flex;
@@ -627,12 +649,12 @@ function formatCoords(coords?: Coordinates | null): string {
 .stat-value {
   font-size: 14px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text);
 }
 
 .stat-label {
   font-size: 11px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -642,8 +664,8 @@ function formatCoords(coords?: Coordinates | null): string {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
-  border: 1px solid #e0e7ff;
+  background: linear-gradient(135deg, var(--color-surface) 0%, #f8faff 100%);
+  border: 1px solid var(--color-border);
 }
 
 .beautician-profile {
@@ -656,8 +678,8 @@ function formatCoords(coords?: Coordinates | null): string {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--color-background);
+  color: var(--color-brand);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -674,13 +696,13 @@ function formatCoords(coords?: Coordinates | null): string {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text);
 }
 
 .b-role {
   margin: 0;
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -688,8 +710,8 @@ function formatCoords(coords?: Coordinates | null): string {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #10b981;
-  color: #ffffff;
+  background: var(--color-success);
+  color: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -733,12 +755,12 @@ function formatCoords(coords?: Coordinates | null): string {
   z-index: 2;
   flex-shrink: 0;
 }
-.indicator-dot.pickup { background: #10b981; color: #10b981; }
-.indicator-dot.drop { background: #ef4444; color: #ef4444; }
+.indicator-dot.pickup { background: var(--color-success); color: var(--color-success); }
+.indicator-dot.drop { background: var(--color-error); color: var(--color-error); }
 
 .indicator-line {
   width: 2px;
-  background: #e2e8f0;
+  background: var(--color-border);
   flex: 1;
   margin: 4px 0;
   min-height: 24px;
@@ -755,7 +777,7 @@ function formatCoords(coords?: Coordinates | null): string {
   margin: 0 0 2px 0;
   font-size: 11px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -764,14 +786,14 @@ function formatCoords(coords?: Coordinates | null): string {
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-text);
   line-height: 1.4;
 }
 
 .r-coords {
   margin: 0;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-family: monospace;
 }
 
@@ -779,8 +801,8 @@ function formatCoords(coords?: Coordinates | null): string {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: #f1f5f9;
-  color: #3b82f6;
+  background: var(--color-background);
+  color: var(--color-brand);
   border: none;
   font-size: 18px;
   display: flex;
@@ -790,20 +812,20 @@ function formatCoords(coords?: Coordinates | null): string {
 }
 .nav-icon-btn:disabled,
 .nav-icon-btn[aria-disabled='true'] {
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--color-background);
+  color: var(--color-text-muted);
   cursor: not-allowed;
   pointer-events: none;
 }
-.nav-icon-btn:active { background: #e2e8f0; transform: scale(0.95); }
+.nav-icon-btn:active { background: var(--color-border); transform: scale(0.95); }
 
 .btn-full-route {
   width: 100%;
   padding: 12px;
   border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   font-weight: 600;
   font-size: 14px;
   display: flex;
@@ -812,7 +834,7 @@ function formatCoords(coords?: Coordinates | null): string {
   gap: 8px;
 }
 
-.btn-full-route:active { background: #f1f5f9; }
+.btn-full-route:active { background: var(--color-background); }
 
 /* ── Extra Meta ──────────────────────────────────────────────────────────── */
 .extra-card {
@@ -828,8 +850,8 @@ function formatCoords(coords?: Coordinates | null): string {
   font-size: 13px;
 }
 
-.extra-label { color: #64748b; font-weight: 500; }
-.extra-value { color: #1e293b; font-weight: 700; }
+.extra-label { color: var(--color-text-secondary); font-weight: 500; }
+.extra-value { color: var(--color-text); font-weight: 700; }
 
 /* ── Notes ───────────────────────────────────────────────────────────────── */
 .notes-box {
@@ -871,7 +893,7 @@ function formatCoords(coords?: Coordinates | null): string {
   border: none;
   font-size: 14px;
   font-weight: 600;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 
 .override-toggle-left {
@@ -885,23 +907,23 @@ function formatCoords(coords?: Coordinates | null): string {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--color-background);
 }
 
 .override-hint {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   margin: 12px 0 0;
 }
 
 .override-hint code {
-  background: #f1f5f9;
+  background: var(--color-background);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .btn-apply-override {
-  background: #3b82f6;
+  background: var(--color-brand);
   color: white;
   padding: 12px;
   border-radius: 10px;
@@ -913,7 +935,7 @@ function formatCoords(coords?: Coordinates | null): string {
 
 /* ── Footer / Actions ────────────────────────────────────────────────────── */
 .modern-footer {
-  background: #ffffff;
+  background: var(--color-surface);
   border-top: 1px solid rgba(0,0,0,0.05);
   padding: 16px 20px 32px 20px;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.04);
@@ -929,10 +951,10 @@ function formatCoords(coords?: Coordinates | null): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f8fafc;
+  background: var(--color-background);
   padding: 12px 16px;
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 }
 
 .tracking-info {
@@ -943,12 +965,12 @@ function formatCoords(coords?: Coordinates | null): string {
 .tracking-title {
   font-size: 13px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text);
 }
 
 .tracking-sub {
   font-size: 11px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -956,8 +978,8 @@ function formatCoords(coords?: Coordinates | null): string {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #e2e8f0;
-  color: #64748b;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
   border: none;
   display: flex;
   align-items: center;
@@ -967,7 +989,7 @@ function formatCoords(coords?: Coordinates | null): string {
 }
 
 .tracking-toggle-btn--active {
-  background: #10b981;
+  background: var(--color-success);
   color: #fff;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
@@ -976,7 +998,7 @@ function formatCoords(coords?: Coordinates | null): string {
   width: 100%;
   padding: 16px;
   border-radius: 16px;
-  background: #4f46e5;
+  background: var(--color-brand);
   color: #fff;
   font-size: 16px;
   font-weight: 700;
@@ -995,7 +1017,7 @@ function formatCoords(coords?: Coordinates | null): string {
 }
 
 .btn-primary-action:disabled {
-  background: #94a3b8;
+  background: var(--color-text-muted);
   box-shadow: none;
   transform: none;
 }

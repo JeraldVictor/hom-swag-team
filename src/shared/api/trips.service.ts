@@ -68,24 +68,32 @@ function normalizeTrip(raw: RawTrip): Trip {
  * Returns a normalized Trip array regardless of whether the API
  * returns a plain array or a paginated envelope.
  */
-export async function getTrips(page?: number, limit?: number): Promise<Trip[]> {
-  const response = await apiClient.get<{ data: RawTrip[] | { data: RawTrip[] } }>('/trips', {
-    params: { page, limit },
-  })
+export async function getTrips(
+  params?: Record<string, any>
+): Promise<{ data: Trip[]; pagination?: any }> {
+  const response = await apiClient.get<any>('/trips', { params })
 
-  const payload = response.data.data
+  // Handle new paginated format vs old format
+  let rawData: RawTrip[] = []
+  let pagination = undefined
 
-  // Handle plain array: { data: RawTrip[] }
-  if (Array.isArray(payload)) {
-    return payload.map(normalizeTrip)
+  if (response.data?.data && !Array.isArray(response.data.data) && response.data.data.data) {
+    // Nested format from backend: { data: { data: [...], pagination: {...} } }
+    rawData = response.data.data.data
+    pagination = response.data.data.pagination
+  } else if (response.data?.pagination) {
+    // Top-level pagination
+    rawData = response.data.data || []
+    pagination = response.data.pagination
+  } else if (Array.isArray(response.data?.data)) {
+    // Flat array format
+    rawData = response.data.data
   }
 
-  // Handle paginated envelope: { data: { data: RawTrip[], total, page, limit } }
-  if (payload && Array.isArray((payload as { data: RawTrip[] }).data)) {
-    return (payload as { data: RawTrip[] }).data.map(normalizeTrip)
+  return {
+    data: rawData.map(normalizeTrip),
+    pagination,
   }
-
-  return []
 }
 
 /**

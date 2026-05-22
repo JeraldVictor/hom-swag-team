@@ -1,85 +1,78 @@
 <template>
-  <div class="trip-card" role="article" @click="emit('click')">
-    <!-- Header: Status & Time -->
-    <div class="trip-card__header">
-      <div class="trip-card__status-wrap">
-        <div class="trip-card__pulse" :class="`pulse--${statusColor}`" aria-hidden="true" />
-        <span class="trip-card__status-text" :class="`text--${statusColor}`">
-          {{ formattedStatus }}
-        </span>
+  <div class="order-card" @click="emit('click')">
+    <!-- Header: ID, Date, Badge -->
+    <div class="order-card__header">
+      <div class="order-card__id-group">
+        <span class="order-card__number">{{ trip.trip_number || trip.id }}</span>
+        <span class="order-card__date">{{ formattedDate }}</span>
       </div>
-      <span class="trip-card__time">{{ formattedTime }}</span>
+      <AppBadge :text="formattedStatus" :variant="statusVariant" size="sm" />
     </div>
 
-    <!-- Beautician Info -->
-    <div v-if="trip.beautician_name" class="trip-card__beautician">
-      <div class="trip-card__beautician-avatar">
-        <Icon icon="lucide:user" />
+    <!-- Body: Info Rows -->
+    <div class="order-card__body">
+      
+      <!-- Beautician Name -->
+      <div v-if="trip.beautician_name" class="order-card__info-row">
+        <div class="order-card__icon-container">
+          <Icon icon="lucide:user" class="order-card__icon" aria-hidden="true" />
+        </div>
+        <span class="order-card__customer">{{ trip.beautician_name }}</span>
+        <a v-if="trip.beautician_phone" :href="'tel:' + trip.beautician_phone" class="phone-btn" @click.stop>
+          <Icon icon="lucide:phone" />
+        </a>
       </div>
-      <div class="trip-card__beautician-info">
-        <span class="trip-card__beautician-name">{{ trip.beautician_name }}</span>
-        <span class="trip-card__beautician-role">Assigned Beautician</span>
-      </div>
-    </div>
 
-    <!-- Route Section -->
-    <div class="trip-card__route-container">
-      <!-- Pickup Row -->
-      <div class="trip-card__route-row">
-        <div class="trip-card__route-icon-col">
-          <div class="route-dot route-dot--pickup" />
-          <div class="route-line" />
+      <!-- Pickup Location -->
+      <div class="order-card__info-row">
+        <div class="order-card__icon-container">
+          <div class="route-dot route-dot--pickup"></div>
         </div>
-        <div class="trip-card__route-content">
-          <span class="route-label">Pickup Location</span>
-          <span class="route-address">{{ trip.pickup_location.address ?? formatCoords(trip.pickup_location) }}</span>
-        </div>
-        <button
-          type="button"
-          class="route-nav-btn"
-          aria-label="Navigate to Pickup"
-          :disabled="!hasCoordinates(trip.pickup_location)"
-          :aria-disabled="!hasCoordinates(trip.pickup_location)"
-          @click.stop.prevent="navTo(trip.pickup_location)">
+        <span class="order-card__address">{{ formatCoords(trip.pickup_location) }}</span>
+        <button 
+          v-if="hasCoordinates(trip.pickup_location)" 
+          class="nav-btn" 
+          @click.stop="navTo(trip.pickup_location)"
+        >
           <Icon icon="lucide:navigation" />
         </button>
       </div>
 
-      <!-- Drop Row -->
-      <div class="trip-card__route-row">
-        <div class="trip-card__route-icon-col">
-          <div class="route-dot route-dot--drop" />
+      <!-- Drop Location -->
+      <div class="order-card__info-row">
+        <div class="order-card__icon-container">
+          <div class="route-dot route-dot--drop"></div>
         </div>
-        <div class="trip-card__route-content">
-          <span class="route-label">Drop Location</span>
-          <span class="route-address">{{ trip.drop_location.address ?? formatCoords(trip.drop_location) }}</span>
-        </div>
-        <button
-          type="button"
-          class="route-nav-btn"
-          aria-label="Navigate to Drop"
-          :disabled="!hasCoordinates(trip.drop_location)"
-          :aria-disabled="!hasCoordinates(trip.drop_location)"
-          @click.stop.prevent="navTo(trip.drop_location)">
+        <span class="order-card__address">{{ formatCoords(trip.drop_location) }}</span>
+        <button 
+          v-if="hasCoordinates(trip.drop_location)" 
+          class="nav-btn" 
+          @click.stop="navTo(trip.drop_location)"
+        >
           <Icon icon="lucide:navigation" />
         </button>
       </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="trip-card__footer">
-      <div class="trip-card__footer-info">
-        <span v-if="trip.auto_distance_km" class="trip-card__distance">
-          <Icon icon="lucide:map" class="footer-icon" />
-          ~{{ trip.auto_distance_km }} km
-        </span>
-        <span v-if="trip.fare" class="trip-card__fare">
-          <Icon icon="lucide:indian-rupee" class="footer-icon" />
-          {{ trip.fare.toFixed(2) }}
+      <!-- Stats: Distance & Fare -->
+      <div class="order-card__info-row">
+        <div class="order-card__icon-container">
+          <Icon icon="lucide:map" class="order-card__icon" aria-hidden="true" />
+        </div>
+        <span class="order-card__items" v-if="trip.auto_distance_km">{{ trip.auto_distance_km }} km</span>
+        <span class="order-card__items" v-else>Distance N/A</span>
+
+        <span v-if="trip.fare" class="order-card__total" style="margin-left: auto; font-weight: 800; color: var(--color-brand);">
+          ₹{{ trip.fare }}
         </span>
       </div>
-      <span class="trip-card__cta">
-        Details <Icon icon="lucide:arrow-right" />
+    </div>
+
+    <!-- Footer: Time -->
+    <div class="order-card__footer" v-if="trip.start_time">
+      <Icon icon="lucide:clock" class="footer-icon" />
+      <span>{{ formatTime12(trip.start_time) }}</span>
+      <span style="margin-left: auto; color: var(--color-brand); display: flex; align-items: center; gap: 4px;">
+        View Details <Icon icon="lucide:arrow-right" style="font-size: 14px;" />
       </span>
     </div>
   </div>
@@ -87,12 +80,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatISTTime } from '@/shared/lib/datetime'
+import { formatISTDate, formatTime12 } from '@/shared/lib/datetime'
 import type { Coordinates } from '@/shared/models/location.model'
 import type { Trip } from '@/shared/models/trip.model'
 import { useNavigation } from '@/shared/composables/useNavigation'
-
-// ── Props & Emits ──────────────────────────────────────────────────────────
+import AppBadge from '@/shared/components/ui/AppBadge.vue'
 
 interface Props {
   trip: Trip
@@ -100,41 +92,37 @@ interface Props {
 
 const props = defineProps<Props>()
 const emit = defineEmits<(e: 'click') => void>()
-
-// ── Composables ────────────────────────────────────────────────────────────
-
 const { openNavigationMenu } = useNavigation()
 
-// ── Computed ───────────────────────────────────────────────────────────────
-
-const formattedTime = computed(() => formatISTTime(props.trip.start_time))
+const formattedDate = computed(() =>
+  formatISTDate(props.trip.start_time || new Date().toISOString())
+)
 
 const formattedStatus = computed(() => {
   const s = props.trip.kanban_state
   if (s === 'assigned') return 'Assigned'
   if (s === 'viewed_by_rider') return 'Viewed'
-  if (s === 'trip_started') return 'In Progress'
-  if (s === 'dropped_and_waiting') return 'Drop & Wait'
-  if (s === 'trip_completed') return 'Trip Completed'
+  if (s === 'trip_started') return 'Started'
+  if (s === 'dropped_and_waiting') return 'Waiting'
+  if (s === 'trip_completed') return 'Completed'
   if (s === 'fare_calculation_pending') return 'Fare Pending'
   if (s === 'completed') return 'Completed'
   if (s === 'cancelled') return 'Cancelled'
   return 'Pending'
 })
 
-const statusColor = computed(() => {
+const statusVariant = computed(() => {
   const s = props.trip.kanban_state
-  if (s === 'trip_started' || s === 'dropped_and_waiting') return 'active'
   if (s === 'completed' || s === 'trip_completed') return 'success'
-  if (s === 'cancelled') return 'error'
-  return 'default'
+  if (s === 'trip_started' || s === 'dropped_and_waiting' || s === 'fare_calculation_pending')
+    return 'brand'
+  if (s === 'cancelled') return 'danger'
+  return 'warning'
 })
-
-// ── Methods ────────────────────────────────────────────────────────────────
 
 function formatCoords(coords?: Coordinates): string {
   if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') {
-    return 'Not available'
+    return 'Location not available'
   }
   return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`
 }
@@ -150,243 +138,146 @@ async function navTo(coords?: Coordinates) {
 </script>
 
 <style scoped>
-.trip-card {
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+.order-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-4);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 12px;
+}
+
+.order-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  background: var(--color-background);
+}
+
+.order-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-3);
+}
+
+.order-card__id-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
-.trip-card:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+.order-card__number {
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.2;
 }
 
-/* ── Header ──────────────────────────────────────────────────────────────── */
-.trip-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.trip-card__status-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #f8f9fa;
-  padding: 4px 10px;
-  border-radius: 30px;
-}
-
-.trip-card__status-text {
-  font-size: 11px;
-  font-weight: 700;
+.order-card__date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-top: 2px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.text--active { color: #f59e0b; }
-.text--success { color: #10b981; }
-.text--error { color: #ef4444; }
-.text--default { color: #6366f1; }
-
-.trip-card__pulse {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-.pulse--active { background: #f59e0b; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2); }
-.pulse--success { background: #10b981; }
-.pulse--error { background: #ef4444; }
-.pulse--default { background: #6366f1; }
-
-.trip-card__time {
-  font-size: 12px;
-  color: #8b92a5;
-  font-weight: 500;
+.order-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
 }
 
-/* ── Beautician ──────────────────────────────────────────────────────────── */
-.trip-card__beautician {
+.order-card__info-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: #f8faff;
-  border-radius: 12px;
+  gap: var(--spacing-3);
 }
 
-.trip-card__beautician-avatar {
-  width: 36px;
-  height: 36px;
-  background: #eef2ff;
-  color: #6366f1;
-  border-radius: 10px;
+.order-card__icon-container {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background: var(--color-background);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  flex-shrink: 0;
 }
 
-.trip-card__beautician-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.trip-card__beautician-name {
+.order-card__icon {
   font-size: 14px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.trip-card__beautician-role {
-  font-size: 11px;
-  color: #64748b;
-  font-weight: 500;
-}
-
-/* ── Route ───────────────────────────────────────────────────────────────── */
-.trip-card__route-container {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.trip-card__route-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-height: 44px;
-}
-
-.trip-card__route-icon-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 16px;
-  margin-top: 4px;
+  color: var(--color-brand);
 }
 
 .route-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  border: 2.5px solid #fff;
+  border: 2px solid var(--color-surface);
   box-shadow: 0 0 0 1px currentColor;
-  z-index: 2;
 }
-.route-dot--pickup { background: #10b981; color: #10b981; }
-.route-dot--drop { background: #ef4444; color: #ef4444; }
+.route-dot--pickup { background: var(--color-success); color: var(--color-success); }
+.route-dot--drop { background: var(--color-error); color: var(--color-error); }
 
-.route-line {
-  width: 2px;
-  height: 28px;
-  background: #e2e8f0;
-  margin: 2px 0;
-}
-
-.trip-card__route-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.route-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.route-address {
-  font-size: 13px;
+.order-card__customer {
+  font-size: var(--font-size-base);
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text-secondary);
+}
+
+.order-card__address {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
 }
 
-.route-nav-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: #f1f5f9;
-  color: #3b82f6;
+.order-card__items {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.nav-btn, .phone-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-brand);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  font-size: 16px;
+  border: 1px solid var(--color-border);
+  font-size: 14px;
   flex-shrink: 0;
   cursor: pointer;
+  margin-left: auto;
   transition: all 0.15s ease;
 }
 
-.route-nav-btn:disabled,
-.route-nav-btn[aria-disabled='true'] {
-  background: #f8fafc;
-  color: #94a3b8;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.route-nav-btn:active {
-  background: #e2e8f0;
+.nav-btn:active, .phone-btn:active {
   transform: scale(0.95);
+  background: var(--color-surface);
 }
 
-/* ── Footer ──────────────────────────────────────────────────────────────── */
-.trip-card__footer {
+.order-card__footer {
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: 1px dashed var(--color-border);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: 14px;
-  border-top: 1px dashed #e2e8f0;
-}
-
-.trip-card__footer-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.trip-card__distance,
-.trip-card__fare {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #475569;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-brand);
 }
 
 .footer-icon {
-  font-size: 14px;
-  color: #94a3b8;
-}
-
-.trip-card__cta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #6366f1;
-}
-
-.trip-card__cta .icon {
   font-size: 14px;
 }
 </style>

@@ -472,7 +472,8 @@ async function fetchAll(): Promise<void> {
       )
     } else {
       calls.push(
-        getTrips(1, 100)
+        getTrips({ page: 1, limit: 100 })
+          .then(({ data }) => data)
           .then(list => {
             console.log('[HomeView] Trips received:', list.length)
             trips.value = list
