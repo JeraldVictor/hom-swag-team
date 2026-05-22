@@ -1,39 +1,35 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
+    <ion-header class="ion-no-border modern-header">
+      <ion-toolbar color="transparent">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/trips" />
+          <ion-back-button default-href="/trips" class="back-btn" />
         </ion-buttons>
-        <ion-title>Trip Details</ion-title>
+        <ion-title class="header-title">Trip Details</ion-title>
         <ion-buttons slot="end">
-          <!-- Tracking indicator -->
-          <div v-if="isTracking" class="tracking-badge" aria-label="Location tracking active">
-            <span class="tracking-badge__dot" aria-hidden="true" />
+          <div v-if="isTracking" class="live-tracking-pill" aria-label="Location tracking active">
+            <span class="pulse-dot" aria-hidden="true" />
             Live
           </div>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="trip-detail-content">
-      <!-- Loading state -->
-      <div v-if="isLoading" class="trip-detail-loading">
-        <div class="trip-detail-loading__spinner" />
-        <p>Loading trip…</p>
+    <ion-content :fullscreen="true" class="modern-content">
+      <div v-if="isLoading" class="loading-state">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Loading trip details...</p>
       </div>
 
-      <!-- Error state -->
-      <div v-else-if="error && !trip" class="trip-detail-error">
-        <Icon icon="lucide:alert-circle" class="trip-detail-error__icon" aria-hidden="true" />
+      <div v-else-if="error && !trip" class="error-state">
+        <Icon icon="lucide:alert-octagon" class="error-icon" />
         <p>{{ error }}</p>
-        <ion-button fill="outline" size="small" @click="fetchTrip(tripId)">Retry</ion-button>
+        <button class="btn-retry" @click="fetchTrip(tripId)">Retry</button>
       </div>
 
-      <!-- Trip content -->
       <template v-else-if="trip">
-        <!-- ── Map section ──────────────────────────────────────────────── -->
-        <div class="map-section">
+        <!-- Map View -->
+        <div class="map-container">
           <GoogleMapView
             :height="mapHeight"
             :pickup="trip.pickup_location"
@@ -42,211 +38,184 @@
             :show-route="showRoute"
             @map-ready="onMapReady"
           />
-
-          <!-- Map controls overlay -->
-          <div class="map-controls">
-            <button
-              v-if="FEATURES.directions"
-              class="map-ctrl-btn"
-              :class="{ 'map-ctrl-btn--active': showRoute }"
-              aria-label="Toggle route"
-              @click="showRoute = !showRoute"
-            >
+          <div class="map-actions">
+            <button v-if="FEATURES.directions" class="map-fab" :class="{ 'map-fab--active': showRoute }" @click="showRoute = !showRoute">
               <Icon icon="lucide:route" />
             </button>
-            <button
-              v-if="currentPosition"
-              class="map-ctrl-btn"
-              aria-label="Center on my location"
-              @click="centerOnMe"
-            >
-              <Icon icon="lucide:locate" />
+            <button v-if="currentPosition" class="map-fab" @click="centerOnMe">
+              <Icon icon="lucide:crosshair" />
             </button>
           </div>
         </div>
 
-        <!-- ── Trip info card ──────────────────────────────────────────── -->
-        <div class="trip-info-card">
-          <!-- Status + time -->
-          <div class="trip-info-card__header">
-            <TripStatusBadge :state="trip.kanban_state" />
-            <span class="trip-info-card__time">{{ formattedTime }}</span>
-          </div>
-
-          <!-- Locations -->
-          <div class="trip-locations">
-            <!-- Pickup -->
-            <div class="trip-location-row">
-              <div class="trip-location-row__indicator trip-location-row__indicator--pickup">
-                <span class="trip-location-row__dot" aria-hidden="true" />
+        <div class="details-container">
+          <!-- Main Info Header -->
+          <div class="card header-card">
+            <div class="header-card__top">
+              <div>
+                <h1 class="trip-number">{{ trip.trip_number || 'T-XXXX' }}</h1>
+                <p class="trip-time">{{ formattedTime }}</p>
               </div>
-              <div class="trip-location-row__content">
-                <span class="trip-location-row__label">Pickup</span>
-                <span class="trip-location-row__address">
-                  {{ trip.pickup_location.address ?? formatCoords(trip.pickup_location) }}
-                </span>
-                <span class="trip-location-row__coords">
-                  {{ trip.pickup_location.latitude.toFixed(6) }},
-                  {{ trip.pickup_location.longitude.toFixed(6) }}
-                </span>
-              </div>
-              <button
-                class="trip-location-row__nav-btn"
-                aria-label="Navigate to pickup"
-                @click="openNativeNav(trip.pickup_location)"
-              >
-                <Icon icon="lucide:navigation" />
-              </button>
+              <TripStatusBadge :state="trip.kanban_state" />
             </div>
-
-            <div class="trip-locations__connector" aria-hidden="true" />
-
-            <!-- Drop -->
-            <div class="trip-location-row">
-              <div class="trip-location-row__indicator trip-location-row__indicator--drop">
-                <span class="trip-location-row__dot" aria-hidden="true" />
+            
+            <div class="trip-stats-grid">
+              <div class="stat-box">
+                <Icon icon="lucide:ruler" class="stat-icon" />
+                <div class="stat-text">
+                  <span class="stat-value">{{ trip.auto_distance_km ? `${trip.auto_distance_km} km` : '—' }}</span>
+                  <span class="stat-label">Distance</span>
+                </div>
               </div>
-              <div class="trip-location-row__content">
-                <span class="trip-location-row__label">Drop</span>
-                <span class="trip-location-row__address">
-                  {{ trip.drop_location.address ?? formatCoords(trip.drop_location) }}
-                </span>
-                <span class="trip-location-row__coords">
-                  {{ trip.drop_location.latitude.toFixed(6) }},
-                  {{ trip.drop_location.longitude.toFixed(6) }}
-                </span>
+              <div class="stat-box">
+                <Icon icon="lucide:arrow-right-left" class="stat-icon text-blue" v-if="trip.is_two_way" />
+                <Icon icon="lucide:arrow-right" class="stat-icon text-gray" v-else />
+                <div class="stat-text">
+                  <span class="stat-value">{{ trip.is_two_way ? 'Round Trip' : 'One Way' }}</span>
+                  <span class="stat-label">Type</span>
+                </div>
               </div>
-              <button
-                class="trip-location-row__nav-btn"
-                aria-label="Navigate to drop"
-                @click="openNativeNav(trip.drop_location)"
-              >
-                <Icon icon="lucide:navigation" />
-              </button>
+              <div class="stat-box">
+                <Icon icon="lucide:indian-rupee" class="stat-icon text-green" />
+                <div class="stat-text">
+                  <span class="stat-value">{{ trip.fare ? trip.fare.toFixed(2) : '—' }}</span>
+                  <span class="stat-label">Fare</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Fare -->
-          <div v-if="trip.fare" class="trip-fare">
-            <span class="trip-fare__label">Fare</span>
-            <span class="trip-fare__amount">
-              <Icon icon="lucide:indian-rupee" aria-hidden="true" />
-              {{ trip.fare.toFixed(2) }}
-            </span>
+          <!-- Beautician Details -->
+          <div v-if="trip.beautician_name" class="card beautician-card">
+            <div class="beautician-profile">
+              <div class="beautician-avatar">
+                <Icon icon="lucide:user" />
+              </div>
+              <div class="beautician-info">
+                <h3 class="b-name">{{ trip.beautician_name }}</h3>
+                <p class="b-role">Assigned Beautician</p>
+              </div>
+            </div>
+            <a v-if="trip.beautician_phone" :href="`tel:${trip.beautician_phone}`" class="call-btn">
+              <Icon icon="lucide:phone-call" />
+            </a>
+          </div>
+
+          <!-- Routing Details -->
+          <div class="card route-card">
+            <h2 class="card-title"><Icon icon="lucide:map" /> Navigation Route</h2>
+            
+            <div class="route-timeline">
+              <!-- Pickup -->
+              <div class="route-point">
+                <div class="route-indicator">
+                  <div class="indicator-dot pickup" />
+                  <div class="indicator-line" />
+                </div>
+                <div class="route-content">
+                  <p class="r-label">Pickup</p>
+                  <p class="r-address">{{ trip.pickup_location.address ?? formatCoords(trip.pickup_location) }}</p>
+                  <p class="r-coords">{{ trip.pickup_location.latitude?.toFixed(6) }}, {{ trip.pickup_location.longitude?.toFixed(6) }}</p>
+                </div>
+                <button class="nav-icon-btn" aria-label="Navigate Pickup" @click="openNativeNav(trip.pickup_location)">
+                  <Icon icon="lucide:navigation" />
+                </button>
+              </div>
+
+              <!-- Drop -->
+              <div class="route-point">
+                <div class="route-indicator">
+                  <div class="indicator-dot drop" />
+                </div>
+                <div class="route-content">
+                  <p class="r-label">Drop</p>
+                  <p class="r-address">{{ trip.drop_location.address ?? formatCoords(trip.drop_location) }}</p>
+                  <p class="r-coords">{{ trip.drop_location.latitude?.toFixed(6) }}, {{ trip.drop_location.longitude?.toFixed(6) }}</p>
+                </div>
+                <button class="nav-icon-btn" aria-label="Navigate Drop" @click="openNativeNav(trip.drop_location)">
+                  <Icon icon="lucide:navigation" />
+                </button>
+              </div>
+            </div>
+
+            <button class="btn-full-route" @click="openFullRouteNav">
+              <Icon icon="lucide:map-pin" /> View Full Route in Maps
+            </button>
+          </div>
+
+          <!-- Extra Meta Data -->
+          <div class="card extra-card">
+            <div class="extra-row" v-if="trip.order_number">
+              <span class="extra-label">Order Number</span>
+              <span class="extra-value">#{{ trip.order_number }}</span>
+            </div>
+            <div class="extra-row" v-if="trip.customer_name">
+              <span class="extra-label">Customer</span>
+              <span class="extra-value">{{ trip.customer_name }}</span>
+            </div>
           </div>
 
           <!-- Notes -->
-          <div v-if="trip.notes" class="trip-notes">
-            <Icon icon="lucide:file-text" class="trip-notes__icon" aria-hidden="true" />
-            <p class="trip-notes__text">{{ trip.notes }}</p>
+          <div v-if="trip.notes" class="notes-box">
+            <Icon icon="lucide:file-text" class="notes-icon" />
+            <p>{{ trip.notes }}</p>
           </div>
-        </div>
 
-        <!-- ── Location override section ──────────────────────────────── -->
-        <div class="location-override-card">
-          <button
-            class="location-override-card__toggle"
-            :aria-expanded="showLocationOverride"
-            @click="showLocationOverride = !showLocationOverride"
-          >
-            <Icon icon="lucide:map-pin" aria-hidden="true" />
-            <span>Override Locations</span>
-            <Icon
-              :icon="showLocationOverride ? 'lucide:chevron-up' : 'lucide:chevron-down'"
-              class="location-override-card__chevron"
-              aria-hidden="true"
-            />
-          </button>
-
-          <Transition name="expand">
-            <div v-if="showLocationOverride" class="location-override-card__body">
-              <p class="location-override-card__hint">
-                Search by address or enter coordinates as <code>lat, lng</code>
-              </p>
-
-              <div class="location-override-card__field">
-                <label class="location-override-card__label">Pickup location</label>
-                <PlacesSearchInput
-                  v-model="pickupQuery"
-                  label="Pickup location"
-                  placeholder="Search or enter lat, lng"
-                  icon="lucide:circle-dot"
-                  @place-selected="onPickupSelected"
-                />
+          <!-- Location Override -->
+          <div class="card override-card">
+            <button class="override-toggle" @click="showLocationOverride = !showLocationOverride">
+              <div class="override-toggle-left">
+                <Icon icon="lucide:edit-3" /> Override Coordinates
               </div>
-
-              <div class="location-override-card__field">
-                <label class="location-override-card__label">Drop location</label>
-                <PlacesSearchInput
-                  v-model="dropQuery"
-                  label="Drop location"
-                  placeholder="Search or enter lat, lng"
-                  icon="lucide:map-pin"
-                  @place-selected="onDropSelected"
-                />
-              </div>
-
-              <ion-button
-                expand="block"
-                fill="outline"
-                size="small"
-                class="location-override-card__apply"
-                :disabled="!overridePickup && !overrideDrop"
-                @click="applyOverrides"
-              >
-                Apply to map
-              </ion-button>
-            </div>
-          </Transition>
-        </div>
-
-        <!-- ── Action button ───────────────────────────────────────────── -->
-        <div class="trip-action-section">
-          <!-- Tracking toggle (only when trip is in progress) -->
-          <div v-if="isInProgress" class="tracking-toggle">
-            <div class="tracking-toggle__info">
-              <span class="tracking-toggle__title">
-                {{ isTracking ? 'Tracking active' : 'Tracking paused' }}
-              </span>
-              <span class="tracking-toggle__sub">
-                {{ isTracking ? 'Your location is being shared' : 'Admin cannot see your location' }}
-              </span>
-            </div>
-            <button
-              class="tracking-toggle__btn"
-              :class="{ 'tracking-toggle__btn--active': isTracking }"
-              :aria-label="isTracking ? 'Stop tracking' : 'Start tracking'"
-              @click="toggleTracking"
-            >
-              <Icon :icon="isTracking ? 'lucide:pause' : 'lucide:play'" />
+              <Icon :icon="showLocationOverride ? 'lucide:chevron-up' : 'lucide:chevron-down'" />
             </button>
+            <Transition name="expand">
+              <div v-if="showLocationOverride" class="override-body">
+                <p class="override-hint">Search by address or enter <code>lat, lng</code></p>
+                <div class="override-field">
+                  <PlacesSearchInput v-model="pickupQuery" label="Pickup location" placeholder="Search or enter lat, lng" icon="lucide:circle-dot" @place-selected="onPickupSelected" />
+                </div>
+                <div class="override-field">
+                  <PlacesSearchInput v-model="dropQuery" label="Drop location" placeholder="Search or enter lat, lng" icon="lucide:map-pin" @place-selected="onDropSelected" />
+                </div>
+                <button class="btn-apply-override" :disabled="!overridePickup && !overrideDrop" @click="applyOverrides">
+                  Apply to Map
+                </button>
+              </div>
+            </Transition>
           </div>
-
-          <!-- Advance status button -->
-          <ion-button
-            v-if="nextActionLabel"
-            expand="block"
-            :disabled="isUpdating"
-            class="trip-action-btn"
-            @click="handleAdvance"
-          >
-            <ion-spinner v-if="isUpdating" name="crescent" slot="start" />
-            {{ nextActionLabel }}
-          </ion-button>
-
-          <!-- Navigate full route button -->
-          <ion-button
-            expand="block"
-            fill="outline"
-            class="trip-action-btn"
-            @click="openFullRouteNav"
-          >
-            <Icon icon="lucide:navigation-2" slot="start" aria-hidden="true" />
-            Open in Maps
-          </ion-button>
+          
+          <div class="bottom-spacer" />
         </div>
       </template>
     </ion-content>
+
+    <!-- Action Footer -->
+    <ion-footer v-if="trip" class="modern-footer ion-no-border">
+      <div class="footer-content">
+        <!-- Tracking Toggle -->
+        <div v-if="isInProgress" class="tracking-banner">
+          <div class="tracking-info">
+            <span class="tracking-title">{{ isTracking ? 'Live Tracking Active' : 'Tracking Paused' }}</span>
+            <span class="tracking-sub">{{ isTracking ? 'Location sharing is ON' : 'Location sharing is OFF' }}</span>
+          </div>
+          <button class="tracking-toggle-btn" :class="{ 'tracking-toggle-btn--active': isTracking }" @click="toggleTracking">
+            <Icon :icon="isTracking ? 'lucide:pause' : 'lucide:play'" />
+          </button>
+        </div>
+
+        <!-- Main Advance Button -->
+        <button 
+          v-if="nextActionLabel" 
+          class="btn-primary-action" 
+          :disabled="isUpdating" 
+          @click="handleAdvance"
+        >
+          <ion-spinner v-if="isUpdating" name="crescent" class="btn-spinner" />
+          {{ nextActionLabel }}
+        </button>
+      </div>
+    </ion-footer>
   </ion-page>
 </template>
 
@@ -260,6 +229,9 @@ import { FEATURES } from '@/shared/lib/feature-flags'
 import type { Coordinates, PlaceResult } from '@/shared/models/location.model'
 import type { TripKanbanState } from '@/shared/models/trip.model'
 import { useTripDetail } from '../composables/useTripDetail'
+import TripStatusBadge from '../components/TripStatusBadge.vue'
+import GoogleMapView from '@/shared/components/ui/GoogleMapView.vue'
+import PlacesSearchInput from '@/shared/components/ui/PlacesSearchInput.vue'
 
 // ── Route param ────────────────────────────────────────────────────────────
 
@@ -298,32 +270,36 @@ const mapHeight = '40vh'
 
 const formattedTime = computed(() => (trip.value ? formatISTTime(trip.value.start_time) : ''))
 
-const NEXT_ACTION_LABELS: Partial<Record<TripKanbanState, string>> = {
-  Assigned: 'Mark as Viewed',
-  Viewed: 'Start Trip',
-  'Trip Started': 'Complete Trip',
-  'Trip Completed': 'Calculate Fare',
-  'Fare Calculated': 'Mark Completed',
-}
-
-const nextActionLabel = computed(() =>
-  trip.value ? (NEXT_ACTION_LABELS[trip.value.kanban_state] ?? null) : null
-)
+const nextActionLabel = computed(() => {
+  if (!trip.value) return null
+  const state = trip.value.kanban_state
+  if (state === 'assigned') return 'Mark as Viewed'
+  if (state === 'viewed_by_rider') return 'Start Trip'
+  if (state === 'trip_started') return trip.value.is_two_way ? 'Drop & Wait' : 'Complete Trip'
+  if (state === 'dropped_and_waiting') return 'Complete Trip'
+  if (state === 'trip_completed') return 'Calculate Fare'
+  if (state === 'fare_calculation_pending') return 'Mark Completed'
+  return null
+})
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
 
 onMounted(async () => {
   await fetchTrip(tripId.value)
+  // Auto-transition to viewed if it is assigned
+  if (trip.value?.kanban_state === 'assigned') {
+    await advanceStatus('viewed_by_rider')
+  }
 })
 
 // Auto-start tracking when trip enters "Trip Started" state
 watch(
   () => trip.value?.kanban_state,
   async state => {
-    if (state === 'Trip Started' && !isTracking.value) {
+    if (state === 'trip_started' && !isTracking.value) {
       await startTracking()
     }
-    if ((state === 'Trip Completed' || state === 'Completed') && isTracking.value) {
+    if ((state === 'trip_completed' || state === 'completed') && isTracking.value) {
       await stopTracking()
     }
   }
@@ -359,7 +335,12 @@ async function toggleTracking(): Promise<void> {
 }
 
 async function handleAdvance(): Promise<void> {
-  await advanceStatus()
+  let overrideState: TripKanbanState | undefined
+  if (trip.value?.kanban_state === 'trip_started') {
+    overrideState = trip.value.is_two_way ? 'dropped_and_waiting' : 'trip_completed'
+  }
+
+  await advanceStatus(overrideState)
   if (!error.value) {
     showSuccess(`Status updated to: ${trip.value?.kanban_state}`)
   } else {
@@ -392,440 +373,583 @@ function applyOverrides(): void {
   showSuccess('Map updated with new locations')
 }
 
-function formatCoords(coords: Coordinates): string {
+function formatCoords(coords?: Coordinates): string {
+  if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') {
+    return 'Pending Location'
+  }
   return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`
 }
 </script>
 
 <style scoped>
-/* ── Content ─────────────────────────────────────────────────────────────── */
-
-.trip-detail-content {
-  --padding-bottom: 32px;
+/* ── Typography & Global ─────────────────────────────────────────────────── */
+.modern-content {
+  --background: #f8fafc;
 }
 
-/* ── Loading / error ─────────────────────────────────────────────────────── */
-
-.trip-detail-loading,
-.trip-detail-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 64px 32px;
-  text-align: center;
-  color: var(--color-text-muted);
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.modern-header {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
-
-.trip-detail-loading__spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-brand);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.trip-detail-error__icon {
-  font-size: 48px;
-  color: var(--color-error);
-}
-
-/* ── Tracking badge (header) ─────────────────────────────────────────────── */
-
-.tracking-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
+.header-title {
   font-weight: 700;
-  margin-right: 8px;
+  font-size: 18px;
+  color: #1e293b;
+}
+.back-btn {
+  color: #1e293b;
 }
 
-.tracking-badge__dot {
-  width: 7px;
-  height: 7px;
+.live-tracking-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 12px;
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
   border-radius: 50%;
-  background: var(--color-success);
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse 1.5s infinite;
 }
 
-/* ── Map section ─────────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
 
-.map-section {
+/* ── Map Section ─────────────────────────────────────────────────────────── */
+.map-container {
   position: relative;
   width: 100%;
-  height: 40vh;
-  min-height: 220px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #cbd5e1;
 }
 
-.map-controls {
+.map-actions {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
+  right: 16px;
+  bottom: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   z-index: 10;
 }
 
-.map-ctrl-btn {
-  width: 40px;
-  height: 40px;
+.map-fab {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: #64748b;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  color: var(--color-text-secondary);
+  font-size: 20px;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: all 0.2s ease;
 }
 
-.map-ctrl-btn--active {
-  background: var(--color-brand);
-  color: #fff;
-  border-color: var(--color-brand);
+.map-fab:active {
+  transform: scale(0.95);
 }
 
-/* ── Trip info card ──────────────────────────────────────────────────────── */
+.map-fab--active {
+  background: #3b82f6;
+  color: #ffffff;
+}
 
-.trip-info-card {
-  margin: 12px 16px 0;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-xl);
+/* ── Details Container ───────────────────────────────────────────────────── */
+.details-container {
   padding: 16px;
-}
-
-.trip-info-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.trip-info-card__time {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-/* ── Locations ───────────────────────────────────────────────────────────── */
-
-.trip-locations {
   display: flex;
   flex-direction: column;
-  margin-bottom: 14px;
+  gap: 16px;
+  position: relative;
+  z-index: 5;
+  margin-top: -24px;
 }
 
-.trip-locations__connector {
-  width: 2px;
-  height: 20px;
-  background: var(--color-border);
-  margin-left: 11px;
+.bottom-spacer {
+  height: 40px;
 }
 
-.trip-location-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+/* ── Cards Generic ───────────────────────────────────────────────────────── */
+.card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.02);
 }
 
-.trip-location-row__indicator {
+.card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 16px 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 24px;
-  flex-shrink: 0;
-  padding-top: 2px;
+  gap: 8px;
 }
 
-.trip-location-row__dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1.5px currentColor;
-  display: block;
+.card-title .icon {
+  color: #6366f1;
 }
 
-.trip-location-row__indicator--pickup .trip-location-row__dot {
-  background: var(--color-success);
-  color: var(--color-success);
+/* ── Header Card ─────────────────────────────────────────────────────────── */
+.header-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.trip-location-row__indicator--drop .trip-location-row__dot {
-  background: var(--color-error);
-  color: var(--color-error);
+.header-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
-.trip-location-row__content {
-  flex: 1;
+.trip-number {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+}
+
+.trip-time {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+}
+
+.trip-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  background: #f8fafc;
+  padding: 14px;
+  border-radius: 14px;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.stat-icon {
+  font-size: 18px;
+  color: #64748b;
+}
+.text-blue { color: #3b82f6; }
+.text-green { color: #10b981; }
+.text-gray { color: #94a3b8; }
+
+.stat-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
-.trip-location-row__label {
-  font-size: var(--font-size-xs);
+.stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #64748b;
   font-weight: 600;
-  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+/* ── Beautician Card ─────────────────────────────────────────────────────── */
+.beautician-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
+  border: 1px solid #e0e7ff;
+}
+
+.beautician-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.beautician-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.beautician-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.b-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.b-role {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.call-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  transition: all 0.2s;
+}
+
+.call-btn:active {
+  transform: scale(0.9);
+}
+
+/* ── Route Card ──────────────────────────────────────────────────────────── */
+.route-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.route-point {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.route-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 16px;
+  margin-top: 4px;
+}
+
+.indicator-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1.5px currentColor;
+  z-index: 2;
+  flex-shrink: 0;
+}
+.indicator-dot.pickup { background: #10b981; color: #10b981; }
+.indicator-dot.drop { background: #ef4444; color: #ef4444; }
+
+.indicator-line {
+  width: 2px;
+  background: #e2e8f0;
+  flex: 1;
+  margin: 4px 0;
+  min-height: 24px;
+}
+
+.route-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 8px;
+}
+
+.r-label {
+  margin: 0 0 2px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.trip-location-row__address {
-  font-size: var(--font-size-base);
+.r-address {
+  margin: 0 0 4px 0;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #1e293b;
+  line-height: 1.4;
 }
 
-.trip-location-row__coords {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+.r-coords {
+  margin: 0;
+  font-size: 11px;
+  color: #94a3b8;
   font-family: monospace;
 }
 
-.trip-location-row__nav-btn {
-  background: var(--color-brand-pale);
+.nav-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #3b82f6;
   border: none;
-  border-radius: var(--radius-full);
-  width: 36px;
-  height: 36px;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  color: var(--color-brand);
   cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s ease;
 }
+.nav-icon-btn:active { background: #e2e8f0; transform: scale(0.95); }
 
-.trip-location-row__nav-btn:active {
-  background: var(--color-brand-light);
-}
-
-/* ── Fare ────────────────────────────────────────────────────────────────── */
-
-.trip-fare {
+.btn-full-route {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-weight: 600;
+  font-size: 14px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border);
-  margin-top: 4px;
+  justify-content: center;
+  gap: 8px;
 }
 
-.trip-fare__label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+.btn-full-route:active { background: #f1f5f9; }
+
+/* ── Extra Meta ──────────────────────────────────────────────────────────── */
+.extra-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.extra-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.extra-label { color: #64748b; font-weight: 500; }
+.extra-value { color: #1e293b; font-weight: 700; }
+
+/* ── Notes ───────────────────────────────────────────────────────────────── */
+.notes-box {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+.notes-icon {
+  color: #d97706;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.notes-box p {
+  margin: 0;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.5;
   font-weight: 500;
 }
 
-.trip-fare__amount {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-size: var(--font-size-xl);
-  font-weight: 800;
-  color: var(--color-text);
-}
-
-/* ── Notes ───────────────────────────────────────────────────────────────── */
-
-.trip-notes {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: var(--color-info-bg);
-  border-radius: var(--radius-md);
-}
-
-.trip-notes__icon {
-  font-size: 16px;
-  color: var(--color-info-text);
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.trip-notes__text {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-info-text);
-  line-height: 1.5;
-}
-
-/* ── Location override card ──────────────────────────────────────────────── */
-
-.location-override-card {
-  margin: 12px 16px 0;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-xl);
+/* ── Location Override ───────────────────────────────────────────────────── */
+.override-card {
+  padding: 0;
   overflow: hidden;
 }
 
-.location-override-card__toggle {
+.override-toggle {
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.override-toggle-left {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 14px 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text);
-  text-align: left;
-  -webkit-tap-highlight-color: transparent;
+  gap: 8px;
 }
 
-.location-override-card__chevron {
-  margin-left: auto;
-  font-size: 18px;
-  color: var(--color-text-muted);
-}
-
-.location-override-card__body {
+.override-body {
   padding: 0 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid #f1f5f9;
 }
 
-.location-override-card__hint {
+.override-hint {
+  font-size: 12px;
+  color: #94a3b8;
   margin: 12px 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
 }
 
-.location-override-card__hint code {
-  background: var(--color-background);
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+.override-hint code {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
-.location-override-card__label {
-  display: block;
-  font-size: var(--font-size-sm);
+.btn-apply-override {
+  background: #3b82f6;
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
   font-weight: 600;
-  color: var(--color-text-secondary);
-  margin-bottom: 6px;
+  margin-top: 8px;
+}
+.btn-apply-override:disabled { opacity: 0.5; }
+
+/* ── Footer / Actions ────────────────────────────────────────────────────── */
+.modern-footer {
+  background: #ffffff;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding: 16px 20px 32px 20px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.04);
 }
 
-.location-override-card__field {
+.footer-content {
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 
-.location-override-card__apply {
-  margin-top: 4px;
-}
-
-/* ── Action section ──────────────────────────────────────────────────────── */
-
-.trip-action-section {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* ── Tracking toggle ─────────────────────────────────────────────────────── */
-
-.tracking-toggle {
+.tracking-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: 14px 16px;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
 }
 
-.tracking-toggle__info {
+.tracking-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
-.tracking-toggle__title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text);
+.tracking-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
 }
 
-.tracking-toggle__sub {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+.tracking-sub {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
 }
 
-.tracking-toggle__btn {
-  width: 44px;
-  height: 44px;
+.tracking-toggle-btn {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
   border: none;
-  background: var(--color-brand-pale);
-  color: var(--color-brand);
-  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  flex-shrink: 0;
+  font-size: 18px;
+  transition: all 0.2s;
 }
 
-.tracking-toggle__btn--active {
-  background: var(--color-brand);
+.tracking-toggle-btn--active {
+  background: #10b981;
   color: #fff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.trip-action-btn {
-  --border-radius: var(--radius-xl);
+.btn-primary-action {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
+  transition: all 0.2s;
 }
 
-/* ── Expand transition ───────────────────────────────────────────────────── */
+.btn-primary-action:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+}
 
-.expand-enter-active,
-.expand-leave-active {
-  transition: max-height 0.25s ease, opacity 0.2s ease;
-  overflow: hidden;
+.btn-primary-action:disabled {
+  background: #94a3b8;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+}
+
+/* Transitions */
+.expand-enter-active, .expand-leave-active {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
   max-height: 400px;
+  overflow: hidden;
 }
-
-.expand-enter-from,
-.expand-leave-to {
+.expand-enter-from, .expand-leave-to {
   max-height: 0;
   opacity: 0;
-}
-
-/* ── Animations ──────────────────────────────────────────────────────────── */
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
 }
 </style>

@@ -6,12 +6,14 @@ import type { Coordinates } from './location.model'
  */
 export type TripKanbanState =
   | 'requests'
-  | 'Assigned'
-  | 'Viewed'
-  | 'Trip Started'
-  | 'Trip Completed'
-  | 'Fare Calculated'
-  | 'Completed'
+  | 'assigned'
+  | 'viewed_by_rider'
+  | 'trip_started'
+  | 'dropped_and_waiting'
+  | 'trip_completed'
+  | 'fare_calculation_pending'
+  | 'completed'
+  | 'cancelled'
 
 /**
  * Raw GeoJSON Point as returned by the API.
@@ -60,6 +62,10 @@ export interface RawTrip {
   auto_distance_km?: number
   fare?: number
   notes?: string
+  beautician?: {
+    name: string
+    phone: string
+  }
 }
 
 /**
@@ -91,4 +97,6 @@ export interface Trip {
     cost: number
     reimbursement_status: string
   }
+  beautician_name?: string
+  beautician_phone?: string
 }

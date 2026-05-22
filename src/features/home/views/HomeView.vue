@@ -357,14 +357,21 @@ const cancelledOrders = computed(() =>
 // ── Computed: trip buckets ─────────────────────────────────────────────────
 
 const upcomingTrips = computed(() =>
-  trips.value.filter(t => t.kanban_state === 'Assigned' || t.kanban_state === 'Viewed')
+  trips.value.filter(t => t.kanban_state === 'assigned' || t.kanban_state === 'viewed_by_rider')
 )
 
-const activeTrips = computed(() => trips.value.filter(t => t.kanban_state === 'Trip Started'))
+const activeTrips = computed(() =>
+  trips.value.filter(
+    t => t.kanban_state === 'trip_started' || t.kanban_state === 'dropped_and_waiting'
+  )
+)
 
 const completedTrips = computed(() =>
   trips.value.filter(t => {
-    const done = t.kanban_state === 'Completed' || t.kanban_state === 'Fare Calculated'
+    const done =
+      t.kanban_state === 'trip_completed' ||
+      t.kanban_state === 'fare_calculation_pending' ||
+      t.kanban_state === 'completed'
     return done && isToday(t.updated_at ?? t.created_at)
   })
 )

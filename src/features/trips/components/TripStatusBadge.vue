@@ -1,7 +1,7 @@
 <template>
-  <span class="status-badge" :class="`status-badge--${colorClass}`" :aria-label="`Status: ${state}`">
+  <span class="status-badge" :class="`status-badge--${colorClass}`" :aria-label="`Status: ${label}`">
     <span class="status-badge__dot" aria-hidden="true" />
-    {{ state }}
+    {{ label }}
   </span>
 </template>
 
@@ -15,19 +15,46 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const label = computed(() => {
+  switch (props.state) {
+    case 'requests':
+      return 'Requested'
+    case 'assigned':
+      return 'Assigned'
+    case 'viewed_by_rider':
+      return 'Viewed'
+    case 'trip_started':
+      return 'Trip Started'
+    case 'dropped_and_waiting':
+      return 'Drop & Wait'
+    case 'trip_completed':
+      return 'Trip Completed'
+    case 'fare_calculation_pending':
+      return 'Fare Calculated'
+    case 'completed':
+      return 'Completed'
+    case 'cancelled':
+      return 'Cancelled'
+    default:
+      return props.state
+  }
+})
+
 const colorClass = computed(() => {
   switch (props.state) {
     case 'requests':
-    case 'Assigned':
+    case 'assigned':
       return 'info'
-    case 'Viewed':
+    case 'viewed_by_rider':
       return 'warning'
-    case 'Trip Started':
+    case 'trip_started':
+    case 'dropped_and_waiting':
       return 'brand'
-    case 'Trip Completed':
+    case 'trip_completed':
       return 'success'
-    case 'Fare Calculated':
-    case 'Completed':
+    case 'fare_calculation_pending':
+    case 'completed':
+    case 'cancelled':
       return 'muted'
     default:
       return 'muted'

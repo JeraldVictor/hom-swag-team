@@ -47,16 +47,27 @@
         </div>
       </template>
 
-      <!-- Trip list -->
+      <!-- Trips list tabs -->
       <template v-else>
+        <!-- Segment Control -->
+        <ion-segment v-model="selectedTab" class="trips-segment">
+          <ion-segment-button value="today">Today</ion-segment-button>
+          <ion-segment-button value="tomorrow">Tomorrow</ion-segment-button>
+          <ion-segment-button value="past">Past Trips</ion-segment-button>
+        </ion-segment>
+
         <!-- Inline error banner during refresh (data still visible) -->
         <div v-if="error" class="trips-error-banner" role="alert">
           <Icon icon="lucide:alert-circle" aria-hidden="true" />
           {{ error }}
         </div>
         <div class="trips-list anim-list">
+          <!-- Empty tab state -->
+          <div v-if="filteredTrips.length === 0" class="trips-empty-tab">
+            <p>No trips found for {{ selectedTab }}.</p>
+          </div>
           <TripCard
-            v-for="trip in trips"
+            v-for="trip in filteredTrips"
             :key="trip.id"
             :trip="trip"
             @click="goToDetail(trip.id)"
@@ -69,14 +80,46 @@
 
 <script setup lang="ts">
 import { onIonViewWillEnter } from '@ionic/vue'
-import { onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables'
 import { useTrips } from '../composables/useTrips'
+import { IonSegment, IonSegmentButton } from '@ionic/vue'
+import TripCard from '../components/TripCard.vue'
 
 const router = useRouter()
 const { trips, isLoading, error, fetchTrips, refresh } = useTrips()
 const { openDrawer } = useDrawer()
+
+const selectedTab = ref<'today' | 'tomorrow' | 'past'>('today')
+
+function isSameDay(d1: Date, d2: Date) {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  )
+}
+
+const filteredTrips = computed(() => {
+  const today = new Date()
+  const tomorrow = new Date()
+  tomorrow.setDate(today.getDate() + 1)
+
+  return trips.value.filter(t => {
+    if (!t.start_time) return false
+    const tripDate = new Date(t.start_time)
+    if (selectedTab.value === 'today') return isSameDay(tripDate, today)
+    if (selectedTab.value === 'tomorrow') return isSameDay(tripDate, tomorrow)
+    if (selectedTab.value === 'past') {
+      // Past means earlier than today
+      const todayStart = new Date(today)
+      todayStart.setHours(0, 0, 0, 0)
+      return tripDate.getTime() < todayStart.getTime()
+    }
+    return false
+  })
+})
 
 function openMenu(): void {
   openDrawer()
@@ -206,6 +249,18 @@ function goToDetail(id: string | number): void {
 .trip-skeleton__footer {
   height: 18px;
   width: 60%;
+}
+
+.trips-segment {
+  margin: 16px 16px 8px;
+  width: calc(100% - 32px);
+}
+
+.trips-empty-tab {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
 }
 
 @keyframes shimmer {

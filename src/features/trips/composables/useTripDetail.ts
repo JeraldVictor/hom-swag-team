@@ -21,22 +21,25 @@ export interface UseTripDetailReturn {
   /** True when the trip is fully completed */
   isCompleted: Readonly<Ref<boolean>>
   fetchTrip(id: string | number): Promise<void>
-  advanceStatus(): Promise<void>
+  advanceStatus(nextStateOverride?: TripKanbanState): Promise<void>
 }
 
 /** States where the rider is actively moving */
-const IN_PROGRESS_STATES: TripKanbanState[] = ['Trip Started']
+const IN_PROGRESS_STATES: TripKanbanState[] = ['trip_started', 'dropped_and_waiting']
 
 /** States that are considered fully done */
-const COMPLETED_STATES: TripKanbanState[] = ['Fare Calculated', 'Completed']
+const COMPLETED_STATES: TripKanbanState[] = ['fare_calculation_pending', 'completed']
 
 /** The next state in the kanban progression */
 const NEXT_STATE: Partial<Record<TripKanbanState, TripKanbanState>> = {
-  Assigned: 'Viewed',
-  Viewed: 'Trip Started',
-  'Trip Started': 'Trip Completed',
-  'Trip Completed': 'Fare Calculated',
-  'Fare Calculated': 'Completed',
+  assigned: 'viewed_by_rider',
+  viewed_by_rider: 'trip_started',
+  // 'trip_started' logic requires knowing if it's 2-way, so we handle it dynamically in the component or via a special method.
+  // For now, we will expose an `advanceStatusDynamic(trip)` in the component instead of using this simple map for all states.
+  trip_started: 'trip_completed',
+  dropped_and_waiting: 'trip_completed',
+  trip_completed: 'fare_calculation_pending',
+  fare_calculation_pending: 'completed',
 }
 
 export function useTripDetail(): UseTripDetailReturn {
@@ -65,9 +68,9 @@ export function useTripDetail(): UseTripDetailReturn {
     }
   }
 
-  async function advanceStatus(): Promise<void> {
+  async function advanceStatus(nextStateOverride?: TripKanbanState): Promise<void> {
     if (!trip.value) return
-    const next = NEXT_STATE[trip.value.kanban_state]
+    const next = nextStateOverride || NEXT_STATE[trip.value.kanban_state]
     if (!next) return
 
     isUpdating.value = true

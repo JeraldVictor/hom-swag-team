@@ -20,7 +20,10 @@ import type { RawTrip, Trip, TripKanbanState } from '@/shared/models/trip.model'
 /**
  * Convert a GeoJSON Point [lng, lat] to our { latitude, longitude } shape.
  */
-function geoJsonToCoords(geo: { coordinates: [number, number] }): Coordinates {
+function geoJsonToCoords(geo?: { coordinates: [number, number] }): Coordinates {
+  if (!geo || !geo.coordinates || geo.coordinates.length < 2) {
+    return {} as Coordinates
+  }
   return {
     latitude: geo.coordinates[1],
     longitude: geo.coordinates[0],
@@ -51,6 +54,8 @@ function normalizeTrip(raw: RawTrip): Trip {
     updated_at: raw.updated_at,
     is_two_way: raw.is_two_way,
     auto_distance_km: raw.auto_distance_km,
+    beautician_name: raw.beautician?.name,
+    beautician_phone: raw.beautician?.phone,
   }
 }
 
