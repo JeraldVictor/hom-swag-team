@@ -19,6 +19,9 @@
 
     <!-- Normal app — only rendered when fully ready -->
     <ion-router-outlet v-else />
+
+    <!-- Global high-priority alert overlay (e.g. new trips/orders) -->
+    <GlobalAlertBox />
   </ion-app>
 </template>
 
@@ -32,6 +35,8 @@ import { onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import NoInternetView from '@/features/home/views/NoInternetView.vue'
 import PermissionSplashView from '@/features/home/views/PermissionSplashView.vue'
+import GlobalAlertBox from '@/shared/components/ui/GlobalAlertBox.vue'
+import { useGlobalAlerts } from '@/shared/composables/useGlobalAlerts'
 import { locationTracker } from '@/shared/composables/useLocationTracker'
 import { getIsOnline, useNetwork } from '@/shared/composables/useNetwork'
 import { usePermissions } from '@/shared/composables/usePermissions'
@@ -46,6 +51,7 @@ import { useNotificationStore } from '@/shared/stores/notification'
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
+const { startListening } = useGlobalAlerts()
 
 // Network state — reactive, shared singleton
 const { isOnline } = useNetwork()
@@ -180,6 +186,9 @@ onMounted(async () => {
 
     showToast(data.title || 'New notification', 'primary')
   })
+
+  // Start listening for high-priority alerts with sound/overlay
+  startListening()
 
   await boot()
   await setupAppStateListener()
