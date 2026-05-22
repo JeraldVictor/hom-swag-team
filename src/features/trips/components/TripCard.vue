@@ -34,7 +34,13 @@
           <span class="route-label">Pickup Location</span>
           <span class="route-address">{{ trip.pickup_location.address ?? formatCoords(trip.pickup_location) }}</span>
         </div>
-        <button class="route-nav-btn" aria-label="Navigate to Pickup" @click.stop="navTo(trip.pickup_location)">
+        <button
+          type="button"
+          class="route-nav-btn"
+          aria-label="Navigate to Pickup"
+          :disabled="!hasCoordinates(trip.pickup_location)"
+          :aria-disabled="!hasCoordinates(trip.pickup_location)"
+          @click.stop.prevent="navTo(trip.pickup_location)">
           <Icon icon="lucide:navigation" />
         </button>
       </div>
@@ -48,7 +54,13 @@
           <span class="route-label">Drop Location</span>
           <span class="route-address">{{ trip.drop_location.address ?? formatCoords(trip.drop_location) }}</span>
         </div>
-        <button class="route-nav-btn" aria-label="Navigate to Drop" @click.stop="navTo(trip.drop_location)">
+        <button
+          type="button"
+          class="route-nav-btn"
+          aria-label="Navigate to Drop"
+          :disabled="!hasCoordinates(trip.drop_location)"
+          :aria-disabled="!hasCoordinates(trip.drop_location)"
+          @click.stop.prevent="navTo(trip.drop_location)">
           <Icon icon="lucide:navigation" />
         </button>
       </div>
@@ -122,13 +134,17 @@ const statusColor = computed(() => {
 
 function formatCoords(coords?: Coordinates): string {
   if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') {
-    return 'Pending Location'
+    return 'Not available'
   }
   return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`
 }
 
+function hasCoordinates(coords?: Coordinates): coords is Coordinates {
+  return !!coords && Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude)
+}
+
 async function navTo(coords?: Coordinates) {
-  if (!coords || typeof coords.latitude !== 'number') return
+  if (!hasCoordinates(coords)) return
   await openNavigationMenu(coords.latitude, coords.longitude, 'Location')
 }
 </script>
@@ -316,6 +332,14 @@ async function navTo(coords?: Coordinates) {
   flex-shrink: 0;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.route-nav-btn:disabled,
+.route-nav-btn[aria-disabled='true'] {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .route-nav-btn:active {

@@ -103,10 +103,12 @@ export async function getTrip(id: string | number): Promise<Trip> {
  */
 export async function updateTripStatus(
   id: string | number,
-  kanbanState: TripKanbanState
+  kanbanState: TripKanbanState,
+  distanceKm?: number
 ): Promise<Trip> {
   const response = await apiClient.patch<{ data: RawTrip }>(`/trips/${id}/kanban-state`, {
     kanban_state: kanbanState,
+    distance_km: distanceKm,
   })
   return normalizeTrip(response.data.data)
 }

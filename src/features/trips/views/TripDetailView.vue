@@ -115,9 +115,15 @@
                 <div class="route-content">
                   <p class="r-label">Pickup</p>
                   <p class="r-address">{{ trip.pickup_location.address ?? formatCoords(trip.pickup_location) }}</p>
-                  <p class="r-coords">{{ trip.pickup_location.latitude?.toFixed(6) }}, {{ trip.pickup_location.longitude?.toFixed(6) }}</p>
+                  <p class="r-coords">{{ formatCoords(trip.pickup_location) }}</p>
                 </div>
-                <button class="nav-icon-btn" aria-label="Navigate Pickup" @click="openNativeNav(trip.pickup_location)">
+                <button
+                  type="button"
+                  class="nav-icon-btn"
+                  aria-label="Navigate Pickup"
+                  :disabled="!hasCoordinates(trip.pickup_location)"
+                  :aria-disabled="!hasCoordinates(trip.pickup_location)"
+                  @click.stop.prevent="openNativeNav(trip.pickup_location)">
                   <Icon icon="lucide:navigation" />
                 </button>
               </div>
@@ -130,15 +136,21 @@
                 <div class="route-content">
                   <p class="r-label">Drop</p>
                   <p class="r-address">{{ trip.drop_location.address ?? formatCoords(trip.drop_location) }}</p>
-                  <p class="r-coords">{{ trip.drop_location.latitude?.toFixed(6) }}, {{ trip.drop_location.longitude?.toFixed(6) }}</p>
+                  <p class="r-coords">{{ formatCoords(trip.drop_location) }}</p>
                 </div>
-                <button class="nav-icon-btn" aria-label="Navigate Drop" @click="openNativeNav(trip.drop_location)">
+                <button
+                  type="button"
+                  class="nav-icon-btn"
+                  aria-label="Navigate Drop"
+                  :disabled="!hasCoordinates(trip.drop_location)"
+                  :aria-disabled="!hasCoordinates(trip.drop_location)"
+                  @click.stop.prevent="openNativeNav(trip.drop_location)">
                   <Icon icon="lucide:navigation" />
                 </button>
               </div>
             </div>
 
-            <button class="btn-full-route" @click="openFullRouteNav">
+            <button class="btn-full-route" :disabled="!hasCoordinates(effectiveDrop)" @click.stop.prevent="openFullRouteNav">
               <Icon icon="lucide:map-pin" /> View Full Route in Maps
             </button>
           </div>
@@ -221,6 +233,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onIonViewWillEnter, alertController } from '@ionic/vue'
 import { useRoute } from 'vue-router'
 import { useToast, useTracking } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
@@ -273,18 +286,19 @@ const formattedTime = computed(() => (trip.value ? formatISTTime(trip.value.star
 const nextActionLabel = computed(() => {
   if (!trip.value) return null
   const state = trip.value.kanban_state
-  if (state === 'assigned') return 'Mark as Viewed'
   if (state === 'viewed_by_rider') return 'Start Trip'
   if (state === 'trip_started') return trip.value.is_two_way ? 'Drop & Wait' : 'Complete Trip'
   if (state === 'dropped_and_waiting') return 'Complete Trip'
-  if (state === 'trip_completed') return 'Calculate Fare'
-  if (state === 'fare_calculation_pending') return 'Mark Completed'
   return null
 })
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
 
-onMounted(async () => {
+onMounted(() => {
+  // Mount logic if needed
+})
+
+onIonViewWillEnter(async () => {
   await fetchTrip(tripId.value)
   // Auto-transition to viewed if it is assigned
   if (trip.value?.kanban_state === 'assigned') {
@@ -335,9 +349,46 @@ async function toggleTracking(): Promise<void> {
 }
 
 async function handleAdvance(): Promise<void> {
+  const isOneWayCompleting = trip.value?.kanban_state === 'trip_started' && !trip.value?.is_two_way
+  const isTwoWayCompleting = trip.value?.kanban_state === 'dropped_and_waiting'
+
+  if (isOneWayCompleting || isTwoWayCompleting) {
+    const alert = await alertController.create({
+      header: 'Complete Trip',
+      message: 'Please enter the total distance driven (km).',
+      inputs: [
+        {
+          name: 'distance',
+          type: 'number',
+          placeholder: 'e.g. 40',
+          min: 0.1,
+        },
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Mark Completed',
+          handler: async data => {
+            const distance = parseFloat(data.distance)
+            if (isNaN(distance) || distance <= 0) return false
+
+            await advanceStatus('completed', distance)
+            if (!error.value) {
+              showSuccess('Trip marked as completed!')
+            } else {
+              showError(error.value)
+            }
+          },
+        },
+      ],
+    })
+    await alert.present()
+    return
+  }
+
   let overrideState: TripKanbanState | undefined
-  if (trip.value?.kanban_state === 'trip_started') {
-    overrideState = trip.value.is_two_way ? 'dropped_and_waiting' : 'trip_completed'
+  if (trip.value?.kanban_state === 'trip_started' && trip.value?.is_two_way) {
+    overrideState = 'dropped_and_waiting'
   }
 
   await advanceStatus(overrideState)
@@ -348,13 +399,18 @@ async function handleAdvance(): Promise<void> {
   }
 }
 
-async function openNativeNav(coords: Coordinates): Promise<void> {
+function hasCoordinates(coords?: Coordinates | null): coords is Coordinates {
+  return !!coords && Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude)
+}
+
+async function openNativeNav(coords?: Coordinates): Promise<void> {
+  if (!hasCoordinates(coords)) return
   const { latitude: lat, longitude: lng } = coords
   await openNavigationMenu(lat, lng, 'Destination')
 }
 
 async function openFullRouteNav(): Promise<void> {
-  if (!effectiveDrop.value) return
+  if (!hasCoordinates(effectiveDrop.value)) return
   const { latitude: dLat, longitude: dLng } = effectiveDrop.value
   await openNavigationMenu(dLat, dLng, 'Destination')
 }
@@ -373,9 +429,9 @@ function applyOverrides(): void {
   showSuccess('Map updated with new locations')
 }
 
-function formatCoords(coords?: Coordinates): string {
+function formatCoords(coords?: Coordinates | null): string {
   if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') {
-    return 'Pending Location'
+    return 'Not available'
   }
   return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`
 }
@@ -731,6 +787,13 @@ function formatCoords(coords?: Coordinates): string {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+.nav-icon-btn:disabled,
+.nav-icon-btn[aria-disabled='true'] {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 .nav-icon-btn:active { background: #e2e8f0; transform: scale(0.95); }
 

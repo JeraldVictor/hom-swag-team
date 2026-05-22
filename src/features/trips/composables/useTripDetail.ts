@@ -21,7 +21,7 @@ export interface UseTripDetailReturn {
   /** True when the trip is fully completed */
   isCompleted: Readonly<Ref<boolean>>
   fetchTrip(id: string | number): Promise<void>
-  advanceStatus(nextStateOverride?: TripKanbanState): Promise<void>
+  advanceStatus(nextStateOverride?: TripKanbanState, distanceKm?: number): Promise<void>
 }
 
 /** States where the rider is actively moving */
@@ -68,7 +68,10 @@ export function useTripDetail(): UseTripDetailReturn {
     }
   }
 
-  async function advanceStatus(nextStateOverride?: TripKanbanState): Promise<void> {
+  async function advanceStatus(
+    nextStateOverride?: TripKanbanState,
+    distanceKm?: number
+  ): Promise<void> {
     if (!trip.value) return
     const next = nextStateOverride || NEXT_STATE[trip.value.kanban_state]
     if (!next) return
@@ -76,7 +79,7 @@ export function useTripDetail(): UseTripDetailReturn {
     isUpdating.value = true
     error.value = null
     try {
-      trip.value = await updateTripStatus(trip.value.id, next)
+      trip.value = await updateTripStatus(trip.value.id, next, distanceKm)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update trip status'
     } finally {
