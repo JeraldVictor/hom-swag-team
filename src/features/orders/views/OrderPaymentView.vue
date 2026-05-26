@@ -106,6 +106,17 @@
             </ion-item>
           </ion-list>
 
+          <div v-if="order.office_payment_qr_code?.url && order.status?.toLowerCase() !== 'completed'" class="qr-code-block">
+            <p class="qr-title">Office UPI QR Code</p>
+            <p class="qr-subtitle">Tap the QR to view it full screen for customer scan.</p>
+            <div class="qr-image-wrapper" @click="openGallery(mediaUrl(order.office_payment_qr_code.url))">
+              <img
+                :src="mediaUrl(order.office_payment_qr_code.url)"
+                alt="Office payment QR code"
+              />
+            </div>
+          </div>
+
           <div class="proof-section" v-if="requiresProof">
             <div class="proof-header">
               <div>
@@ -224,6 +235,9 @@ const hasCodAmount = computed(() => Number(order.value?.payment?.cod_amount ?? 0
 const hasUpiAmount = computed(
   () => Number(order.value?.payment?.upi_amount ?? 0) > 0 || paymentMethod.value.includes('upi')
 )
+const actualUpiAmount = computed(() =>
+  Number(paymentUpiAmount.value ?? order.value?.payment?.upi_amount ?? 0)
+)
 const isPrepaidOrder = computed(() => !hasCodAmount.value && !hasUpiAmount.value)
 const proofImages = computed(() => {
   if (!order.value) return []
@@ -239,9 +253,7 @@ const proofImages = computed(() => {
   return singleProof.url ? [{ url: singleProof.url }] : []
 })
 
-const requiresProof = computed(
-  () => !isPrepaidOrder.value && (hasUpiAmount.value || (paymentUpiAmount.value ?? 0) > 0)
-)
+const requiresProof = computed(() => !isPrepaidOrder.value && actualUpiAmount.value > 0)
 
 const paymentTypeLabel = computed(() => {
   if (isPrepaidOrder.value) return 'Prepaid'
@@ -504,6 +516,40 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.qr-code-block {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+}
+.qr-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.qr-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.qr-image-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  cursor: pointer;
+}
+.qr-image-wrapper img {
+  width: 180px;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
 }
 .payment-actions {
   padding-bottom: env(safe-area-inset-bottom, 16px);

@@ -162,11 +162,7 @@
         </div>
       </div>
       <div class="payment-hint" v-if="order.payment?.status?.toLowerCase() !== 'paid' && !isCompleted">
-        <p>Collect cash or ask the customer to scan the office UPI QR below.</p>
-      </div>
-      <div v-if="order.office_payment_qr_code?.url && !isCompleted" class="qr-code-block">
-        <p class="qr-title">Office UPI QR Code</p>
-        <img :src="mediaUrl(order.office_payment_qr_code?.url)" alt="Office payment QR code" />
+        <p>Collect cash or ask the customer to process the payment as per the order details.</p>
       </div>
     </div>
 

@@ -19,6 +19,14 @@ export interface ExternalBooking {
   status: ExternalBookingStatus
   /** Proof image URL after upload */
   proof_url?: string
+  /** All proof image URLs after upload */
+  proof_urls?: string[]
+  external_booking_details?: {
+    provider?: string
+    cost?: number
+    reimbursement_status?: ExternalBookingStatus
+    reimbursement_proof?: Array<{ url?: string }>
+  }
   /** ISO 8601 date-time string */
   created_at?: string
   /** ISO 8601 date-time string */

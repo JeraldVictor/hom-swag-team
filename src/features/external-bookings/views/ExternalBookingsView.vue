@@ -25,6 +25,15 @@
         </p>
       </div>
 
+      <input
+        ref="proofInput"
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        @change="handleProofChange"
+      />
+
       <!-- Loading skeleton -->
       <template v-if="isLoading && bookings.length === 0">
         <div class="list">
@@ -52,31 +61,56 @@
       <!-- Bookings list -->
       <template v-else>
         <div class="list">
-          <div v-for="booking in bookings" :key="booking.id ?? booking._id" class="booking-card anim-fade-in">
-            <div class="booking-card__header">
-              <div>
-                <p class="booking-card__customer">
-                  {{ booking.customer_name || 'External Ride' }}
-                  <span v-if="booking.order_number" class="order-tag">#{{ booking.order_number }}</span>
-                </p>
-                <p class="booking-card__meta">
-                  {{ formatDate(booking.service_date || booking.created_at) }}
-                  <span v-if="booking.provider"> · {{ booking.provider }}</span>
-                </p>
+          <div
+            v-for="booking in bookings"
+            :key="booking.id ?? booking._id"
+            class="booking-card anim-fade-in"
+            role="button"
+            tabindex="0"
+            @click="openDetailDrawer(booking)"
+            @keydown.enter="openDetailDrawer(booking)"
+          >
+            <!-- Provider badge -->
+            <div class="booking-card__provider-row">
+              <div class="provider-chip" :class="`provider-chip--${(booking.provider || 'other').toLowerCase()}`">
+                <Icon
+                  :icon="booking.provider === 'Uber' ? 'simple-icons:uber' : booking.provider === 'Ola' ? 'lucide:car' : 'lucide:more-horizontal'"
+                  class="provider-chip__icon"
+                  aria-hidden="true"
+                />
+                <span class="provider-chip__label">{{ booking.provider || 'Other' }}</span>
               </div>
               <AppBadge :text="statusLabel(booking.status)" :variant="statusVariant(booking.status)" size="sm" />
             </div>
-            
+
+            <!-- Customer & order -->
+            <div class="booking-card__body">
+              <p class="booking-card__customer">
+                {{ booking.customer_name || 'External Ride' }}
+              </p>
+              <p class="booking-card__meta">
+                <span v-if="booking.order_number" class="order-tag">#{{ booking.order_number }}</span>
+                <span class="booking-card__date">{{ formatDate(booking.service_date || booking.created_at) }}</span>
+              </p>
+            </div>
+
+            <!-- Footer row -->
             <div class="booking-card__footer">
-               <p class="booking-card__amount">
+              <p class="booking-card__amount">
                 <Icon icon="lucide:indian-rupee" aria-hidden="true" />
                 {{ (booking.cost || 0).toLocaleString('en-IN') }}
               </p>
-              
-              <div class="booking-card__actions">
-                <AppButton variant="outline" size="sm" icon="lucide:navigation" @click.stop="openRideSelector(booking)">
-                  Re-book
-                </AppButton>
+
+              <div class="booking-card__right">
+                <span v-if="booking.proof_url || booking.proof_urls?.length" class="proof-badge">
+                  <Icon icon="lucide:image" />
+                  {{ (booking.proof_urls?.length || 1) }} proof
+                </span>
+                <span v-else class="proof-badge proof-badge--missing">
+                  <Icon icon="lucide:upload-cloud" />
+                  No proof
+                </span>
+                <Icon icon="lucide:chevron-right" class="booking-card__chevron" aria-hidden="true" />
               </div>
             </div>
           </div>
@@ -84,17 +118,119 @@
       </template>
     </ion-content>
 
-    <!-- Reusable Ride Selection Modal -->
-    <RideSelectorModal
-      v-model:is-open="showRideModal"
-      :order-id="String(selectedBooking?.order_id?._id || selectedBooking?.order_id?.id || '')"
-      :customer-name="selectedBooking?.customer_name || 'Customer'"
-      :destination="{ 
-        lat: selectedBooking?.drop ? selectedBooking.drop[1] : 0, 
-        lng: selectedBooking?.drop ? selectedBooking.drop[0] : 0 
-      }"
-      @booked="(p: string) => showSuccess(`Ride booked via ${p}`)"
-    />
+    <!-- Trip Detail Drawer -->
+    <ion-modal
+      :is-open="showDetailDrawer"
+      @didDismiss="closeDetailDrawer"
+      :initial-breakpoint="0.88"
+      :breakpoints="[0, 0.88, 1]"
+      :handle="true"
+      class="detail-drawer"
+    >
+      <ion-content class="detail-drawer__content">
+        <div v-if="drawerBooking" class="detail-body">
+          <!-- Handle pill -->
+          <div class="detail-handle" aria-hidden="true" />
+
+          <!-- Header -->
+          <div class="detail-header">
+            <div class="detail-header__left">
+              <h2 class="detail-title">{{ drawerBooking.customer_name || 'External Ride' }}</h2>
+              <div class="detail-header__chips">
+                <span v-if="drawerBooking.order_number" class="detail-order-tag">#{{ drawerBooking.order_number }}</span>
+                <div class="provider-chip provider-chip--sm" :class="`provider-chip--${(drawerBooking.provider || 'other').toLowerCase()}`">
+                  <Icon
+                    :icon="drawerBooking.provider === 'Uber' ? 'simple-icons:uber' : drawerBooking.provider === 'Ola' ? 'lucide:car' : 'lucide:more-horizontal'"
+                    aria-hidden="true"
+                  />
+                  <span>{{ drawerBooking.provider || 'Other' }}</span>
+                </div>
+              </div>
+            </div>
+            <AppBadge :text="statusLabel(drawerBooking.status)" :variant="statusVariant(drawerBooking.status)" />
+          </div>
+
+          <!-- Info grid -->
+          <div class="detail-info-grid">
+            <div class="detail-info-cell">
+              <span class="detail-info-cell__label">Date</span>
+              <span class="detail-info-cell__value">{{ formatDate(drawerBooking.service_date || drawerBooking.created_at) }}</span>
+            </div>
+            <div class="detail-info-cell">
+              <span class="detail-info-cell__label">Amount Paid</span>
+              <span class="detail-info-cell__value detail-info-cell__value--amount">
+                ₹{{ (drawerBooking.cost || 0).toLocaleString('en-IN') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div v-if="drawerBooking.service_description" class="detail-section">
+            <p class="detail-section__label">Notes</p>
+            <p class="detail-notes">{{ drawerBooking.service_description }}</p>
+          </div>
+
+          <!-- Proof section -->
+          <div class="detail-section">
+            <p class="detail-section__label">Ride Proof</p>
+
+            <!-- Has proof -->
+            <template v-if="drawerBooking.proof_url || drawerBooking.proof_urls?.length">
+              <div class="proof-gallery">
+                <button
+                  v-for="(url, idx) in drawerBooking.proof_urls?.length ? drawerBooking.proof_urls : [drawerBooking.proof_url]"
+                  :key="url || idx"
+                  type="button"
+                  class="proof-gallery__thumb"
+                  :class="{ active: activeProofIndex === idx }"
+                  @click="activeProofIndex = idx"
+                >
+                  <img :src="url" alt="Proof thumbnail" loading="lazy" />
+                </button>
+              </div>
+              <div class="proof-gallery__main">
+                <img
+                  :src="(drawerBooking.proof_urls?.length ? drawerBooking.proof_urls : [drawerBooking.proof_url])[activeProofIndex]"
+                  alt="Ride proof"
+                  class="proof-gallery__main-img"
+                />
+              </div>
+            </template>
+
+            <!-- No proof yet -->
+            <template v-else>
+              <div class="proof-empty">
+                <Icon icon="lucide:image-off" class="proof-empty__icon" aria-hidden="true" />
+                <p class="proof-empty__text">No proof uploaded yet</p>
+                <AppButton
+                  variant="outline"
+                  size="sm"
+                  icon="lucide:upload-cloud"
+                  :disabled="proofUploading === String(drawerBooking.id ?? drawerBooking._id)"
+                  @click="triggerProofUpload(drawerBooking)"
+                >
+                  {{ proofUploading === String(drawerBooking.id ?? drawerBooking._id) ? 'Uploading…' : 'Upload Proof' }}
+                </AppButton>
+              </div>
+            </template>
+          </div>
+
+          <!-- Actions -->
+          <div class="detail-actions">
+            <AppButton
+              v-if="(drawerBooking.proof_url || drawerBooking.proof_urls?.length) && drawerBooking.status?.toLowerCase() !== 'approved'"
+              variant="outline"
+              expand="block"
+              icon="lucide:refresh-cw"
+              :disabled="proofUploading === String(drawerBooking.id ?? drawerBooking._id)"
+              @click="triggerProofUpload(drawerBooking)"
+            >
+              {{ proofUploading === String(drawerBooking.id ?? drawerBooking._id) ? 'Uploading…' : 'Replace Proof' }}
+            </AppButton>
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
 
     <!-- Create Modal (Order Selection -> Cost Entry) -->
     <ion-modal 
@@ -239,12 +375,18 @@
 <script setup lang="ts">
 import { Geolocation } from '@capacitor/geolocation'
 import { onIonViewWillEnter } from '@ionic/vue'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { createExternalBooking, getExternalBookings, getOrders } from '@/shared/api'
+import {
+  createExternalBooking,
+  getExternalBookings,
+  getOrders,
+  uploadExternalBookingProof,
+} from '@/shared/api'
 import { useToast } from '@/shared/composables'
 import { formatISTDateShort } from '@/shared/lib/datetime'
-import type { Order } from '@/shared/models'
+import { mediaUrl } from '@/shared/lib/media'
+import type { ExternalBooking, Order } from '@/shared/models'
 
 const route = useRoute()
 const { showSuccess, showError } = useToast()
@@ -256,10 +398,14 @@ const isOrdersLoading = ref(false)
 const isSubmitting = ref(false)
 const error = ref<string | null>(null)
 const showForm = ref(false)
-const showRideModal = ref(false)
 const step = ref(1)
 const selectedOrder = ref<Order | null>(null)
-const selectedBooking = ref<any>(null)
+const proofUploadBooking = ref<ExternalBooking | null>(null)
+const proofInput = ref<HTMLInputElement | null>(null)
+const proofUploading = ref<string | null>(null)
+const showDetailDrawer = ref(false)
+const drawerBooking = ref<any>(null)
+const activeProofIndex = ref(0)
 
 const todayStr = new Date().toISOString().split('T')[0]
 
@@ -337,22 +483,104 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
+function normalizeBooking(booking: any): ExternalBooking {
+  const proofUrls = Array.isArray(booking.external_booking_details?.reimbursement_proof)
+    ? booking.external_booking_details.reimbursement_proof
+        .map((item: any) => item?.url)
+        .filter((url: any) => !!url)
+        .map((url: string) => mediaUrl(url))
+    : []
+
+  return {
+    ...booking,
+    proof_url: booking.proof_url ? mediaUrl(booking.proof_url) : proofUrls[0],
+    proof_urls: proofUrls,
+  }
+}
+
+async function triggerProofUpload(booking: ExternalBooking): Promise<void> {
+  proofUploadBooking.value = booking
+  proofInput.value?.click()
+}
+
+function openDetailDrawer(booking: any): void {
+  drawerBooking.value = booking
+  activeProofIndex.value = 0
+  showDetailDrawer.value = true
+}
+
+function closeDetailDrawer(): void {
+  showDetailDrawer.value = false
+  drawerBooking.value = null
+  activeProofIndex.value = 0
+}
+
+async function handleProofChange(event: Event): Promise<void> {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  if (!files || files.length === 0 || !proofUploadBooking.value) return
+
+  await uploadProof(files)
+  target.value = ''
+}
+
+async function uploadProof(files: FileList | File[]): Promise<void> {
+  if (!proofUploadBooking.value) return
+  const booking = proofUploadBooking.value
+  proofUploading.value = String(booking.id ?? booking._id)
+
+  const formData = new FormData()
+  const fileArray = files instanceof FileList ? Array.from(files) : files
+  fileArray.forEach(file => formData.append('image', file))
+
+  try {
+    const result = await uploadExternalBookingProof(booking.id ?? booking._id, formData)
+    const normalized = normalizeBooking(result)
+    const idx = bookings.value.findIndex(
+      item => String(item.id ?? item._id) === String(normalized.id ?? normalized._id)
+    )
+    if (idx !== -1) {
+      bookings.value[idx] = normalized
+    } else {
+      bookings.value.unshift(normalized)
+    }
+    // refresh the open drawer if it's the same booking
+    if (
+      drawerBooking.value &&
+      String(drawerBooking.value.id ?? drawerBooking.value._id) ===
+        String(normalized.id ?? normalized._id)
+    ) {
+      drawerBooking.value = normalized
+      activeProofIndex.value = 0
+    }
+    showSuccess('Proof uploaded successfully')
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to upload proof'
+    showError(message)
+  } finally {
+    proofUploading.value = null
+    proofUploadBooking.value = null
+  }
+}
+
 async function fetchBookings(): Promise<void> {
   isLoading.value = true
   error.value = null
   try {
     const res = await getExternalBookings()
-    bookings.value = res.map((t: any) => ({
-      ...t,
-      customer_name: t.order_id?.customer?.full_name || t.order_id?.customer?.name,
-      order_number: t.order_id?.order_number,
-      provider: t.external_booking_details?.provider,
-      cost: t.external_booking_details?.cost,
-      status: t.external_booking_details?.reimbursement_status || 'pending',
-      service_date: t.created_at,
-      pickup: t.pickup_location?.coordinates, // [lng, lat]
-      drop: t.drop_location?.coordinates, // [lng, lat]
-    }))
+    bookings.value = res.map((t: any) =>
+      normalizeBooking({
+        ...t,
+        customer_name: t.order_id?.customer?.full_name || t.order_id?.customer?.name,
+        order_number: t.order_id?.order_number,
+        provider: t.external_booking_details?.provider,
+        cost: t.external_booking_details?.cost,
+        status: t.external_booking_details?.reimbursement_status || 'pending',
+        service_date: t.created_at,
+        pickup: t.pickup_location?.coordinates, // [lng, lat]
+        drop: t.drop_location?.coordinates, // [lng, lat]
+      })
+    )
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load bookings'
   } finally {
@@ -429,11 +657,6 @@ async function handleRefresh(event: CustomEvent): Promise<void> {
   ;(event.target as HTMLIonRefresherElement).complete()
 }
 
-function openRideSelector(booking: any): void {
-  selectedBooking.value = booking
-  showRideModal.value = true
-}
-
 onMounted(() => {
   fetchBookings()
   if (route.query.order_id) {
@@ -452,8 +675,6 @@ onIonViewWillEnter(fetchBookings)
 </script>
 
 <style scoped>
-.header-icon { font-size: 22px; }
-
 .info-banner {
   display: flex;
   align-items: flex-start;
@@ -464,162 +685,325 @@ onIonViewWillEnter(fetchBookings)
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-brand-light);
 }
-
 .info-banner__icon { font-size: 18px; color: var(--color-brand); flex-shrink: 0; margin-top: 1px; }
 .info-banner__text { margin: 0; font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.5; }
 
-.list { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+/* ── List ── */
+.list { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
 
+/* ── Booking card ── */
 .booking-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 20px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.booking-card:active {
+  transform: scale(0.985);
+  box-shadow: none;
 }
 
-.booking-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.booking-card__customer { margin: 0; font-size: 16px; font-weight: 800; color: var(--color-text); display: flex; align-items: center; gap: 8px; }
-.order-tag { font-size: 10px; background: var(--color-background); padding: 2px 6px; border-radius: 6px; color: var(--color-brand); font-weight: 700; }
-.booking-card__meta { margin: 4px 0 0; font-size: 13px; color: var(--color-text-muted); font-weight: 500; }
+/* Provider row */
+.booking-card__provider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
 
+/* Provider chip */
+.provider-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.provider-chip__icon { font-size: 14px; }
+.provider-chip--uber  { background: #000; color: #fff; }
+.provider-chip--ola   { background: #f5f5f5; color: #222; border: 1px solid #e0e0e0; }
+.provider-chip--other { background: var(--color-background); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.provider-chip--sm { font-size: 11px; padding: 3px 8px; gap: 4px; }
+
+/* Body */
+.booking-card__body { margin-bottom: 10px; }
+.booking-card__customer {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+.booking-card__meta {
+  margin: 3px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.order-tag {
+  font-size: 11px;
+  background: var(--color-brand-faint);
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: var(--color-brand);
+  font-weight: 700;
+}
+.booking-card__date { font-weight: 500; }
+
+/* Footer */
 .booking-card__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--color-border-light);
 }
-
-.booking-card__amount { display: flex; align-items: center; gap: 4px; margin: 0; font-size: 16px; font-weight: 800; color: var(--color-text); }
-
-.booking-card__actions {
+.booking-card__amount {
   display: flex;
   align-items: center;
+  gap: 2px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--color-text);
+}
+.booking-card__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.proof-badge {
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--color-success-bg, #ecfdf5);
+  color: var(--color-success-text, #059669);
+}
+.proof-badge--missing {
+  background: var(--color-warning-bg, #fffbeb);
+  color: var(--color-warning-text, #d97706);
+}
+.booking-card__chevron {
+  font-size: 18px;
+  color: var(--color-text-muted);
+  opacity: 0.5;
 }
 
-.ola-dot-xs {
-  width: 14px;
-  height: 14px;
-  background: #000;
-  border-radius: 50%;
-  border: 2px solid #d7ff13;
-}
+/* ── Skeleton ── */
+.skeleton { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 20px; padding: 16px; }
+.skeleton__top { height: 16px; width: 60%; background: var(--color-background); border-radius: 8px; margin-bottom: 10px; animation: pulse 1.4s ease-in-out infinite; }
+.skeleton__mid { height: 12px; width: 40%; background: var(--color-background); border-radius: 8px; animation: pulse 1.4s ease-in-out 0.2s infinite; }
 
-.booking-card__proof { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-success-text); font-weight: 600; }
-
+/* ── Empty state ── */
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 40px; text-align: center; }
 .empty-state__icon-wrap { width: 80px; height: 80px; background: var(--color-background); border-radius: 30px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
 .empty-state__icon { font-size: 36px; color: var(--color-text-muted); }
 .empty-state__title { margin: 0; font-size: 20px; font-weight: 800; color: var(--color-text); }
 .empty-state__text { margin: 0; font-size: 15px; color: var(--color-text-muted); line-height: 1.5; }
+.mt-16 { margin-top: 16px; }
 
-/* Modal & Form */
+/* ── Detail Drawer ── */
+.detail-drawer { --border-radius: 28px 28px 0 0; }
+.detail-drawer__content { --background: var(--color-surface); }
+
+.detail-body { padding: 0 20px 40px; }
+
+.detail-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  margin: 10px auto 20px;
+}
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.detail-header__left { flex: 1; min-width: 0; }
+.detail-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--color-text);
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+.detail-header__chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.detail-order-tag {
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-brand-faint);
+  color: var(--color-brand);
+  padding: 3px 9px;
+  border-radius: 8px;
+}
+
+/* Info grid */
+.detail-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.detail-info-cell {
+  background: var(--color-background);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detail-info-cell__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+.detail-info-cell__value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.detail-info-cell__value--amount {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--color-text);
+}
+
+/* Sections */
+.detail-section { margin-bottom: 20px; }
+.detail-section__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+.detail-notes {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  background: var(--color-background);
+  border-radius: 14px;
+  padding: 12px 16px;
+  line-height: 1.6;
+}
+
+/* Proof gallery */
+.proof-gallery { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 2px; }
+.proof-gallery__thumb {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-background);
+  transition: border-color 0.2s;
+}
+.proof-gallery__thumb.active { border-color: var(--color-brand); }
+.proof-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.proof-gallery__main {
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--color-background);
+}
+.proof-gallery__main-img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  display: block;
+}
+
+.proof-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px;
+  background: var(--color-background);
+  border-radius: 20px;
+  border: 1.5px dashed var(--color-border);
+  text-align: center;
+}
+.proof-empty__icon { font-size: 28px; color: var(--color-text-muted); opacity: 0.5; }
+.proof-empty__text { margin: 0; font-size: 13px; color: var(--color-text-muted); font-weight: 500; }
+
+/* Actions */
+.detail-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
+/* ── Create modal (unchanged styles) ── */
 .ride-modal { --border-radius: 32px 32px 0 0; }
-
 .modal-header { padding: 24px 24px 16px; background: var(--color-surface); }
 .modal-header__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .modal-title { margin: 0; font-size: 24px; font-weight: 900; color: var(--color-text); letter-spacing: -0.5px; }
-.close-btn { color: var(--color-text-muted); }
-
 .step-indicator { display: flex; align-items: center; gap: 12px; }
 .step-dots { display: flex; gap: 6px; }
 .step-dot { width: 24px; height: 6px; border-radius: 3px; background: var(--color-background); transition: all 0.3s ease; }
 .step-dot.active { background: var(--color-brand); width: 40px; }
 .step-text { font-size: 12px; font-weight: 800; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-
 .search-hint { display: flex; align-items: center; gap: 8px; padding: 0 24px 16px; color: var(--color-text-muted); font-size: 14px; font-weight: 600; }
-
 .order-grid { display: flex; flex-direction: column; gap: 10px; padding: 0 20px 32px; }
-.order-card-compact { 
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between; 
-  padding: 16px; 
-  background: var(--color-surface); 
-  border: 1px solid var(--color-border); 
-  border-radius: 20px; 
-  transition: all 0.2s ease;
-}
+.order-card-compact { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 20px; transition: all 0.2s ease; }
 .order-card-compact:active { transform: scale(0.97); background: var(--color-background); }
 .order-card-compact__left { display: flex; align-items: center; gap: 14px; }
 .order-icon-box { width: 44px; height: 44px; background: var(--color-brand-faint); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: var(--color-brand); font-size: 20px; }
 .order-id { margin: 0; font-size: 16px; font-weight: 800; color: var(--color-text); }
 .order-name { margin: 2px 0 0; font-size: 13px; color: var(--color-text-muted); font-weight: 600; }
 .arrow-icon { color: var(--color-text-muted); font-size: 18px; }
-
 .form-body { padding: 0 20px 32px; }
-.selected-order-pill { 
-  display: flex; 
-  align-items: center; 
-  gap: 10px; 
-  margin-bottom: 24px; 
-  padding: 12px 16px; 
-  background: var(--color-brand-faint); 
-  border-radius: 16px; 
-  color: var(--color-brand);
-}
+.selected-order-pill { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; padding: 12px 16px; background: var(--color-brand-faint); border-radius: 16px; color: var(--color-brand); }
 .link-icon { font-size: 18px; }
 .pill-text { flex: 1; font-size: 13px; font-weight: 700; }
 .edit-icon { font-size: 16px; opacity: 0.7; }
-
 .form-sections { display: flex; flex-direction: column; gap: 24px; }
 .form-section { display: flex; flex-direction: column; gap: 8px; }
 .form-label { font-size: 13px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; padding-left: 4px; }
-
 .provider-segment-custom { --background: var(--color-background); border-radius: 14px; padding: 4px; }
 .seg-content { display: flex; align-items: center; gap: 6px; justify-content: center; font-weight: 700; }
 .seg-content svg { font-size: 18px; }
 .ola-dot { width: 10px; height: 10px; background: #000; border-radius: 50%; }
-
-.amount-input-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--color-background);
-  border: 1.5px solid var(--color-border);
-  border-radius: 16px;
-  padding: 14px 20px;
-  transition: all 0.3s ease;
-}
+.amount-input-box { display: flex; align-items: center; gap: 12px; background: var(--color-background); border: 1.5px solid var(--color-border); border-radius: 16px; padding: 14px 20px; transition: all 0.3s ease; }
 .amount-input-box:focus-within { border-color: var(--color-brand); background: var(--color-surface); box-shadow: 0 0 0 4px var(--color-brand-faint); }
 .currency-symbol { font-size: 20px; font-weight: 800; color: var(--color-brand); }
 .native-amount-input { flex: 1; border: none; background: transparent; outline: none; font-size: 20px; font-weight: 800; color: var(--color-text); }
-
-.native-textarea {
-  width: 100%;
-  background: var(--color-background);
-  border: 1.5px solid var(--color-border);
-  border-radius: 16px;
-  padding: 16px;
-  outline: none;
-  font-size: 15px;
-  font-family: inherit;
-  transition: all 0.3s ease;
-}
+.native-textarea { width: 100%; background: var(--color-background); border: 1.5px solid var(--color-border); border-radius: 16px; padding: 16px; outline: none; font-size: 15px; font-family: inherit; transition: all 0.3s ease; box-sizing: border-box; }
 .native-textarea:focus { border-color: var(--color-brand); background: var(--color-surface); }
-
 .form-actions { display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
-.form-error-bubble { 
-  background: #fef2f2; 
-  color: #b91c1c; 
-  padding: 12px 16px; 
-  border-radius: 12px; 
-  font-size: 13px; 
-  font-weight: 700; 
-  display: flex; 
-  align-items: center; 
-  gap: 8px;
-}
-.confirm-btn-custom { 
-  --background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%);
-  --background-activated: #4338ca;
-  --box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3); 
-}
+.form-error-bubble { background: #fef2f2; color: #b91c1c; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.confirm-btn-custom { --background: linear-gradient(135deg, var(--color-brand) 0%, #4f46e5 100%); --background-activated: #4338ca; --box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3); }
+.empty-orders { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 24px; text-align: center; color: var(--color-text-muted); }
+.empty-orders-icon { font-size: 36px; }
 
-/* Animations */
+/* ── Animations ── */
 .anim-fade-in { animation: fadeIn 0.4s ease-out; }
 .anim-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
 .anim-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
@@ -627,6 +1011,5 @@ onIonViewWillEnter(fetchBookings)
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-.mt-16 { margin-top: 16px; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 </style>
