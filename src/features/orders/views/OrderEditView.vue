@@ -2,6 +2,7 @@
 import { alertController } from '@ionic/vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { getMenu } from '@/shared/api/menu.service'
 import { getOrder } from '@/shared/api/orders.service'
 import { getProducts } from '@/shared/api/products.service'
@@ -37,6 +38,17 @@ const orderId = String(route.params.id)
 
 const order = ref<Order | null>(null)
 const menus = ref<MainMenu[]>([])
+const scheduleDate = computed(
+  () => order.value?.booking_info?.date ?? order.value?.service_date ?? ''
+)
+const isBookingDateToday = computed(() => {
+  if (!scheduleDate.value) return false
+  return formatISTDateShort(scheduleDate.value) === getTodayIST()
+})
+const orderEditAllowed = computed(() => isBookingDateToday.value)
+const scheduleDateFormatted = computed(() =>
+  scheduleDate.value ? formatISTDate(scheduleDate.value) : ''
+)
 const activeMenuId = ref<string>('all')
 const searchQuery = ref('')
 const products = ref<Product[]>([])
@@ -166,6 +178,16 @@ async function fetchProducts() {
 }
 
 function handleAddClick(product: Product) {
+  if (!orderEditAllowed.value) {
+    alertController
+      .create({
+        header: 'Edit unavailable',
+        message: 'This order can only be edited on its scheduled date.',
+        buttons: ['OK'],
+      })
+      .then(alert => alert.present())
+    return
+  }
   const pid = String(product._id || product.id)
 
   const requiresSelection =
@@ -254,6 +276,7 @@ function addToCart(product: Product) {
 }
 
 function removeFromCart(productId: string) {
+  if (!orderEditAllowed.value) return
   const existing = cartMap[productId]
   if (existing) {
     if (existing.quantity > 1) {
@@ -270,6 +293,7 @@ function getCartQuantity(productId: string) {
 }
 
 async function handleGoToPreview() {
+  if (!orderEditAllowed.value) return
   if (cartItems.value.length === 0) return
   await saveToStorage()
   router.push(`/orders/${orderId}/preview`)
@@ -363,44 +387,48 @@ watch([activeMenuId, searchQuery], () => {
         </AppButton>
       </div>
 
-      <div v-else class="product-list">
-        <div v-for="product in products" :key="product._id || product.id" class="product-item anim-fade-in">
-          <div class="product-image-container">
-            <img :src="product.image_url || (product.images?.[0]?.url) || 'https://placehold.co/200x200?text=Product'" class="product-img" />
-            <div v-if="product.restrictions?.beautician_only" class="pro-only-tag" title="Pro Only">
-              <Icon icon="lucide:star" />
+      <div v-else>
+        <div v-if="order && !orderEditAllowed" class="date-restriction-tip" style="margin: 16px; padding: 14px; border-radius: 12px; background: var(--color-surface); color: var(--color-text-muted); text-align: center;">
+          This order can only be edited on {{ scheduleDateFormatted }}.
+        </div>
+        <div class="product-list">
+          <div v-for="product in products" :key="product._id || product.id" class="product-item anim-fade-in">
+            <div class="product-image-container">
+              <img :src="product.image_url || (product.images?.[0]?.url) || 'https://placehold.co/200x200?text=Product'" class="product-img" />
+              <div v-if="product.restrictions?.beautician_only" class="pro-only-tag" title="Pro Only">
+                <Icon icon="lucide:star" />
+              </div>
+              <div v-if="product.type === 'package'" class="package-tag">
+                Package
+              </div>
             </div>
-            <div v-if="product.type === 'package'" class="package-tag">
-              Package
-            </div>
-          </div>
-          <div class="product-info">
-            <h4 class="product-name">{{ product.name || product.title }}</h4>
-            <div class="product-meta">
-              <div class="price-container">
-                <span v-if="product.base_price && product.base_price > product.min_price" class="product-base-price">
-                  ₹{{ product.base_price }}
+            <div class="product-info">
+              <h4 class="product-name">{{ product.name || product.title }}</h4>
+              <div class="product-meta">
+                <div class="price-container">
+                  <span v-if="product.base_price && product.base_price > product.min_price" class="product-base-price">
+                    ₹{{ product.base_price }}
+                  </span>
+                  <span class="product-min-price">₹{{ product.min_price }}</span>
+                </div>
+                <span v-if="product.duration_minutes" class="product-duration">
+                  <Icon icon="lucide:clock" /> {{ product.duration_minutes }}m
                 </span>
-                <span class="product-min-price">₹{{ product.min_price }}</span>
               </div>
-              <span v-if="product.duration_minutes" class="product-duration">
-                <Icon icon="lucide:clock" /> {{ product.duration_minutes }}m
-              </span>
-            </div>
-            
-            <div class="product-actions">
-              <div v-if="getCartQuantity(String(product._id || product.id)) > 0" class="qty-control-modern">
-                <button @click="removeFromCart(String(product._id || product.id))" class="qty-btn" aria-label="Decrease quantity">
-                  <Icon icon="lucide:minus" />
-                </button>
-                <span class="qty-number">{{ getCartQuantity(String(product._id || product.id)) }}</span>
-                <button @click="handleAddClick(product)" class="qty-btn" aria-label="Increase quantity">
-                  <Icon icon="lucide:plus" />
-                </button>
+              <div class="product-actions">
+                <div v-if="getCartQuantity(String(product._id || product.id)) > 0" class="qty-control-modern">
+                  <button @click="removeFromCart(String(product._id || product.id))" class="qty-btn" aria-label="Decrease quantity" :disabled="!orderEditAllowed">
+                    <Icon icon="lucide:minus" />
+                  </button>
+                  <span class="qty-number">{{ getCartQuantity(String(product._id || product.id)) }}</span>
+                  <button @click="handleAddClick(product)" class="qty-btn" aria-label="Increase quantity" :disabled="!orderEditAllowed">
+                    <Icon icon="lucide:plus" />
+                  </button>
+                </div>
+                <AppButton v-else variant="primary" size="sm" icon="lucide:plus" @click="handleAddClick(product)" class="add-btn-modern" :disabled="!orderEditAllowed">
+                  Add
+                </AppButton>
               </div>
-              <AppButton v-else variant="primary" size="sm" icon="lucide:plus" @click="handleAddClick(product)" class="add-btn-modern">
-                Add
-              </AppButton>
             </div>
           </div>
         </div>
@@ -408,7 +436,7 @@ watch([activeMenuId, searchQuery], () => {
     </ion-content>
 
     <Transition name="slide-up">
-      <ion-footer v-if="cartItems.length > 0" class="cart-footer-modern">
+      <ion-footer v-if="cartItems.length > 0 && orderEditAllowed" class="cart-footer-modern">
         <div class="cart-summary-card" @click="handleGoToPreview">
           <div class="cart-summary-left">
             <div class="cart-icon-wrapper">

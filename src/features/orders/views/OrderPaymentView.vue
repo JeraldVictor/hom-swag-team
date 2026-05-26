@@ -56,6 +56,9 @@
               {{ isPrepaidOrder ? 'This order is prepaid. No proof upload is required.' : 'Enter the collected amounts before completing the order.' }}
             </p>
           </div>
+          <div class="date-restriction-tip" v-if="!orderChangeAllowed && order" style="margin-bottom: 16px;">
+            {{ orderDateRestrictionMessage }}
+          </div>
 
           <ion-list lines="full" class="payment-form-list">
             <ion-item class="payment-field">
@@ -72,6 +75,7 @@
                 v-model.number="paymentCodAmount"
                 placeholder="0"
                 class="payment-input"
+                :disabled="!orderChangeAllowed"
               />
             </ion-item>
 
@@ -84,6 +88,7 @@
                 v-model.number="paymentUpiAmount"
                 placeholder="0"
                 class="payment-input"
+                :disabled="!orderChangeAllowed"
               />
             </ion-item>
 
@@ -96,6 +101,7 @@
                 v-model.number="paymentTipAmount"
                 placeholder="0"
                 class="payment-input"
+                :disabled="!orderChangeAllowed"
               />
             </ion-item>
           </ion-list>
@@ -112,6 +118,7 @@
               size="lg"
               variant="outline"
               :loading="isUpdating"
+              :disabled="!orderChangeAllowed"
               @click="capturePaymentProof"
             >
               Capture payment proof
@@ -159,6 +166,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
+import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
 import { useOrderDetail } from '../composables/useOrderDetail'
 import type { Order } from '@/shared/models'
@@ -183,6 +191,33 @@ const paymentUpiAmount = ref<number | null>(null)
 const paymentTipAmount = ref<number | null>(null)
 const showGallery = ref(false)
 const activeImageUrl = ref('')
+
+const scheduleDate = computed(
+  () => order.value?.booking_info?.date ?? order.value?.service_date ?? ''
+)
+const isBookingDateToday = computed(() => {
+  if (!scheduleDate.value) return false
+  return formatISTDateShort(scheduleDate.value) === getTodayIST()
+})
+const orderChangeAllowed = computed(() => isBookingDateToday.value)
+const bookingDateStatus = computed(() => {
+  if (!scheduleDate.value) return 'unknown'
+  const bookingDate = formatISTDateShort(scheduleDate.value)
+  const today = getTodayIST()
+  if (bookingDate === today) return 'today'
+  return bookingDate > today ? 'future' : 'past'
+})
+const orderDateRestrictionMessage = computed(() => {
+  if (!scheduleDate.value) return ''
+  const formatted = formatISTDate(scheduleDate.value)
+  if (bookingDateStatus.value === 'future') {
+    return `This order is scheduled for ${formatted}. Status changes are only allowed on the scheduled date.`
+  }
+  if (bookingDateStatus.value === 'past') {
+    return `This order was scheduled for ${formatted}. Updates are only allowed on today’s orders.`
+  }
+  return ''
+})
 
 const paymentMethod = computed(() => (order.value?.payment?.method || '').toLowerCase())
 const hasCodAmount = computed(() => Number(order.value?.payment?.cod_amount ?? 0) > 0)
@@ -235,6 +270,7 @@ const actionButtonText = computed(() =>
 )
 const isProcessing = computed(() => isUpdating.value)
 const actionDisabled = computed(() => {
+  if (!orderChangeAllowed.value) return true
   if (!order.value) return true
   if (order.value.status?.toLowerCase() !== 'started') return true
   if (isPrepaidOrder.value) return false
@@ -255,7 +291,17 @@ watch(
   { immediate: true }
 )
 
+function ensureTodayEditable(): boolean {
+  if (!order.value) return false
+  if (!orderChangeAllowed.value) {
+    showError('Only today’s orders can be updated today.')
+    return false
+  }
+  return true
+}
+
 async function capturePaymentProof() {
+  if (!ensureTodayEditable()) return
   const uploaded = await captureAndUploadPaymentProof()
   if (uploaded) {
     showSuccess('Payment proof captured successfully')
@@ -270,6 +316,7 @@ function openGallery(url: string) {
 }
 
 async function handleCompleteOrder() {
+  if (!ensureTodayEditable()) return
   if (!order.value) return
   if (order.value.status.toLowerCase() !== 'started') {
     showError('Order must be in started status to complete payment.')

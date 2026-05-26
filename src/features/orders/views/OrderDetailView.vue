@@ -76,6 +76,7 @@
           :parsed-payment-remark="parsedPaymentRemark"
           :proof-images="proofImages"
           :setup-photos="setupPhotos"
+          :is-editable="orderChangeAllowed"
           v-model:payment-status="paymentStatus"
           :payment-status-options="paymentStatusOptions"
           :is-updating="isUpdating"
@@ -98,7 +99,7 @@
               expand="block"
               size="lg"
               :loading="isUpdating"
-              :disabled="isBookingDateFuture"
+              :disabled="!orderChangeAllowed"
               :icon="isSelfieStep ? 'lucide:camera' : undefined"
               @click="handleMainAction"
               class="primary-action-btn-custom"
@@ -106,12 +107,12 @@
               {{ paymentActionLabel }}
             </AppButton>
             
-            <div class="date-restriction-tip" v-if="isBookingDateFuture && !isCompleted && order" style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin: 8px 0; padding: 8px; background: var(--color-surface); border-radius: 8px;">
-              {{ bookingDateRestrictionMessage }}
+            <div class="date-restriction-tip" v-if="!orderChangeAllowed && order" style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin: 8px 0; padding: 8px; background: var(--color-surface); border-radius: 8px;">
+              {{ orderDateRestrictionMessage }}
             </div>
  
             <AppButton 
-              v-if="canCancel && !isBookingDateFuture"
+              v-if="canCancel && orderChangeAllowed"
               expand="block"
               variant="outline"
               color="danger" 
@@ -380,6 +381,22 @@ const fullAddress = computed(() => {
     .join(', ')
 })
 
+const scheduleDate = computed(
+  () => order.value?.booking_info?.date ?? order.value?.service_date ?? ''
+)
+const orderChangeAllowed = computed(() => isBookingDateToday.value && !isCompleted.value)
+const orderDateRestrictionMessage = computed(() => {
+  if (!scheduleDate.value) return ''
+  const formatted = formatISTDate(scheduleDate.value)
+  if (bookingDateStatus.value === 'future') {
+    return `This order is scheduled for ${formatted}. Status changes are only allowed on the scheduled date.`
+  }
+  if (bookingDateStatus.value === 'past') {
+    return `This order was scheduled for ${formatted}. Edits and updates are no longer allowed.`
+  }
+  return ''
+})
+
 const hasOrderContext = computed(() => {
   return !!(
     order.value?.notes ||
@@ -473,9 +490,10 @@ const parsedPaymentRemark = computed(() => {
 const canCancel = computed(() => {
   const s = order.value?.status?.toLowerCase()
   return (
-    s === ORDER_STATUS.CONFIRMED ||
-    s === ORDER_STATUS.ONGOING ||
-    s === ORDER_STATUS.REACHED_CUSTOMER_PLACE
+    (s === ORDER_STATUS.CONFIRMED ||
+      s === ORDER_STATUS.ONGOING ||
+      s === ORDER_STATUS.REACHED_CUSTOMER_PLACE) &&
+    isBookingDateToday.value
   )
 })
 
@@ -517,13 +535,13 @@ const showAssignedTripInfo = computed(() => {
 })
 
 const isBookingDateToday = computed(() => {
-  if (!order.value?.booking_info?.date) return false
-  return formatISTDateShort(order.value.booking_info.date) === getTodayIST()
+  if (!scheduleDate.value) return false
+  return formatISTDateShort(scheduleDate.value) === getTodayIST()
 })
 
 const bookingDateStatus = computed(() => {
-  if (!order.value?.booking_info?.date) return 'unknown'
-  const bookingDate = formatISTDateShort(order.value.booking_info.date)
+  if (!scheduleDate.value) return 'unknown'
+  const bookingDate = formatISTDateShort(scheduleDate.value)
   const today = getTodayIST()
   if (bookingDate === today) return 'today'
   return bookingDate > today ? 'future' : 'past'
@@ -532,10 +550,13 @@ const bookingDateStatus = computed(() => {
 const isBookingDateFuture = computed(() => bookingDateStatus.value === 'future')
 
 const bookingDateRestrictionMessage = computed(() => {
-  if (!order.value?.booking_info?.date) return ''
-  const formatted = formatISTDate(order.value.booking_info.date)
+  if (!scheduleDate.value) return ''
+  const formatted = formatISTDate(scheduleDate.value)
   if (bookingDateStatus.value === 'future') {
     return `This order is scheduled for ${formatted}. Status changes are only allowed on the scheduled date.`
+  }
+  if (bookingDateStatus.value === 'past') {
+    return `This order was scheduled for ${formatted}. Edits and updates are no longer allowed.`
   }
   return ''
 })
@@ -589,7 +610,17 @@ async function promptSetupPhotoUpload(): Promise<void> {
   await alert.present()
 }
 
+function ensureTodayEditable(): boolean {
+  if (!order.value) return false
+  if (!isBookingDateToday.value) {
+    showError('Only today\u2019s orders can be updated today.')
+    return false
+  }
+  return true
+}
+
 async function handleMainAction() {
+  if (!ensureTodayEditable()) return
   const s = order.value?.status?.toLowerCase()
 
   if (s === 'confirmed') {
@@ -648,6 +679,7 @@ async function handleMainAction() {
 }
 
 async function handleUploadSelfie() {
+  if (!ensureTodayEditable()) return
   const uploaded = await uploadSelfie()
   if (uploaded) {
     showSuccess('Selfie uploaded successfully')
@@ -668,6 +700,7 @@ async function handleUploadSelfie() {
 }
 
 async function handleSavePaymentStatus() {
+  if (!ensureTodayEditable()) return
   if (!order.value) return
   if (!paymentStatus.value || !['paid', 'unpaid', 'conflict'].includes(paymentStatus.value)) {
     showError('Please choose Paid, Unpaid, or Conflict before saving payment status.')
@@ -681,10 +714,12 @@ async function handleSavePaymentStatus() {
 }
 
 function triggerProofInput() {
+  if (!ensureTodayEditable()) return
   proofInput.value?.click()
 }
 
 async function handleCaptureSetupPhoto() {
+  if (!ensureTodayEditable()) return
   const uploaded = await captureAndUploadSetupPhoto()
   if (uploaded) {
     showSuccess('Setup photo uploaded successfully')
@@ -692,10 +727,12 @@ async function handleCaptureSetupPhoto() {
 }
 
 function triggerSetupInput() {
+  if (!ensureTodayEditable()) return
   setupInput.value?.click()
 }
 
 async function handleSetupPhotosChange(event: Event) {
+  if (!ensureTodayEditable()) return
   const target = event.target as HTMLInputElement
   const files = target.files
   if (!files || files.length === 0) return
@@ -710,6 +747,7 @@ async function handleSetupPhotosChange(event: Event) {
 }
 
 async function handleCapturePaymentProof() {
+  if (!ensureTodayEditable()) return
   const uploaded = await captureAndUploadPaymentProof()
   if (uploaded) {
     showSuccess('Payment proof captured successfully')
@@ -717,6 +755,7 @@ async function handleCapturePaymentProof() {
 }
 
 async function handleVerifyOtp() {
+  if (!ensureTodayEditable()) return
   if (otpValue.value.length !== 6) return
 
   const confirmed = await presentConfirm(
@@ -761,11 +800,13 @@ function getSelectedFreeItems(item: Readonly<OrderProduct>) {
 }
 
 function openCancelModal() {
+  if (!ensureTodayEditable()) return
   showCancelModal.value = true
   otpValue.value = ''
 }
 
 async function handleCompletionProofChange(event: Event) {
+  if (!ensureTodayEditable()) return
   const target = event.target as HTMLInputElement
   const files = target.files
   if (!files || files.length === 0) return
@@ -780,6 +821,7 @@ async function handleCompletionProofChange(event: Event) {
 }
 
 async function handleCancel() {
+  if (!ensureTodayEditable()) return
   if (!cancelReason.value.trim()) {
     const toast = await toastController.create({
       message: 'Please provide a reason for cancellation.',

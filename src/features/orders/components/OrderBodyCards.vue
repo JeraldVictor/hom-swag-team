@@ -166,7 +166,7 @@
           <div class="proof-label-row">
             <p class="proof-label">Arrival Selfie</p>
             <AppButton
-              v-if="order.status.toLowerCase() === 'ongoing' && !order.arrival_selfie"
+              v-if="order.status.toLowerCase() === ORDER_STATUS.ONGOING && !order.arrival_selfie && isEditable"
               variant="clear" size="sm" icon="lucide:camera"
               @click="emit('upload-selfie')"
               class="action-btn-sm"
@@ -181,7 +181,7 @@
         <div class="proof-entry">
           <div class="proof-label-row">
             <p class="proof-label">Setup Photos</p>
-            <div class="proof-actions" v-if="order.status.toLowerCase() === 'reached_customer_place' && order.arrival_selfie">
+            <div class="proof-actions" v-if="order.status.toLowerCase() === ORDER_STATUS.REACHED_CUSTOMER_PLACE && order.arrival_selfie">
               <AppButton variant="clear" size="sm" icon="lucide:camera" @click="emit('capture-setup-photo')" class="action-btn-sm">Camera</AppButton>
               <AppButton variant="clear" size="sm" icon="lucide:upload" @click="emit('trigger-setup-input')" class="action-btn-sm">Upload</AppButton>
             </div>
@@ -197,7 +197,7 @@
         <div class="proof-entry">
           <div class="proof-label-row">
             <p class="proof-label">Payment Proof</p>
-            <div class="proof-actions" v-if="order.status.toLowerCase() === 'started'">
+            <div class="proof-actions" v-if="order.status.toLowerCase() === ORDER_STATUS.STARTED && isEditable">
               <AppButton variant="clear" size="sm" icon="lucide:camera" @click="emit('capture-payment-proof')" class="action-btn-sm">Camera</AppButton>
               <AppButton variant="clear" size="sm" icon="lucide:upload" @click="emit('trigger-proof-input')" class="action-btn-sm">Upload</AppButton>
             </div>
@@ -215,7 +215,7 @@
     <!-- ── Payment Status Editor ──────────────────────────────────────────── -->
     <div
       class="content-card"
-      v-if="!isCustomerHidden && order.status.toLowerCase() === 'started' && proofImages.length"
+      v-if="!isCustomerHidden && order.status.toLowerCase() === ORDER_STATUS.STARTED && proofImages.length && isEditable"
     >
       <div class="card-header">
         <div class="header-icon-wrap"><Icon icon="lucide:sliders-horizontal" /></div>
@@ -251,6 +251,7 @@ import { computed } from 'vue'
 import type { Order, OrderTrip, PaymentStatus } from '@/shared/models'
 import { mediaUrl } from '@/shared/lib/media'
 import OrderItemRow from './OrderItemRow.vue'
+import { ORDER_STATUS } from '../../../shared/constants'
 
 interface ProofImage {
   url: string
@@ -263,6 +264,7 @@ const props = defineProps<{
   isCustomerHidden: boolean
   hasOrderContext: boolean
   isCompleted: boolean
+  isEditable: boolean
   parsedPaymentRemark: { cod?: number | null; upi?: number | null; tip?: number | null } | null
   proofImages: ProofImage[]
   setupPhotos: ProofImage[]
