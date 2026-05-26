@@ -136,6 +136,7 @@ import { Icon } from '@iconify/vue'
 import { useDrawer } from '@/shared/composables'
 import { useTrips } from '../composables/useTrips'
 import TripCard from '../components/TripCard.vue'
+import { KANBAN_STATE } from '@/shared/models/trip.model'
 import type { TripKanbanState } from '@/shared/models/trip.model'
 
 const router = useRouter()
@@ -144,10 +145,11 @@ const { trips, isLoading, error, fetchTrips, dateFilter, statusFilter, hasMore, 
 const { openDrawer } = useDrawer()
 
 const statusOptions: { value: TripKanbanState; label: string }[] = [
-  { value: 'assigned', label: 'Assigned' },
-  { value: 'trip_started', label: 'Started' },
-  { value: 'dropped_and_waiting', label: 'Waiting' },
-  { value: 'completed', label: 'Completed' },
+  { value: KANBAN_STATE.ASSIGNED, label: 'Assigned' },
+  { value: KANBAN_STATE.TRIP_STARTED, label: 'Started' },
+  { value: KANBAN_STATE.DROPPED_AND_WAITING, label: 'Waiting' },
+  { value: KANBAN_STATE.TRIP_COMPLETED, label: 'Completed' },
+  { value: KANBAN_STATE.CANCELLED, label: 'Cancelled' },
 ]
 
 function openMenu(): void {

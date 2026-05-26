@@ -4,6 +4,18 @@ import type { Coordinates } from './location.model'
  * Kanban progression states for a rider's trip.
  * Covers both the API-returned states and the internal progression states.
  */
+export enum KANBAN_STATE {
+  REQUESTS = 'requests',
+  ASSIGNED = 'assigned',
+  VIEWED_BY_RIDER = 'viewed_by_rider',
+  TRIP_STARTED = 'trip_started',
+  DROPPED_AND_WAITING = 'dropped_and_waiting',
+  TRIP_COMPLETED = 'trip_completed',
+  FARE_CALCULATION_PENDING = 'fare_calculation_pending',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
+
 export type TripKanbanState =
   | 'requests'
   | 'assigned'
