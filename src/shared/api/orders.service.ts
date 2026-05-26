@@ -141,6 +141,18 @@ export async function uploadCompletionProof(
 }
 
 /**
+ * Upload proof of a payment transaction (UPI / mixed payment).
+ * POST /orders/:id/payment-proof
+ */
+export async function uploadPaymentProof(id: string | number, formData: FormData): Promise<Order> {
+  const response = await apiClient.post<{ data: Order }>(
+    `/orders/${String(id)}/payment-proof`,
+    formData
+  )
+  return response.data.data
+}
+
+/**
  * Upload setup photos taken at the customer's home before starting service.
  * POST /orders/:id/setup-photos
  */

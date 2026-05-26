@@ -55,11 +55,12 @@
           :customer-name="order.customer?.full_name || 'Customer'"
           :address="fullAddress"
           :phone="order.customer?.phone"
-          :duration="serviceDurationLabel"
+          :duration="order?.booking_info?.timing || ''"
           :is-customer-hidden="isCustomerHidden"
           :show-actions="!isCompleted && !isCustomerHidden"
           :total="order.total ?? 0"
           :date="formattedDate"
+          :status="order.status as ORDER_STATUS"
           @navigate="navigateToLocation"
           @book-ride="showRideModal = true"
           @copy-address="copyAddress"
@@ -93,7 +94,7 @@
           <!-- Main Actions -->
           <div class="main-actions">
             <AppButton 
-              v-if="nextActionLabel"
+              v-if="paymentActionLabel"
               expand="block"
               size="lg"
               :loading="isUpdating"
@@ -102,7 +103,7 @@
               @click="handleMainAction"
               class="primary-action-btn-custom"
             >
-              {{ nextActionLabel }}
+              {{ paymentActionLabel }}
             </AppButton>
             
             <div class="date-restriction-tip" v-if="isBookingDateFuture && !isCompleted && order" style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin: 8px 0; padding: 8px; background: var(--color-surface); border-radius: 8px;">
@@ -226,215 +227,6 @@
       </ion-content>
     </ion-modal>
 
-    <!-- Payment Details Modal -->
-    <ion-modal
-      :is-open="showPaymentModal"
-      @didDismiss="showPaymentModal = false"
-      class="payment-modal"
-      :initial-breakpoint="0.92"
-      :breakpoints="[0, 0.92, 1]"
-      handle-behavior="cycle"
-    >
-      <ion-header class="ion-no-border">
-        <ion-toolbar class="payment-modal-toolbar">
-          <ion-title>
-            <div class="payment-modal-title">
-              <div class="payment-modal-title-icon">
-                <Icon icon="lucide:indian-rupee" />
-              </div>
-              <span>Payment details</span>
-            </div>
-          </ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" shape="round" @click="showPaymentModal = false">
-              <Icon icon="lucide:x" slot="icon-only" />
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-
-      <ion-content class="ion-padding">
-        <div class="payment-dialog-body">
-
-          <!-- Bill summary banner -->
-          <div class="pdb-bill-banner">
-            <div class="pdb-bill-row">
-              <span class="pdb-bill-label">Order total</span>
-              <strong class="pdb-bill-amount">₹{{ order?.total ?? 0 }}</strong>
-            </div>
-            <div class="pdb-bill-divider" />
-            <div class="pdb-bill-row pdb-bill-row--sub">
-              <span>Subtotal</span>
-              <span>₹{{ order?.subtotal ?? 0 }}</span>
-            </div>
-            <div class="pdb-bill-row pdb-bill-row--sub" v-if="(order?.total ?? 0) !== (order?.subtotal ?? 0)">
-              <span>Other charges</span>
-              <span>₹{{ Math.abs((order?.subtotal ?? 0) - (order?.total ?? 0)) }}</span>
-            </div>
-          </div>
-
-          <!-- Status -->
-          <div class="pdb-section">
-            <p class="pdb-section-label">Payment status</p>
-            <div class="status-chip-row">
-              <button
-                v-for="option in paymentStatusOptions"
-                :key="option.value"
-                class="status-chip"
-                :class="{ 'status-chip--active': paymentStatus === option.value, [`status-chip--${option.value}`]: true }"
-                @click="paymentStatus = option.value as any"
-              >
-                <Icon :icon="option.value === 'paid' ? 'lucide:check-circle' : option.value === 'unpaid' ? 'lucide:clock' : 'lucide:alert-circle'" />
-                {{ option.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Amount breakdown -->
-          <div class="pdb-section">
-            <p class="pdb-section-label">Amount breakdown</p>
-            <ion-list lines="none" class="pdb-list">
-              <ion-item class="pdb-item">
-                <div slot="start" class="pdb-item-icon pdb-icon-cash">
-                  <Icon icon="lucide:banknote" />
-                </div>
-                <ion-label>
-                  <p class="pdb-item-label">Cash on Delivery</p>
-                </ion-label>
-                <ion-input
-                  slot="end"
-                  type="number"
-                  inputmode="numeric"
-                  :min="0"
-                  v-model="paymentCodAmount"
-                  placeholder="0"
-                  class="pdb-amount-input"
-                />
-              </ion-item>
-              <ion-item class="pdb-item">
-                <div slot="start" class="pdb-item-icon pdb-icon-upi">
-                  <Icon icon="lucide:smartphone" />
-                </div>
-                <ion-label>
-                  <p class="pdb-item-label">UPI</p>
-                </ion-label>
-                <ion-input
-                  slot="end"
-                  type="number"
-                  inputmode="numeric"
-                  :min="0"
-                  v-model="paymentUpiAmount"
-                  placeholder="0"
-                  class="pdb-amount-input"
-                />
-              </ion-item>
-              <ion-item class="pdb-item">
-                <div slot="start" class="pdb-item-icon pdb-icon-tip">
-                  <Icon icon="lucide:heart" />
-                </div>
-                <ion-label>
-                  <p class="pdb-item-label">Tip</p>
-                </ion-label>
-                <ion-input
-                  slot="end"
-                  type="number"
-                  inputmode="numeric"
-                  :min="0"
-                  v-model="paymentTipAmount"
-                  placeholder="0"
-                  class="pdb-amount-input"
-                />
-              </ion-item>
-            </ion-list>
-
-            <!-- Total pill -->
-            <div class="pdb-total">
-              <span>Total collected</span>
-              <strong>₹{{ paymentTotalCollected }}</strong>
-            </div>
-          </div>
-
-          <!-- UPI reference -->
-          <div class="pdb-section">
-            <p class="pdb-section-label">UPI reference <span class="pdb-optional">(optional)</span></p>
-            <ion-list lines="none" class="pdb-list">
-              <ion-item class="pdb-item">
-                <div slot="start" class="pdb-item-icon pdb-icon-ref">
-                  <Icon icon="lucide:hash" />
-                </div>
-                <ion-input
-                  v-model="paymentReferenceInput"
-                  placeholder="Transaction ID or UTR number"
-                  clearInput
-                />
-              </ion-item>
-            </ion-list>
-          </div>
-
-          <!-- Notes -->
-          <div class="pdb-section">
-            <p class="pdb-section-label">Notes <span class="pdb-optional">(optional)</span></p>
-            <ion-list lines="none" class="pdb-list">
-              <ion-item class="pdb-item pdb-item--textarea">
-                <ion-textarea
-                  v-model="paymentNote"
-                  :rows="3"
-                  placeholder="Any remarks or payment notes..."
-                  auto-grow
-                />
-              </ion-item>
-            </ion-list>
-          </div>
-
-          <!-- Proof upload -->
-          <div class="pdb-section">
-            <p class="pdb-section-label">Payment proof</p>
-            <div class="pdb-proof-row" @click="triggerProofInput">
-              <div class="pdb-proof-left">
-                <div class="pdb-item-icon pdb-icon-proof">
-                  <Icon icon="lucide:image-plus" />
-                </div>
-                <div>
-                  <p class="pdb-proof-title">Upload screenshot</p>
-                  <p class="pdb-proof-sub">{{ proofImages.length > 0 ? `${proofImages.length} image(s) uploaded` : 'No image yet' }}</p>
-                </div>
-              </div>
-              <ion-badge :color="proofImages.length > 0 ? 'success' : 'medium'" class="pdb-proof-badge">
-                {{ proofImages.length > 0 ? 'Done' : 'Add' }}
-              </ion-badge>
-            </div>
-            <div v-if="proofImages.length" class="pdb-proof-thumbs">
-              <div
-                v-for="(img, i) in proofImages"
-                :key="i"
-                class="pdb-thumb"
-                @click.stop="openGallery(mediaUrl(img.url))"
-              >
-                <img :src="mediaUrl(img.url)" :alt="`Proof ${i + 1}`" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="pdb-actions">
-            <AppButton
-              expand="block"
-              size="lg"
-              :loading="isUpdating"
-              :disabled="!paymentStatus"
-              icon="lucide:check-circle"
-              @click="handleSavePaymentAndComplete"
-            >
-              Save & Complete order
-            </AppButton>
-            <AppButton variant="ghost" expand="block" @click="showPaymentModal = false">
-              Cancel
-            </AppButton>
-          </div>
-
-        </div>
-      </ion-content>
-    </ion-modal>
 
     <!-- Reusable Ride Selection Modal -->
     <RideSelectorModal
@@ -469,6 +261,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
+import { ORDER_STATUS } from '@/shared/constants'
 import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import { mediaUrl } from '@/shared/lib/media'
 import { useOrderDetail } from '../composables/useOrderDetail'
@@ -519,18 +312,37 @@ const upgradableProducts = ref<any[]>([])
 const setupInput = ref<HTMLInputElement | null>(null)
 const proofInput = ref<HTMLInputElement | null>(null)
 const paymentStatus = ref<PaymentStatus | ''>('')
-const showPaymentModal = ref(false)
-const paymentCodAmount = ref<number | null>(null)
-const paymentUpiAmount = ref<number | null>(null)
-const paymentTipAmount = ref<number | null>(null)
-const paymentReferenceInput = ref('')
-const paymentNote = ref('')
 const paymentStatusOptions = [
   { label: 'Paid', value: 'paid' },
   { label: 'Unpaid', value: 'unpaid' },
   { label: 'Conflict', value: 'conflict' },
 ]
 const { openNavigationMenu } = useNavigation()
+
+const hasPaymentMethod = computed(() => {
+  const method = order.value?.payment?.method?.toLowerCase() || ''
+  return method
+})
+
+const hasCodAmount = computed(() => {
+  return Number(order.value?.payment?.cod_amount ?? 0) > 0
+})
+
+const hasUpiAmount = computed(() => {
+  const method = hasPaymentMethod.value
+  return Number(order.value?.payment?.upi_amount ?? 0) > 0 || method.includes('upi')
+})
+
+const isPrepaidOrder = computed(() => {
+  return !hasCodAmount.value && !hasUpiAmount.value
+})
+
+const paymentActionLabel = computed(() => {
+  if (order.value?.status?.toLowerCase() === 'started') {
+    return isPrepaidOrder.value ? 'Complete Order' : 'Collect Payment'
+  }
+  return nextActionLabel.value
+})
 
 // ── Computed ───────────────────────────────────────────────────────────────
 
@@ -557,15 +369,6 @@ const totalServiceDuration = computed(() => {
     const multiplier = Number(item.quantity ?? 1)
     return sum + duration * multiplier
   }, 0)
-})
-
-const serviceDurationLabel = computed(() => {
-  if (!order.value?.products?.length) return 'N/A'
-  const minutes = totalServiceDuration.value
-  if (!minutes) return 'N/A'
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
 })
 
 const fullAddress = computed(() => {
@@ -667,21 +470,21 @@ const parsedPaymentRemark = computed(() => {
   }
 })
 
-const paymentTotalCollected = computed(() => {
-  const cod = Number(paymentCodAmount.value ?? 0)
-  const upi = Number(paymentUpiAmount.value ?? 0)
-  const tip = Number(paymentTipAmount.value ?? 0)
-  return cod + upi + tip
-})
-
 const canCancel = computed(() => {
   const s = order.value?.status?.toLowerCase()
-  return s === 'confirmed' || s === 'ongoing' || s === 'reached_customer_place' || s === 'started'
+  return (
+    s === ORDER_STATUS.CONFIRMED ||
+    s === ORDER_STATUS.ONGOING ||
+    s === ORDER_STATUS.REACHED_CUSTOMER_PLACE
+  )
 })
 
 const isSelfieStep = computed(() => {
   const s = order.value?.status?.toLowerCase()
-  return (s === 'ongoing' || s === 'reached_customer_place') && !order.value?.arrival_selfie
+  return (
+    (s === ORDER_STATUS.ONGOING || s === ORDER_STATUS.REACHED_CUSTOMER_PLACE) &&
+    !order.value?.arrival_selfie
+  )
 })
 
 const setupPhotos = computed(() => {
@@ -694,11 +497,11 @@ const setupPhotos = computed(() => {
 })
 
 const proofImages = computed(() => {
-  if (!order.value?.proof_of_service) return []
-  return Array.isArray(order.value.proof_of_service)
-    ? order.value.proof_of_service.filter((p: { url?: string }) => !!p?.url)
-    : order.value.proof_of_service
-      ? [order.value.proof_of_service]
+  if (!order.value?.payment?.proof) return []
+  return Array.isArray(order.value.payment.proof)
+    ? order.value.payment.proof.filter((p: { url?: string }) => !!p?.url)
+    : order.value.payment.proof
+      ? [order.value.payment.proof]
       : []
 })
 
@@ -832,7 +635,7 @@ async function handleMainAction() {
       showOtpInput.value = true
     }
   } else if (s === 'started') {
-    openPaymentModal()
+    router.push({ name: 'OrderPayment', params: { id: orderId } })
   } else {
     // Started -> Completed (Complete Service)
     const confirmed = await presentConfirm(
@@ -960,66 +763,6 @@ function getSelectedFreeItems(item: Readonly<OrderProduct>) {
 function openCancelModal() {
   showCancelModal.value = true
   otpValue.value = ''
-}
-
-function openPaymentModal() {
-  paymentStatus.value = (order.value?.payment?.status?.toLowerCase() ?? '') as PaymentStatus
-  paymentCodAmount.value = order.value?.payment?.cod_amount ?? null
-  paymentUpiAmount.value = order.value?.payment?.upi_amount ?? null
-  paymentReferenceInput.value = order.value?.payment?.reference || ''
-  paymentTipAmount.value = order.value?.payment?.tip ?? null
-  paymentNote.value = order.value?.payment?.remark || ''
-  showPaymentModal.value = true
-}
-
-function closePaymentModal() {
-  showPaymentModal.value = false
-}
-
-async function handleSavePaymentAndComplete() {
-  if (!order.value) return
-  if (!paymentStatus.value || !['paid', 'unpaid', 'conflict'].includes(paymentStatus.value)) {
-    showError('Please choose Paid, Unpaid, or Conflict before completing the service.')
-    return
-  }
-
-  if (!proofImages.value.length) {
-    showError('Please upload payment proof before completing the service.')
-    return
-  }
-
-  const codAmount = Number(paymentCodAmount.value ?? 0)
-  const upiAmount = Number(paymentUpiAmount.value ?? 0)
-  const tipAmount = Number(paymentTipAmount.value ?? 0)
-
-  if (codAmount < 0 || upiAmount < 0 || tipAmount < 0) {
-    showError('Amount values cannot be negative.')
-    return
-  }
-
-  const methodParts: string[] = []
-  if (codAmount > 0) methodParts.push('COD')
-  if (upiAmount > 0) methodParts.push('UPI')
-
-  const paymentPayload = {
-    status: paymentStatus.value,
-    method: methodParts.length > 0 ? methodParts.join('+') : undefined,
-    amount_paid: codAmount + upiAmount + tipAmount,
-    cod_amount: codAmount || undefined,
-    upi_amount: upiAmount || undefined,
-    tip: tipAmount || undefined,
-    remark: paymentNote.value.trim() || undefined,
-    reference: paymentReferenceInput.value.trim() || undefined,
-  }
-
-  await updateOrderDetails({ payment: paymentPayload })
-  if (error.value) return
-
-  showPaymentModal.value = false
-  await advanceStatus()
-  if (!error.value) {
-    showSuccess('Payment details saved and service completed successfully.')
-  }
 }
 
 async function handleCompletionProofChange(event: Event) {

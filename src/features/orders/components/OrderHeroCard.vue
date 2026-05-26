@@ -17,7 +17,7 @@
           <span>{{ duration }}</span>
         </div>
       </div>
-      <div v-if="showActions" class="hero-actions">
+      <div v-if="status == ORDER_STATUS.ONGOING || status == ORDER_STATUS.CONFIRMED" class="hero-actions">
         <button class="hbtn hbtn-nav" @click="$emit('navigate')">
           <Icon icon="lucide:navigation" class="hbtn-icon" />
           <span>Navigate</span>
@@ -63,10 +63,12 @@
 </template>
 
 <script setup lang="ts">
+import { ORDER_STATUS } from '../../../shared/constants'
 defineProps<{
   orderNumber: string | number
   statusLabel: string
   statusVariant: string
+  status: ORDER_STATUS
   customerName: string
   address: string
   phone?: string

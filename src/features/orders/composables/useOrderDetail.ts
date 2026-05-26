@@ -8,6 +8,7 @@ import {
   upgradeOrderProduct as upgradeOrderProductApi,
   uploadArrivalSelfie as uploadArrivalSelfieApi,
   uploadCompletionProof as uploadCompletionProofApi,
+  uploadPaymentProof as uploadPaymentProofApi,
   uploadSetupPhotos as uploadSetupPhotosApi,
   verifyServiceOtp as verifyServiceOtpApi,
 } from '@/shared/api'
@@ -188,7 +189,7 @@ export function useOrderDetail() {
       const formData = new FormData()
       formData.append('image', blob, `payment_proof_${id}_${Date.now()}.jpg`)
 
-      order.value = await uploadCompletionProofApi(id, formData)
+      order.value = await uploadPaymentProofApi(id, formData)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to capture payment proof'

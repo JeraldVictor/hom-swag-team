@@ -34,6 +34,7 @@ export interface PaymentInfo {
   remark?: string
   staff_comment?: string
   internal_comment?: string
+  proof?: { url?: string; key?: string } | Array<{ url?: string; key?: string }>
 }
 
 export interface OrderInstructionPreset {
