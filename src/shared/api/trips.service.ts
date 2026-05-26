@@ -12,6 +12,7 @@
  */
 
 import apiClient from '@/shared/lib/api'
+import { getOfficeId } from '@/shared/api/location.service'
 import type { Coordinates } from '@/shared/models/location.model'
 import type { RawTrip, Trip, TripKanbanState } from '@/shared/models/trip.model'
 
@@ -33,21 +34,56 @@ function geoJsonToCoords(geo?: { coordinates: [number, number] }): Coordinates {
 /**
  * Normalize a raw API trip object into the app's internal Trip model.
  */
+function parseIstStartTime(orderDate?: string, orderTime?: string): string | undefined {
+  if (!orderDate || !orderTime) return undefined
+
+  const dateParts = orderDate.split('-').map(Number)
+  const timeParts = orderTime.split(':').map(Number)
+
+  if (dateParts.length !== 3 || timeParts.length < 2) {
+    return undefined
+  }
+
+  const [year, month, day] = dateParts
+  const [hours, minutes] = timeParts
+  if ([year, month, day, hours, minutes].some(n => Number.isNaN(n))) {
+    return undefined
+  }
+
+  // Construct a UTC timestamp that represents the same instant as the given IST date/time.
+  const utcHours = hours - 5
+  const utcMinutes = minutes - 30
+  const date = new Date(Date.UTC(year, month - 1, day, utcHours, utcMinutes))
+
+  return date.toISOString()
+}
+
 function normalizeTrip(raw: RawTrip): Trip {
   const orderId = raw.order_id
 
   const customerName = typeof orderId === 'object' ? orderId.customer?.full_name : undefined
   const orderNumber = typeof orderId === 'object' ? orderId.order_number : undefined
+  const orderDate =
+    typeof orderId === 'object' ? orderId.booking_info?.date || raw.order_date : raw.order_date
+  const orderTime =
+    typeof orderId === 'object'
+      ? orderId.booking_info?.effective_start_time ||
+        orderId.booking_info?.selected_start_time ||
+        raw.order_time
+      : raw.order_time
+  const scheduledStartTime = parseIstStartTime(orderDate, orderTime)
 
   return {
     id: raw._id,
     trip_number: raw.trip_number,
     kanban_state: raw.kanban_state,
-    start_time: raw.created_at,
+    start_time: scheduledStartTime ?? raw.created_at,
     pickup_location: geoJsonToCoords(raw.pickup_location),
     drop_location: geoJsonToCoords(raw.drop_location),
     customer_name: customerName,
     order_number: orderNumber,
+    order_date: orderDate,
+    order_time: orderTime,
     fare: raw.fare,
     notes: raw.notes,
     created_at: raw.created_at,
@@ -69,8 +105,17 @@ function normalizeTrip(raw: RawTrip): Trip {
  * returns a plain array or a paginated envelope.
  */
 export async function getTrips(
-  params?: Record<string, any>
+  params: Record<string, any> = {}
 ): Promise<{ data: Trip[]; pagination?: any }> {
+  if (!params.office_id) {
+    params.office_id = await getOfficeId()
+  }
+
+  if (params.status && !params.kanban_state) {
+    params.kanban_state = params.status
+    delete params.status
+  }
+
   const response = await apiClient.get<any>('/trips', { params })
 
   // Handle new paginated format vs old format

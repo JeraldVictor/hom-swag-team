@@ -57,6 +57,8 @@ export interface RawTrip {
         booking_info?: {
           timing?: string
           date?: string
+          effective_start_time?: string
+          selected_start_time?: string
           surge_amount?: number
         }
       }
@@ -70,6 +72,8 @@ export interface RawTrip {
   is_self_drive: boolean
   created_at: string
   updated_at: string
+  order_date?: string
+  order_time?: string
   zone_id?: string
   auto_distance_km?: number
   fare?: number
@@ -88,7 +92,7 @@ export interface Trip {
   id: string
   trip_number: string
   kanban_state: TripKanbanState
-  /** ISO 8601 — derived from created_at since API has no start_time */
+  /** ISO 8601 — derived from scheduled order time or created_at fallback */
   start_time: string
   pickup_location: Coordinates & { address?: string }
   drop_location: Coordinates & { address?: string }
@@ -96,6 +100,8 @@ export interface Trip {
   customer_name?: string
   /** Order number from the nested order */
   order_number?: string
+  order_date?: string
+  order_time?: string
   end_time?: string
   fare?: number
   created_at?: string
