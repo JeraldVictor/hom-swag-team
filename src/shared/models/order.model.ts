@@ -106,7 +106,7 @@ export interface OrderTripRider {
 
 export interface OrderTripLocation {
   type?: 'Point'
-  coordinates?: [number, number]
+  coordinates?: readonly [number, number]
 }
 
 export interface OrderTrip {
@@ -120,6 +120,12 @@ export interface OrderTrip {
   pickup_location?: OrderTripLocation
   drop_location?: OrderTripLocation
   rider?: OrderTripRider
+  is_external_booking?: boolean
+  external_booking_details?: {
+    provider?: string
+    cost?: number
+    reimbursement_status?: string
+  }
 }
 
 /**

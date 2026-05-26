@@ -17,7 +17,7 @@
           <span>{{ duration }}</span>
         </div>
       </div>
-      <div v-if="status == ORDER_STATUS.ONGOING || status == ORDER_STATUS.CONFIRMED" class="hero-actions">
+      <div v-if="showActions && isRideActionVisible" class="hero-actions">
         <button class="hbtn hbtn-nav" @click="$emit('navigate')">
           <Icon icon="lucide:navigation" class="hbtn-icon" />
           <span>Navigate</span>
@@ -63,8 +63,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { ORDER_STATUS } from '../../../shared/constants'
-defineProps<{
+
+const props = defineProps<{
   orderNumber: string | number
   statusLabel: string
   statusVariant: string
@@ -78,6 +80,18 @@ defineProps<{
   total: number
   date: string
 }>()
+
+const isRideActionVisible = computed(() => {
+  return [
+    ORDER_STATUS.PENDING,
+    ORDER_STATUS.ASSIGNED_DRAFT,
+    ORDER_STATUS.CONFIRMED,
+    ORDER_STATUS.ONGOING,
+    ORDER_STATUS.REACHED_CUSTOMER_PLACE,
+    ORDER_STATUS.STARTED,
+    ORDER_STATUS.RE_ASSIGN_REQUIRED,
+  ].includes(props.status)
+})
 
 defineEmits<{
   navigate: []

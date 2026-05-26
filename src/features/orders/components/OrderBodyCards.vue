@@ -2,39 +2,54 @@
   <div class="order-content anim-fade-in">
 
     <!-- ── Trip & Rider Card ──────────────────────────────────────────────── -->
-    <div class="content-card" v-if="showAssignedTripInfo && assignedTrip">
+    <div class="content-card" v-if="showAssignedTripInfo && assignedTrips.length">
       <div class="card-header">
         <div class="header-icon-wrap"><Icon icon="lucide:truck" /></div>
         <h3>Rider & Trip</h3>
-        <span :class="['status-chip', 'ms-auto', tripStatusClass]">
-          <Icon :icon="tripStatusIcon" />
-          {{ (assignedTrip.kanban_state || 'Assigned').replace(/_/g, ' ').toUpperCase() }}
-        </span>
       </div>
-      <div class="trip-info-grid">
-        <div class="trip-info-row" v-if="assignedTrip.trip_number">
-          <span>Trip #</span>
-          <strong>{{ assignedTrip.trip_number }}</strong>
+      <div
+        v-for="(assignedTrip, index) in assignedTrips"
+        :key="assignedTrip._id || assignedTrip.id || index"
+        class="trip-card"
+      >
+        <div class="trip-card-header">
+          <span class="trip-card-title">Trip {{ index + 1 }}</span>
+          <span :class="['status-chip', tripStatusClass(assignedTrip)]">
+            <Icon :icon="tripStatusIcon(assignedTrip)" />
+            {{ (assignedTrip.kanban_state || 'Assigned').replace(/_/g, ' ').toUpperCase() }}
+          </span>
         </div>
-        <div class="trip-info-row" v-if="assignedTrip.rider?.name">
-          <span>Rider</span>
-          <strong>{{ assignedTrip.rider.name }}</strong>
-        </div>
-        <div class="trip-info-row" v-if="assignedTrip.rider?.phone">
-          <span>Phone</span>
-          <a :href="`tel:${assignedTrip.rider.phone}`">{{ assignedTrip.rider.phone }}</a>
-        </div>
-        <div class="trip-info-row" v-if="assignedTrip.rider?.vehicle_number || assignedTrip.rider?.registration_number">
-          <span>Vehicle</span>
-          <strong>{{ assignedTrip.rider?.vehicle_number || assignedTrip.rider?.registration_number }}</strong>
-        </div>
-        <div class="trip-info-row" v-if="assignedTrip.start_time">
-          <span>Started</span>
-          <strong>{{ formatTime(assignedTrip.start_time) }}</strong>
-        </div>
-        <div class="trip-info-row" v-if="assignedTrip.end_time">
-          <span>Ended</span>
-          <strong>{{ formatTime(assignedTrip.end_time) }}</strong>
+        <div class="trip-info-grid">
+          <div class="trip-info-row" v-if="assignedTrip.trip_number">
+            <span>Trip #</span>
+            <strong>{{ assignedTrip.trip_number }}</strong>
+          </div>
+          <div class="trip-info-row" v-if="assignedTrip.is_external_booking || !assignedTrip.rider?.name">
+            <span>Type</span>
+            <strong>
+              {{ assignedTrip.is_external_booking ? (assignedTrip.external_booking_details?.provider || 'External Ride') : 'Self Booking' }}
+            </strong>
+          </div>
+          <div class="trip-info-row" v-if="assignedTrip.rider?.name">
+            <span>Rider</span>
+            <strong>{{ assignedTrip.rider.name }}</strong>
+          </div>
+          <div class="trip-info-row" v-if="assignedTrip.rider?.phone">
+            <span>Phone</span>
+            <a :href="`tel:${assignedTrip.rider.phone}`">{{ assignedTrip.rider.phone }}</a>
+          </div>
+          <div class="trip-info-row" v-if="assignedTrip.rider?.vehicle_number || assignedTrip.rider?.registration_number">
+            <span>Vehicle</span>
+            <strong>{{ assignedTrip.rider?.vehicle_number || assignedTrip.rider?.registration_number }}</strong>
+          </div>
+          <div class="trip-info-row" v-if="assignedTrip.start_time">
+            <span>Started</span>
+            <strong>{{ formatTime(assignedTrip.start_time) }}</strong>
+          </div>
+          <div class="trip-info-row" v-if="assignedTrip.end_time">
+            <span>Ended</span>
+            <strong>{{ formatTime(assignedTrip.end_time) }}</strong>
+          </div>
         </div>
       </div>
     </div>
@@ -259,7 +274,7 @@ interface ProofImage {
 
 const props = defineProps<{
   order: Order
-  assignedTrip: OrderTrip | null
+  assignedTrips: readonly OrderTrip[]
   showAssignedTripInfo: boolean
   isCustomerHidden: boolean
   hasOrderContext: boolean
@@ -286,21 +301,21 @@ const emit = defineEmits<{
 
 // ── Status chip helpers ────────────────────────────────────────────────────
 
-const tripStatusClass = computed(() => {
-  const s = (props.assignedTrip?.kanban_state || '').toLowerCase()
+function tripStatusClass(trip: OrderTrip) {
+  const s = (trip?.kanban_state || '').toLowerCase()
   if (s === 'in_progress' || s.includes('progress')) return 'chip-brand'
   if (s === 'done' || s.includes('complete')) return 'chip-success'
   if (s.includes('cancel')) return 'chip-danger'
   return 'chip-neutral'
-})
+}
 
-const tripStatusIcon = computed(() => {
-  const s = (props.assignedTrip?.kanban_state || '').toLowerCase()
+function tripStatusIcon(trip: OrderTrip) {
+  const s = (trip?.kanban_state || '').toLowerCase()
   if (s === 'in_progress' || s.includes('progress')) return 'lucide:truck'
   if (s === 'done' || s.includes('complete')) return 'lucide:check-circle-2'
   if (s.includes('cancel')) return 'lucide:x-circle'
   return 'lucide:circle'
-})
+}
 
 const paymentStatusKey = computed(() => props.order.payment?.status?.toLowerCase() ?? 'pending')
 
@@ -339,6 +354,34 @@ function formatTime(val: string): string {
   text-transform: capitalize;
   letter-spacing: 0.02em;
   white-space: nowrap;
+}
+
+.trip-card {
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 16px;
+}
+
+.trip-card:first-of-type {
+  padding-top: 0;
+  border-top: none;
+  margin-top: 0;
+}
+
+.trip-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.trip-card-title {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .chip-brand   { background: var(--color-brand-pale);    color: var(--color-brand); }

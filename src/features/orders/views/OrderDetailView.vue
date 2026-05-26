@@ -68,7 +68,7 @@
 
         <OrderBodyCards
           :order="(order as unknown as Order)"
-          :assigned-trip="(assignedTrip as unknown as OrderTrip | null)"
+          :assigned-trips="assignedTrips"
           :show-assigned-trip-info="showAssignedTripInfo"
           :is-customer-hidden="isCustomerHidden"
           :has-order-context="hasOrderContext"
@@ -415,7 +415,7 @@ const isCustomerHidden = computed(() => {
     !order.value?.customer?.name &&
     !order.value?.customer?.phone
 
-  return hiddenStatuses.includes(status) || missingCustomer
+  return hiddenStatuses.includes(status) || missingCustomer || !orderChangeAllowed.value
 })
 
 const statusVariant = computed(() => {
@@ -523,15 +523,12 @@ const proofImages = computed(() => {
       : []
 })
 
-const assignedTrip = computed(() => {
-  if (!order.value?.trips?.length) return null
-  return order.value.trips[0]
-})
+const assignedTrips = computed(() => order.value?.trips ?? [])
 
 const showAssignedTripInfo = computed(() => {
-  if (!assignedTrip.value || !order.value) return false
+  if (!assignedTrips.value.length || !order.value) return false
   const status = order.value.status?.toLowerCase() || ''
-  return !['completed', 'cancelled', 'arrived_and_cancelled'].includes(status)
+  return !['completed', 'cancelled', 'arrived_and_cancelled', 'cancel_requested'].includes(status)
 })
 
 const isBookingDateToday = computed(() => {
