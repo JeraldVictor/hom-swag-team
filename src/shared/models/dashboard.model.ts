@@ -12,7 +12,12 @@ export interface DashboardData {
   tomorrow_count: number
   month_completed_count: number
   today_earnings: number
+  today_commission: number
   month_earnings: number
+  month_commission: number
+  payable_commission: number
+  monthly_target: number
+  target_achieved: boolean
   pending_leaves_count: number
   unread_notifications_count: number
   trips?: Trip[]

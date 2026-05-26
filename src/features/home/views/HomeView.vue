@@ -60,27 +60,50 @@
         <!-- ── Dashboard (Unified Metrics) ─────────────────────────────────── -->
         <div class="section dashboard-section">
           <div class="section-header">
-            <p class="section-title">Today's Performance</p>
+            <p class="section-title">Performance Summary</p>
           </div>
 
           <!-- Earnings Overview -->
           <div class="earnings-grid anim-grid">
             <div class="earnings-main press-feedback" @click="goTo('/leaderboard')">
               <div class="earnings-main__top">
-                <span class="earnings-main__label">Today's Earnings</span>
+                <span class="earnings-main__label">Today's Revenue</span>
                 <Icon icon="lucide:trending-up" class="earnings-main__icon" />
               </div>
               <div class="earnings-main__amount">{{ formatAmount(dashboard?.today_earnings) }}</div>
-              <div class="earnings-main__progress">
-                <div class="earnings-main__bar">
-                  <div class="earnings-main__fill" :style="{ width: `${earningsProgress}%` }" />
-                </div>
-                <span class="earnings-main__target">Target: {{ formatAmountShort(DAILY_TARGET) }}</span>
+              <div class="earnings-main__target">
+                Commission: {{ formatAmount(dashboard?.today_commission) }}
               </div>
             </div>
             <div class="earnings-sub press-feedback" @click="goTo('/leaderboard')">
-              <span class="earnings-sub__label">Month Total</span>
+              <span class="earnings-sub__label">Month Revenue</span>
               <div class="earnings-sub__amount">{{ formatAmountShort(dashboard?.month_earnings) }}</div>
+              <span class="earnings-sub__label mt-4">Payable Comm.</span>
+              <div class="earnings-sub__amount" :class="{ 'text-success': dashboard?.target_achieved }">
+                {{ formatAmountShort(dashboard?.payable_commission) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Target Progress Card -->
+          <div v-if="dashboard?.monthly_target" class="target-card anim-card">
+            <div class="target-card__header">
+              <div class="target-card__title-group">
+                <Icon icon="lucide:target" class="target-card__icon" />
+                <span class="target-card__title">Monthly Target</span>
+              </div>
+              <span class="target-card__status" :class="dashboard.target_achieved ? 'status--achieved' : 'status--pending'">
+                {{ dashboard.target_achieved ? 'Achieved' : 'In Progress' }}
+              </span>
+            </div>
+            <div class="target-card__progress">
+              <div class="target-card__bar">
+                <div class="target-card__fill" :style="{ width: `${targetProgress}%` }" />
+              </div>
+              <div class="target-card__labels">
+                <span class="target-card__current">{{ formatAmountShort(dashboard.month_earnings) }}</span>
+                <span class="target-card__goal">Goal: {{ formatAmountShort(dashboard.monthly_target) }}</span>
+              </div>
             </div>
           </div>
 
@@ -401,13 +424,13 @@ const todayDone = computed(() => {
   return isBeautician.value ? completedOrders.value.length : completedTrips.value.length
 })
 
-// ── Computed: earnings ─────────────────────────────────────────────────────
+// ── Computed: target progress ──────────────────────────────────────────────
 
-const DAILY_TARGET = 2000 // ₹ — placeholder, could come from profile
-
-const earningsProgress = computed(() => {
-  const earned = dashboard.value?.today_earnings ?? 0
-  return earned > 0 ? (earned / DAILY_TARGET) * 100 : 0
+const targetProgress = computed(() => {
+  const earned = dashboard.value?.month_earnings ?? 0
+  const target = dashboard.value?.monthly_target ?? 0
+  if (!target || target === 0) return 0
+  return Math.min(100, (earned / target) * 100)
 })
 
 // ── Computed: leave balance ────────────────────────────────────────────────
@@ -773,6 +796,83 @@ watch([isBeautician, isRider], ([newB, newR]) => {
   font-weight: 800;
   color: var(--color-brand);
 }
+
+.text-success { color: var(--color-success) !important; }
+
+/* Target Progress Card */
+.target-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.target-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.target-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.target-card__icon {
+  font-size: 16px;
+  color: var(--color-brand);
+}
+
+.target-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.target-card__status {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.status--achieved { background: var(--color-success-bg); color: var(--color-success-text); }
+.status--pending  { background: var(--color-warning-bg); color: var(--color-warning-text); }
+
+.target-card__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.target-card__bar {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.target-card__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-brand) 0%, var(--color-hero-dark) 100%);
+  border-radius: 4px;
+  transition: width 1s ease-in-out;
+}
+
+.target-card__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.target-card__current { color: var(--color-text); font-weight: 700; }
 
 /* Stats Grid */
 .stats-grid {
