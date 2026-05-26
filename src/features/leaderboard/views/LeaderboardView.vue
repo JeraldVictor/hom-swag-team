@@ -179,23 +179,27 @@
           <div class="list">
             <div
               v-for="entry in rest"
-            :key="entry.user_id"
-            class="entry-card"
-            :class="{ 'entry-card--self': entry.is_self }"
-          >
-            <span class="entry-rank">{{ entry.rank }}</span>
-            <div class="entry-avatar">
-              <img v-if="entry.photo_url" :src="entry.photo_url" :alt="entry.name" class="entry-avatar__img" />
-              <span v-else class="entry-avatar__initials">{{ initials(entry.name) }}</span>
+              :key="entry.user_id"
+              class="entry-card"
+              :class="{ 'entry-card--self': entry.is_self, 'entry-card--masked': entry.user_id === 'masked' }"
+            >
+              <span class="entry-rank">{{ entry.rank }}</span>
+              <div class="entry-avatar">
+                <Icon v-if="entry.user_id === 'masked'" icon="lucide:user-x" class="masked-icon" />
+                <img v-else-if="entry.photo_url" :src="entry.photo_url" :alt="entry.name" class="entry-avatar__img" />
+                <span v-else class="entry-avatar__initials">{{ initials(entry.name) }}</span>
+              </div>
+              <div class="entry-info">
+                <p class="entry-name">
+                  {{ entry.name }} 
+                  <span v-if="entry.is_self" class="entry-you">(You)</span>
+                </p>
+                <p class="entry-count">{{ entry.count }} orders</p>
+              </div>
+              <span v-if="entry.amount" class="entry-earnings">
+                ₹{{ entry.amount.toLocaleString('en-IN') }}
+              </span>
             </div>
-            <div class="entry-info">
-              <p class="entry-name">{{ entry.name }} <span v-if="entry.is_self" class="entry-you">(You)</span></p>
-              <p class="entry-count">{{ entry.count }} orders</p>
-            </div>
-            <span v-if="entry.amount" class="entry-earnings">
-              ₹{{ entry.amount.toLocaleString('en-IN') }}
-            </span>
-          </div>
           </div>
         </div>
 

@@ -18,7 +18,7 @@ export interface LeaderboardEntry {
   is_self?: boolean
 }
 
-export type LeaderboardPeriod = 'weekly' | 'monthly' | 'financial_year' | 'all_time'
+export type LeaderboardPeriod = 'weekly' | 'monthly' | 'yearly' | 'financial_year' | 'all_time'
 
 export interface LeaderboardData {
   period: LeaderboardPeriod
