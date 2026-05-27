@@ -13,7 +13,8 @@ export interface UseCameraOptions {
   facingMode?: CameraFacingMode
 }
 
-function resolveCameraDirection(facingMode?: CameraFacingMode): CameraDirection {
+function resolveCameraDirection(facingMode?: CameraFacingMode): CameraDirection | undefined {
+  if (!facingMode) return undefined
   return facingMode === 'environment' ? CameraDirection.Rear : CameraDirection.Front
 }
 
@@ -24,14 +25,18 @@ function resolveCameraDirection(facingMode?: CameraFacingMode): CameraDirection 
  * @throws If the user cancels or permission is denied.
  */
 async function takePhoto(options?: UseCameraOptions): Promise<Blob> {
-  const photo = await Camera.takePhoto({
+  const cameraOptions = {
     quality: 90,
     editable: 'in-app',
     targetWidth: 1280,
     targetHeight: 1280,
     correctOrientation: true,
-    cameraDirection: resolveCameraDirection(options?.facingMode),
     includeMetadata: true,
+  } as const
+
+  const photo = await Camera.takePhoto({
+    ...cameraOptions,
+    ...(options?.facingMode ? { cameraDirection: resolveCameraDirection(options.facingMode) } : {}),
   })
 
   const path = photo.webPath ?? photo.uri

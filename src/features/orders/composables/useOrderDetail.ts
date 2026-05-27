@@ -112,7 +112,7 @@ export function useOrderDetail() {
     isUpdating.value = true
     error.value = null
     try {
-      const blob = await takePhoto()
+      const blob = await takePhoto({ facingMode: 'user' })
       const formData = new FormData()
       formData.append('image', blob, `selfie_${order.value._id || order.value.id}.jpg`)
 
