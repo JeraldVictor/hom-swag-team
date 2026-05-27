@@ -114,7 +114,7 @@
 
 <script setup lang="ts">
 import { onIonViewWillEnter } from '@ionic/vue'
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables'
 import type { Order, OrderStatus } from '@/shared/models'
@@ -199,6 +199,13 @@ function openMenu(): void {
   openDrawer()
 }
 
+function handleOrderUpdated(event: Event): void {
+  const customEvent = event as CustomEvent<{ order_id: string }>
+  if (customEvent.detail?.order_id) {
+    refresh()
+  }
+}
+
 onMounted(() => {
   // Handle query params
   if (route.query.date && route.query.date !== 'undefined') {
@@ -208,7 +215,12 @@ onMounted(() => {
     const normalized = normalizeStatus(String(route.query.status))
     if (normalized) statusFilter.value = normalized
   }
+  window.addEventListener('homswag:order-updated', handleOrderUpdated)
   fetchOrders()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('homswag:order-updated', handleOrderUpdated)
 })
 
 onIonViewWillEnter(() => {

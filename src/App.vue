@@ -187,6 +187,11 @@ onMounted(async () => {
     showToast(data.title || 'New notification', 'primary')
   })
 
+  // Listen for order updates from admin / backend and notify active views
+  webSocketService.on('order:updated', (data: { order_id: string }) => {
+    window.dispatchEvent(new CustomEvent('homswag:order-updated', { detail: data }))
+  })
+
   // Start listening for high-priority alerts with sound/overlay
   startListening()
 

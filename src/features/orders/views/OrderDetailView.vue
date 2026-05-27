@@ -268,7 +268,7 @@
 
 <script setup lang="ts">
 import { alertController, toastController } from '@ionic/vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
@@ -957,7 +957,21 @@ async function copyAddress() {
   }
 }
 
-onMounted(() => fetchOrder(orderId))
+function handleOrderUpdated(event: Event): void {
+  const customEvent = event as CustomEvent<{ order_id: string }>
+  if (customEvent.detail?.order_id === orderId) {
+    fetchOrder(orderId)
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('homswag:order-updated', handleOrderUpdated)
+  fetchOrder(orderId)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('homswag:order-updated', handleOrderUpdated)
+})
 </script>
 
 <style scoped>
