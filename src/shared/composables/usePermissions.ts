@@ -25,7 +25,13 @@ import { computed, readonly, ref } from 'vue'
 // Types
 // ---------------------------------------------------------------------------
 
-export type PermissionState = 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale' | 'unknown'
+export type PermissionState =
+  | 'granted'
+  | 'denied'
+  | 'limited'
+  | 'prompt'
+  | 'prompt-with-rationale'
+  | 'unknown'
 
 export interface PermissionStatuses {
   location: PermissionState
@@ -76,7 +82,11 @@ export function usePermissions(): UsePermissionsReturn {
 
   const allGranted = computed<boolean>(() => {
     const { location, camera, notifications } = statuses.value
-    return location === 'granted' && camera === 'granted' && notifications === 'granted'
+    return (
+      location === 'granted' &&
+      (camera === 'granted' || camera === 'limited') &&
+      notifications === 'granted'
+    )
   })
 
   // -------------------------------------------------------------------------
