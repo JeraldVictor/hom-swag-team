@@ -76,9 +76,16 @@
           <span class="cal-cell__dot cal-cell__dot--holiday" />
           <span>Holiday</span>
         </div>
+        <div class="cal-legend__item">
+          <span class="cal-cell__dot cal-cell__dot--weekly_off" />
+          <span>Weekly Off</span>
+        </div>
+        <div class="cal-legend__item">
+          <span class="cal-cell__dot cal-cell__dot--ot" />
+          <span>OT</span>
+        </div>
       </div>
 
-      <!-- ── Loading skeleton ──────────────────────────────────────────── -->
       <template v-if="isLoading">
         <div class="events-section">
           <div class="skeleton-line skeleton-line--title" />
@@ -175,7 +182,14 @@ import { useDrawer, useToast } from '@/shared/composables'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type EventType = 'paid_leave' | 'sick_leave' | 'loss_of_pay' | 'block_time' | 'holiday'
+type EventType =
+  | 'paid_leave'
+  | 'sick_leave'
+  | 'loss_of_pay'
+  | 'block_time'
+  | 'weekly_off'
+  | 'ot'
+  | 'holiday'
 
 interface CalEvent {
   date: string
@@ -353,6 +367,32 @@ async function fetchCalendar(): Promise<void> {
       })
     }
 
+    // Map weekly off events
+    const weekOffs = (data.week_offs ?? []) as unknown as Array<Record<string, unknown>>
+    for (const wo of weekOffs) {
+      if (!wo.date) continue
+      events.push({
+        date: wo.date as string,
+        type: 'weekly_off',
+        title: (wo.title as string) ?? 'Weekly Off',
+        id: String(wo._id ?? wo.id ?? ''),
+        detail: wo.detail as string,
+      })
+    }
+
+    // Map OT entries
+    const otEntries = (data.ot_entries ?? []) as unknown as Array<Record<string, unknown>>
+    for (const ot of otEntries) {
+      if (!ot.date) continue
+      events.push({
+        date: ot.date as string,
+        type: 'ot',
+        title: (ot.title as string) ?? 'Overtime',
+        id: String(ot._id ?? ot.id ?? ''),
+        detail: ot.detail as string,
+      })
+    }
+
     allEvents.value = events
   } catch (err) {
     showError(err instanceof Error ? err.message : 'Failed to load calendar')
@@ -369,6 +409,8 @@ function eventIcon(type: EventType): string {
     sick_leave: 'lucide:thermometer',
     loss_of_pay: 'lucide:minus-circle',
     block_time: 'lucide:ban',
+    weekly_off: 'lucide:calendar-x-2',
+    ot: 'lucide:clock-plus',
     holiday: 'lucide:party-popper',
   }
   return map[type] ?? 'lucide:calendar'
@@ -568,6 +610,8 @@ onIonViewWillEnter(() => {
 .cal-cell__dot--loss_of_pay { background: #6b7280; }
 .cal-cell__dot--block_time  { background: #8b5cf6; }
 .cal-cell__dot--holiday     { background: #10b981; }
+.cal-cell__dot--weekly_off { background: #6366f1; }
+.cal-cell__dot--ot         { background: #f97316; }
 
 .cal-legend {
   display: flex;
@@ -618,6 +662,8 @@ onIonViewWillEnter(() => {
 .event-card--loss_of_pay .event-card__accent { background: #6b7280; }
 .event-card--block_time  .event-card__accent { background: #8b5cf6; }
 .event-card--holiday     .event-card__accent { background: #10b981; }
+.event-card--weekly_off  .event-card__accent { background: #6366f1; }
+.event-card--ot        .event-card__accent { background: #f97316; }
 
 .event-card__body { flex: 1; padding: 12px 12px 12px 10px; }
 

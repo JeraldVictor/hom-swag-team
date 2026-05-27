@@ -66,7 +66,7 @@
           @copy-address="copyAddress"
         />
 
-        <div class="order-top-actions" v-if="canEditOrder">
+        <div class="order-top-actions" v-if="canEditOrder && orderChangeAllowed">
           <AppButton
             expand="block"
             variant="outline"

@@ -21,6 +21,8 @@ export interface CalendarEvent {
  */
 export interface CalendarData {
   leaves?: CalendarEvent[]
+  week_offs?: CalendarEvent[]
+  ot_entries?: CalendarEvent[]
   orders?: CalendarEvent[]
   trips?: CalendarEvent[]
   holidays?: CalendarEvent[]
