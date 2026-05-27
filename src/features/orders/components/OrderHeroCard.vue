@@ -12,9 +12,9 @@
           <Icon icon="lucide:map-pin" class="detail-icon" />
           <span>{{ address }}</span>
         </div>
-        <div class="hero-detail-item" v-if="duration && duration !== 'N/A'">
+        <div class="hero-detail-item" v-if="effective_start_time && effective_end_time">
           <Icon icon="lucide:clock" class="detail-icon" />
-          <span>{{ duration }}</span>
+          <span>{{ formatTime12(effective_start_time) }} - {{ formatTime12(effective_end_time) }}</span>
         </div>
       </div>
       <div v-if="showActions && isRideActionVisible" class="hero-actions">
@@ -53,9 +53,9 @@
           <p class="masked-cell-label">Date</p>
           <p class="masked-cell-value">{{ date }}</p>
         </div>
-        <div class="masked-cell">
+        <div class="masked-cell" v-if="effective_start_time && effective_end_time">
           <p class="masked-cell-label">Duration</p>
-          <p class="masked-cell-value">{{ duration }}</p>
+          <p class="masked-cell-value">{{ formatTime12(effective_start_time) }} - {{ formatTime12(effective_end_time) }}</p>
         </div>
       </div>
     </template>
@@ -65,6 +65,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ORDER_STATUS } from '../../../shared/constants'
+import { formatTime12 } from '../../../shared/lib/datetime'
 
 const props = defineProps<{
   orderNumber: string | number
@@ -73,8 +74,9 @@ const props = defineProps<{
   status: ORDER_STATUS
   customerName: string
   address: string
+  effective_start_time?: string
+  effective_end_time?: string
   phone?: string
-  duration: string
   isCustomerHidden: boolean
   showActions: boolean
   total: number

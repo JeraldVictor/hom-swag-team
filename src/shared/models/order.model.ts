@@ -87,11 +87,26 @@ export interface OrderCustomer {
  * Booking info embedded in an order.
  */
 export interface OrderBookingInfo {
-  timing?: string
-  date?: string
-  effective_start_time?: string
-  surge_amount?: number
-  slot_id?: string
+  /** Used as the service start time for timing calculations */
+  timing: string
+  /** Source for service_date; parsed to Date type for efficient querying */
+  date: string
+  surge_amount: number
+
+  slot_id: string // calendar‑slot entry id (template slot reference may also be derived)
+  slot_calendar_id?: string // reference to the parent calendar document (optional)
+  slot_booking_id?: string // associated slot booking record
+
+  // Stored timing fields (computed on create/update — no runtime re-derivation needed)
+  /** HH:MM 24h — start of the customer's selected slot (from timing split) */
+  selected_start_time: string
+  /** HH:MM 24h — end of the customer's selected slot (from timing split) */
+  selected_end_time: string
+  /** HH:MM 24h — actual service start (= selected_start_time) */
+  effective_start_time: string
+  /** HH:MM 24h — actual service end = effective_start_time + service_duration */
+  effective_end_time: string
+  /** HH:MM 24h — beautician arrival time (= selected_start_time − 10 min pre-travel) */
   beautician_start_time?: string
 }
 
