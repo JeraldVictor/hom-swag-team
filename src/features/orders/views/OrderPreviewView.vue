@@ -54,6 +54,9 @@ const oldSubtotal = computed(() => order.value?.subtotal || 0)
 const deliveryFee = computed(() => order.value?.delivery_fee || 0)
 const discountTotal = computed(() => order.value?.discount_total || 0)
 const surgeAmount = computed(() => order.value?.booking_info?.surge_amount || 0)
+const convenienceFees = computed(() => order.value?.convenience_fees || 0)
+const hygieneFees = computed(() => order.value?.hygiene_fees || 0)
+const roundingAdjustment = computed(() => order.value?.rounding || 0)
 const oldTotal = computed(() => order.value?.total || 0)
 
 const newSubtotal = computed(() => {
@@ -63,11 +66,37 @@ const newSubtotal = computed(() => {
   }, 0)
 })
 
+const otherCharges = computed(() => surgeAmount.value + convenienceFees.value + hygieneFees.value)
+
+const preservedCharges = computed(
+  () => deliveryFee.value + otherCharges.value + roundingAdjustment.value
+)
+
 const newTotal = computed(() => {
-  return newSubtotal.value + deliveryFee.value + surgeAmount.value - discountTotal.value
+  return newSubtotal.value + preservedCharges.value - discountTotal.value
 })
 
 const priceDifference = computed(() => newTotal.value - oldTotal.value)
+
+const minimumOrderValue = computed(() => {
+  return Number(
+    (order.value as any)?.minimum_order_value ?? (order.value as any)?.minimum_cart_value ?? 0
+  )
+})
+
+const minimumOrderWarning = computed(() => {
+  if (minimumOrderValue.value <= 0) return ''
+  if (newSubtotal.value < minimumOrderValue.value) {
+    return `Selected service items must meet the minimum cart value of ₹${minimumOrderValue.value}.`
+  }
+  return ''
+})
+
+const canConfirmOrder = computed(() => {
+  if (newCartItems.value.length === 0 || newSubtotal.value === 0) return false
+  if (minimumOrderValue.value > 0 && newSubtotal.value < minimumOrderValue.value) return false
+  return true
+})
 
 async function fetchOrderData() {
   try {
@@ -135,6 +164,19 @@ async function persistEdits() {
 }
 
 async function handleGenerateOtp() {
+  if (!canConfirmOrder.value) {
+    const warningMessage =
+      minimumOrderWarning.value ||
+      'Please add at least one service item before confirming the edit.'
+    const alert = await alertController.create({
+      header: 'Unable to Confirm Edit',
+      message: warningMessage,
+      buttons: ['OK'],
+    })
+    await alert.present()
+    return
+  }
+
   const loader = await loadingController.create({ message: 'Generating OTP...' })
   await loader.present()
 
@@ -253,10 +295,15 @@ onMounted(fetchOrderData)
               <div class="new">₹{{ deliveryFee }}</div>
             </div>
 
-            <div class="comparison-row" v-if="surgeAmount > 0">
-              <div class="label">Surge Amount</div>
-              <div class="old">₹{{ surgeAmount }}</div>
-              <div class="new">₹{{ surgeAmount }}</div>
+            <div class="comparison-row" v-if="otherCharges > 0">
+              <div class="label">Other Charges</div>
+              <div class="old">₹{{ otherCharges }}</div>
+              <div class="new">₹{{ otherCharges }}</div>
+            </div>
+            <div class="comparison-row" v-if="roundingAdjustment !== 0">
+              <div class="label">Rounding</div>
+              <div class="old">₹{{ roundingAdjustment }}</div>
+              <div class="new">₹{{ roundingAdjustment }}</div>
             </div>
             
             <div class="comparison-row discount" v-if="discountTotal > 0">
@@ -278,6 +325,9 @@ onMounted(fetchOrderData)
               Total {{ priceDifference >= 0 ? 'increased' : 'decreased' }} by 
               <strong>₹{{ Math.abs(priceDifference) }}</strong>
             </span>
+          </div>
+          <div class="preview-warning" v-if="minimumOrderWarning || newCartItems.length === 0">
+            {{ minimumOrderWarning || 'No service items selected. Add service items before confirming the edit.' }}
           </div>
         </div>
 
@@ -440,6 +490,7 @@ onMounted(fetchOrderData)
           expand="block"
           @click="handleGenerateOtp"
           class="flex-2"
+          :disabled="!canConfirmOrder || isVerifying"
         >
           Confirm & Verify OTP
         </AppButton>
@@ -590,6 +641,16 @@ onMounted(fetchOrderData)
   align-items: center;
   gap: 10px;
   font-size: var(--font-size-sm);
+}
+
+.preview-warning {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--color-warning-pale);
+  color: var(--color-warning);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .diff-banner.increase {

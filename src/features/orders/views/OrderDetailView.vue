@@ -5,7 +5,7 @@
         <ion-buttons slot="start">
           <ion-back-button default-href="/orders" text="" />
         </ion-buttons>
-        <ion-title>Order #{{ order?.order_number || '...' }}</ion-title>
+        <ion-title>#{{ order?.order_number?.split('-').pop() || '...' }}</ion-title>
         <ion-buttons slot="end">
           <AppButton v-if="order && !isCompleted" variant="clear" icon-only icon="lucide:refresh-cw" @click="handleRefresh" :class="{ 'spin': isLoading }" />
         </ion-buttons>
@@ -66,6 +66,18 @@
           @copy-address="copyAddress"
         />
 
+        <div class="order-top-actions" v-if="canEditOrder">
+          <AppButton
+            expand="block"
+            variant="outline"
+            color="primary"
+            icon="lucide:edit-3"
+            @click="handleEditOrder"
+          >
+            Edit Order
+          </AppButton>
+        </div>
+
         <OrderBodyCards
           :order="(order as unknown as Order)"
           :assigned-trips="assignedTrips"
@@ -90,7 +102,7 @@
         />
 
 
-        <div class="action-footer" v-if="!isCompleted && !isCustomerHidden">
+        <div class="action-footer" v-if="!isCompleted && orderChangeAllowed">
           <div v-if="error" class="error-banner">{{ error }}</div>
           <!-- Main Actions -->
           <div class="main-actions">
@@ -106,7 +118,6 @@
             >
               {{ paymentActionLabel }}
             </AppButton>
-            
             <div class="date-restriction-tip" v-if="!orderChangeAllowed && order" style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin: 8px 0; padding: 8px; background: var(--color-surface); border-radius: 8px;">
               {{ orderDateRestrictionMessage }}
             </div>
@@ -409,7 +420,13 @@ const hasOrderContext = computed(() => {
 
 const isCustomerHidden = computed(() => {
   const status = order.value?.status?.toLowerCase() || ''
-  const hiddenStatuses = ['completed', 'cancelled', 'cancel_requested', 'arrived_and_cancelled']
+  const hiddenStatuses: string[] = [
+    ORDER_STATUS.STARTED,
+    ORDER_STATUS.COMPLETED,
+    ORDER_STATUS.CANCELLED,
+    ORDER_STATUS.CANCEL_REQUESTED,
+    ORDER_STATUS.ARRIVED_AND_CANCELLED,
+  ]
   const missingCustomer =
     !order.value?.customer?.full_name &&
     !order.value?.customer?.name &&
@@ -495,6 +512,11 @@ const canCancel = computed(() => {
       s === ORDER_STATUS.REACHED_CUSTOMER_PLACE) &&
     isBookingDateToday.value
   )
+})
+
+const canEditOrder = computed(() => {
+  const s = order.value?.status?.toLowerCase()
+  return s === ORDER_STATUS.STARTED
 })
 
 const isSelfieStep = computed(() => {
@@ -777,6 +799,11 @@ async function handleVerifyOtp() {
   }
 }
 
+function handleEditOrder() {
+  if (!order.value) return
+  router.push({ name: 'OrderEdit', params: { id: orderId } })
+}
+
 function openGallery(url: string) {
   activeImageUrl.value = url
   showGallery.value = true
@@ -958,6 +985,10 @@ onMounted(() => fetchOrder(orderId))
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.order-top-actions {
+  padding: 16px;
 }
 
 /* ── Action Footer ───────────────────────────────────────────────────────── */
