@@ -128,9 +128,14 @@ async function fetchOrderData() {
             title: o.title,
             price: o.price ?? o.min_price ?? o.base_price ?? 0,
           })),
-          selected_package_items: p.selected_package_items,
+          selected_package_items:
+            p.selected_package_items ||
+            p.selected_package_services?.map(s => ({
+              product_id: String(s.product_id),
+              title: s.title,
+            })),
           selected_free_items: p.selected_free_items?.map(f => ({
-            product_id: f.product_id,
+            product_id: String(f.product_id),
             title: f.title,
           })),
         }

@@ -1,3 +1,293 @@
+<template>
+  <ion-page>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button :default-href="`/orders/${orderId}/edit`"></ion-back-button>
+        </ion-buttons>
+        <ion-title>Review Order Changes</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <div v-if="isLoading" class="ion-text-center ion-padding">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading summary...</p>
+      </div>
+
+      <div v-else-if="order" class="preview-container anim-fade-in">
+        <!-- Summary Card -->
+        <div class="summary-card">
+          <div class="summary-header">
+            <Icon icon="lucide:calculator" class="header-icon" />
+            <h3>Order Summary</h3>
+          </div>
+          
+          <div class="comparison-grid">
+            <div class="comparison-row header">
+              <div class="label">Charge</div>
+              <div class="old">Old</div>
+              <div class="new">New</div>
+            </div>
+            
+            <div class="comparison-row">
+              <div class="label">Subtotal</div>
+              <div class="old">₹{{ oldSubtotal }}</div>
+              <div class="new">₹{{ newSubtotal }}</div>
+            </div>
+            
+            <div class="comparison-row" v-if="deliveryFee > 0">
+              <div class="label">Delivery Fee</div>
+              <div class="old">₹{{ deliveryFee }}</div>
+              <div class="new">₹{{ deliveryFee }}</div>
+            </div>
+
+            <div class="comparison-row" v-if="otherCharges > 0">
+              <div class="label">Other Charges</div>
+              <div class="old">₹{{ otherCharges }}</div>
+              <div class="new">₹{{ otherCharges }}</div>
+            </div>
+            <div class="comparison-row" v-if="roundingAdjustment !== 0">
+              <div class="label">Rounding</div>
+              <div class="old">₹{{ roundingAdjustment }}</div>
+              <div class="new">₹{{ roundingAdjustment }}</div>
+            </div>
+            
+            <div class="comparison-row discount" v-if="discountTotal > 0">
+              <div class="label">Discounts</div>
+              <div class="old">-₹{{ discountTotal }}</div>
+              <div class="new">-₹{{ discountTotal }}</div>
+            </div>
+            
+            <div class="comparison-row total">
+              <div class="label">Grand Total</div>
+              <div class="old">₹{{ oldTotal }}</div>
+              <div class="new highlight">₹{{ newTotal }}</div>
+            </div>
+          </div>
+          
+          <div class="diff-banner" :class="priceDifference >= 0 ? 'increase' : 'decrease'">
+            <Icon :icon="priceDifference >= 0 ? 'lucide:trending-up' : 'lucide:trending-down'" />
+            <span>
+              Total {{ priceDifference >= 0 ? 'increased' : 'decreased' }} by 
+              <strong>₹{{ Math.abs(priceDifference) }}</strong>
+            </span>
+          </div>
+          <div class="preview-warning" v-if="minimumOrderWarning || newCartItems.length === 0">
+            {{ minimumOrderWarning || 'No service items selected. Add service items before confirming the edit.' }}
+          </div>
+        </div>
+
+        <!-- Items Comparison -->
+        <div class="section-title">
+          <Icon icon="lucide:shopping-bag" />
+          <span>Product Comparison</span>
+        </div>
+
+        <div class="items-comparison">
+          <div class="items-column">
+            <h4 class="column-header old">Original Items</h4>
+            <div v-for="item in order.products" :key="item.product_id" class="modern-item-card old">
+              <div class="mic-header">
+                <div class="mic-title-row">
+                  <span class="mic-title">{{ item.title }}</span>
+                  <div class="mic-badges">
+                    <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
+                    <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
+                  </div>
+                </div>
+                <div class="mic-meta">
+                  <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
+                  <span class="mic-total">₹{{ item.total }}</span>
+                </div>
+                <div v-if="item.duration || item.type" class="mic-attributes">
+                  <span v-if="item.duration" class="mic-attr">
+                    <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
+                  </span>
+                  <span v-if="item.type" class="mic-attr">
+                    <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
+                  </span>
+                </div>
+              </div>
+
+              <div v-if="(item.selected_package_items || item.selected_package_services)?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Included Services</div>
+                <div class="mic-sub-list">
+                  <div
+                    v-for="service in item.selected_package_items || item.selected_package_services"
+                    :key="service.product_id"
+                    class="mic-sub-item"
+                  >
+                    <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
+                    <span>{{ service.title }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="item.selected_options?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Add-ons / Options</div>
+                <div class="mic-sub-list">
+                  <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
+                    <div class="mic-item-info">
+                      <span class="mic-item-title">{{ opt.title }}</span>
+                    </div>
+                    <span class="mic-item-price">₹{{ opt.price ?? 0 }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="item.selected_free_items?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Free Perks</div>
+                <div class="mic-sub-list">
+                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
+                    <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
+                    <span>{{ free.title }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="items-column">
+            <h4 class="column-header new">New Items</h4>
+            <div v-for="item in newCartItems" :key="item.product_id" class="modern-item-card new">
+              <div class="mic-header">
+                <div class="mic-title-row">
+                  <span class="mic-title">{{ item.title }}</span>
+                  <div class="mic-badges">
+                    <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
+                    <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
+                  </div>
+                </div>
+                <div class="mic-meta">
+                  <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
+                  <span class="mic-total">₹{{ (item.price + (item.selected_options || []).reduce((sum, o) => sum + o.price, 0)) * item.quantity }}</span>
+                </div>
+                <div v-if="item.duration || item.type" class="mic-attributes">
+                  <span v-if="item.duration" class="mic-attr">
+                    <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
+                  </span>
+                  <span v-if="item.type" class="mic-attr">
+                    <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mic-actions">
+                <div class="qty-control">
+                  <button @click="updateQuantity(item.product_id, -1)" class="qty-btn">
+                    <Icon icon="lucide:minus" />
+                  </button>
+                  <span class="qty-val">{{ item.quantity }}</span>
+                  <button @click="updateQuantity(item.product_id, 1)" class="qty-btn">
+                    <Icon icon="lucide:plus" />
+                  </button>
+                </div>
+                <button @click="updateQuantity(item.product_id, 0)" class="remove-btn">
+                   <Icon icon="lucide:trash-2" />
+                </button>
+              </div>
+
+              <div v-if="item.selected_options?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Add-ons / Options</div>
+                <div class="mic-sub-list">
+                  <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
+                    <div class="mic-item-info">
+                      <span class="mic-item-title">{{ opt.title }}</span>
+                      <span v-if="opt.duration" class="mic-item-meta">{{ opt.duration }} min</span>
+                    </div>
+                    <span class="mic-item-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="item.selected_package_items?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Included Services</div>
+                <div class="mic-sub-list">
+                  <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
+                    <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
+                    <span>{{ service.title }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="item.selected_free_items?.length" class="mic-sub-section">
+                <div class="mic-sub-header">Free Perks</div>
+                <div class="mic-sub-list">
+                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
+                    <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
+                    <span>{{ free.title }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ion-content>
+
+    <ion-footer class="ion-no-border ion-padding">
+      <div class="footer-actions">
+        <AppButton 
+          variant="outline" 
+          expand="block"
+          @click="router.back()"
+          class="flex-1"
+        >
+          Modify
+        </AppButton>
+        <AppButton 
+          variant="primary" 
+          expand="block"
+          @click="handleGenerateOtp"
+          class="flex-2"
+          :disabled="!canConfirmOrder || isVerifying"
+        >
+          Confirm & Verify OTP
+        </AppButton>
+      </div>
+    </ion-footer>
+
+    <!-- OTP Verification Modal -->
+    <ion-modal :is-open="showOtpModal" @didDismiss="showOtpModal = false" class="otp-modal">
+      <div class="modal-content ion-padding">
+        <div class="modal-header">
+          <div class="icon-circle">
+            <Icon icon="lucide:shield-check" />
+          </div>
+          <h2>Customer Verification</h2>
+          <p>Please enter the 6-digit OTP provided by the customer to confirm these changes.</p>
+        </div>
+
+        <div class="otp-input-wrapper">
+          <OtpInput 
+            :length="6" 
+            v-model="otpValue"
+            :disabled="isVerifying"
+          />
+        </div>
+
+        <div class="modal-footer">
+          <AppButton 
+            expand="block" 
+            :loading="isVerifying"
+            :disabled="otpValue.length !== 6 || isVerifying"
+            @click="handleVerifyAndSubmit"
+          >
+            Verify & Update Order
+          </AppButton>
+          <AppButton 
+            variant="clear" 
+            expand="block" 
+            @click="showOtpModal = false"
+            :disabled="isVerifying"
+          >
+            Cancel
+          </AppButton>
+        </div>
+      </div>
+    </ion-modal>
+  </ion-page>
+</template>
 <script setup lang="ts">
 import { alertController, loadingController, toastController } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
@@ -213,8 +503,15 @@ async function handleVerifyAndSubmit() {
         (item.price + (item.selected_options || []).reduce((s, o) => s + o.price, 0)) *
         item.quantity,
       selected_options: item.selected_options,
-      selected_package_items: item.selected_package_items,
-      selected_free_items: item.selected_free_items,
+      selected_package_services: item.selected_package_items?.map(pkg =>
+        typeof pkg === 'string'
+          ? { product_id: pkg, title: '' }
+          : { product_id: pkg.product_id, title: pkg.title }
+      ),
+      selected_free_items: item.selected_free_items?.map(free => ({
+        free_product_id: typeof free === 'string' ? free : free.product_id,
+        title: typeof free === 'string' ? '' : free.title,
+      })),
     }))
 
     await updateOrder(orderId, { products: productsToUpdate })
@@ -250,295 +547,6 @@ async function handleVerifyAndSubmit() {
 
 onMounted(fetchOrderData)
 </script>
-
-<template>
-  <ion-page>
-    <ion-header class="ion-no-border">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button :default-href="`/orders/${orderId}/edit`"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Review Order Changes</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content>
-      <div v-if="isLoading" class="ion-text-center ion-padding">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Loading summary...</p>
-      </div>
-
-      <div v-else-if="order" class="preview-container anim-fade-in">
-        <!-- Summary Card -->
-        <div class="summary-card">
-          <div class="summary-header">
-            <Icon icon="lucide:calculator" class="header-icon" />
-            <h3>Order Summary</h3>
-          </div>
-          
-          <div class="comparison-grid">
-            <div class="comparison-row header">
-              <div class="label">Charge</div>
-              <div class="old">Old</div>
-              <div class="new">New</div>
-            </div>
-            
-            <div class="comparison-row">
-              <div class="label">Subtotal</div>
-              <div class="old">₹{{ oldSubtotal }}</div>
-              <div class="new">₹{{ newSubtotal }}</div>
-            </div>
-            
-            <div class="comparison-row" v-if="deliveryFee > 0">
-              <div class="label">Delivery Fee</div>
-              <div class="old">₹{{ deliveryFee }}</div>
-              <div class="new">₹{{ deliveryFee }}</div>
-            </div>
-
-            <div class="comparison-row" v-if="otherCharges > 0">
-              <div class="label">Other Charges</div>
-              <div class="old">₹{{ otherCharges }}</div>
-              <div class="new">₹{{ otherCharges }}</div>
-            </div>
-            <div class="comparison-row" v-if="roundingAdjustment !== 0">
-              <div class="label">Rounding</div>
-              <div class="old">₹{{ roundingAdjustment }}</div>
-              <div class="new">₹{{ roundingAdjustment }}</div>
-            </div>
-            
-            <div class="comparison-row discount" v-if="discountTotal > 0">
-              <div class="label">Discounts</div>
-              <div class="old">-₹{{ discountTotal }}</div>
-              <div class="new">-₹{{ discountTotal }}</div>
-            </div>
-            
-            <div class="comparison-row total">
-              <div class="label">Grand Total</div>
-              <div class="old">₹{{ oldTotal }}</div>
-              <div class="new highlight">₹{{ newTotal }}</div>
-            </div>
-          </div>
-          
-          <div class="diff-banner" :class="priceDifference >= 0 ? 'increase' : 'decrease'">
-            <Icon :icon="priceDifference >= 0 ? 'lucide:trending-up' : 'lucide:trending-down'" />
-            <span>
-              Total {{ priceDifference >= 0 ? 'increased' : 'decreased' }} by 
-              <strong>₹{{ Math.abs(priceDifference) }}</strong>
-            </span>
-          </div>
-          <div class="preview-warning" v-if="minimumOrderWarning || newCartItems.length === 0">
-            {{ minimumOrderWarning || 'No service items selected. Add service items before confirming the edit.' }}
-          </div>
-        </div>
-
-        <!-- Items Comparison -->
-        <div class="section-title">
-          <Icon icon="lucide:shopping-bag" />
-          <span>Product Comparison</span>
-        </div>
-
-        <div class="items-comparison">
-          <div class="items-column">
-            <h4 class="column-header old">Original Items</h4>
-            <div v-for="item in order.products" :key="item.product_id" class="modern-item-card old">
-              <div class="mic-header">
-                <div class="mic-title-row">
-                  <span class="mic-title">{{ item.title }}</span>
-                  <div class="mic-badges">
-                    <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
-                    <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
-                  </div>
-                </div>
-                <div class="mic-meta">
-                  <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
-                  <span class="mic-total">₹{{ item.total }}</span>
-                </div>
-                <div v-if="item.duration || item.type" class="mic-attributes">
-                  <span v-if="item.duration" class="mic-attr">
-                    <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
-                  </span>
-                  <span v-if="item.type" class="mic-attr">
-                    <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
-                  </span>
-                </div>
-              </div>
-
-              <div v-if="item.selected_package_items?.length" class="mic-sub-section">
-                <div class="mic-sub-header">Included Services</div>
-                <div class="mic-sub-list">
-                  <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
-                    <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                    <span>{{ service.title }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="item.selected_options?.length" class="mic-sub-section">
-                <div class="mic-sub-header">Add-ons / Options</div>
-                <div class="mic-sub-list">
-                  <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
-                    <div class="mic-item-info">
-                      <span class="mic-item-title">{{ opt.title }}</span>
-                    </div>
-                    <span class="mic-item-price">₹{{ opt.price ?? 0 }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="item.selected_free_items?.length" class="mic-sub-section">
-                <div class="mic-sub-header">Free Perks</div>
-                <div class="mic-sub-list">
-                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
-                    <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
-                    <span>{{ free.title }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="items-column">
-            <h4 class="column-header new">New Items</h4>
-            <div v-for="item in newCartItems" :key="item.product_id" class="modern-item-card new">
-              <div class="mic-header">
-                <div class="mic-title-row">
-                  <span class="mic-title">{{ item.title }}</span>
-                  <div class="mic-badges">
-                    <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
-                    <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
-                  </div>
-                </div>
-                <div class="mic-meta">
-                  <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
-                  <span class="mic-total">₹{{ (item.price + (item.selected_options || []).reduce((sum, o) => sum + o.price, 0)) * item.quantity }}</span>
-                </div>
-                <div v-if="item.duration || item.type" class="mic-attributes">
-                  <span v-if="item.duration" class="mic-attr">
-                    <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
-                  </span>
-                  <span v-if="item.type" class="mic-attr">
-                    <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="mic-actions">
-                <div class="qty-control">
-                  <button @click="updateQuantity(item.product_id, -1)" class="qty-btn">
-                    <Icon icon="lucide:minus" />
-                  </button>
-                  <span class="qty-val">{{ item.quantity }}</span>
-                  <button @click="updateQuantity(item.product_id, 1)" class="qty-btn">
-                    <Icon icon="lucide:plus" />
-                  </button>
-                </div>
-                <button @click="updateQuantity(item.product_id, 0)" class="remove-btn">
-                   <Icon icon="lucide:trash-2" />
-                </button>
-              </div>
-
-              <div v-if="item.selected_options?.length" class="mic-sub-section">
-                <div class="mic-sub-header">Add-ons / Options</div>
-                <div class="mic-sub-list">
-                  <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
-                    <div class="mic-item-info">
-                      <span class="mic-item-title">{{ opt.title }}</span>
-                      <span v-if="opt.duration" class="mic-item-meta">{{ opt.duration }} min</span>
-                    </div>
-                    <span class="mic-item-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
-                  </div>
-                </div>
-              </div>
-              <div v-if="item.selected_package_items?.length" class="mic-sub-section">
-                <div class="mic-sub-header">Included Services</div>
-                <div class="mic-sub-list">
-                  <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
-                    <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                    <span>{{ service.title }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="item.selected_free_items?.length" class="mic-sub-section">
-                <div class="mic-sub-header">Free Perks</div>
-                <div class="mic-sub-list">
-                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
-                    <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
-                    <span>{{ free.title }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </ion-content>
-
-    <ion-footer class="ion-no-border ion-padding">
-
-      <div class="footer-actions">
-        <AppButton 
-          variant="outline" 
-          expand="block"
-          @click="router.back()"
-          class="flex-1"
-        >
-          Modify
-        </AppButton>
-        <AppButton 
-          variant="primary" 
-          expand="block"
-          @click="handleGenerateOtp"
-          class="flex-2"
-          :disabled="!canConfirmOrder || isVerifying"
-        >
-          Confirm & Verify OTP
-        </AppButton>
-      </div>
-    </ion-footer>
-
-    <!-- OTP Verification Modal -->
-    <ion-modal :is-open="showOtpModal" @didDismiss="showOtpModal = false" class="otp-modal">
-      <div class="modal-content ion-padding">
-        <div class="modal-header">
-          <div class="icon-circle">
-            <Icon icon="lucide:shield-check" />
-          </div>
-          <h2>Customer Verification</h2>
-          <p>Please enter the 6-digit OTP provided by the customer to confirm these changes.</p>
-        </div>
-
-        <div class="otp-input-wrapper">
-          <OtpInput 
-            :length="6" 
-            v-model="otpValue"
-            :disabled="isVerifying"
-          />
-        </div>
-
-        <div class="modal-footer">
-          <AppButton 
-            expand="block" 
-            :loading="isVerifying"
-            :disabled="otpValue.length !== 6 || isVerifying"
-            @click="handleVerifyAndSubmit"
-          >
-            Verify & Update Order
-          </AppButton>
-          <AppButton 
-            variant="clear" 
-            expand="block" 
-            @click="showOtpModal = false"
-            :disabled="isVerifying"
-          >
-            Cancel
-          </AppButton>
-        </div>
-      </div>
-    </ion-modal>
-  </ion-page>
-</template>
-
 <style scoped>
 .preview-container {
   padding: 16px;
@@ -827,8 +835,10 @@ onMounted(fetchOrderData)
 .mic-actions {
   margin-top: 2px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 .qty-control {
@@ -839,6 +849,7 @@ onMounted(fetchOrderData)
   border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 1px;
+  min-width: 0;
 }
 
 .qty-btn {
@@ -879,10 +890,12 @@ onMounted(fetchOrderData)
 .footer-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+  align-items: stretch;
 }
 
-.flex-1 { flex: 1; }
-.flex-2 { flex: 2; }
+.flex-1 { flex: 1 1 0; min-width: 0; }
+.flex-2 { flex: 2 1 0; min-width: 0; }
 
 /* OTP Modal Styles */
 .otp-modal {
