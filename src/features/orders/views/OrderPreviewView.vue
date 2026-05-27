@@ -136,10 +136,14 @@
                 </div>
               </div>
 
-              <div v-if="item.selected_free_items?.length" class="mic-sub-section">
+              <div v-if="normalizeFreeItems(item.selected_free_items).length" class="mic-sub-section">
                 <div class="mic-sub-header">Free Perks</div>
                 <div class="mic-sub-list">
-                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
+                  <div
+                    v-for="free in normalizeFreeItems(item.selected_free_items)"
+                    :key="free.product_id || free.free_product_id || free.title"
+                    class="mic-sub-item"
+                  >
                     <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
                     <span>{{ free.title }}</span>
                   </div>
@@ -210,10 +214,14 @@
                 </div>
               </div>
 
-              <div v-if="item.selected_free_items?.length" class="mic-sub-section">
+              <div v-if="normalizeFreeItems(item.selected_free_items).length" class="mic-sub-section">
                 <div class="mic-sub-header">Free Perks</div>
                 <div class="mic-sub-list">
-                  <div v-for="free in item.selected_free_items" :key="free.product_id" class="mic-sub-item">
+                  <div
+                    v-for="free in normalizeFreeItems(item.selected_free_items)"
+                    :key="free.product_id || free.free_product_id || free.title"
+                    class="mic-sub-item"
+                  >
                     <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
                     <span>{{ free.title }}</span>
                   </div>
@@ -323,8 +331,9 @@ interface CartItem {
     title: string
   }[]
   selected_free_items?: {
-    product_id: string
-    title: string
+    product_id?: string
+    free_product_id?: string
+    title?: string
   }[]
 }
 
@@ -339,6 +348,27 @@ const showOtpModal = ref(false)
 const otpValue = ref('')
 
 const newCartItems = ref<CartItem[]>([])
+
+function normalizeFreeItem(free: any) {
+  return {
+    product_id: free.product_id || free.free_product_id || free.order_free_item_id || '',
+    free_product_id: free.free_product_id || free.product_id || undefined,
+    title: free.title || free.name || free.product_name || 'Free item',
+  }
+}
+
+function normalizeFreeItems(freeItems?: readonly any[] | any[]) {
+  return Array.isArray(freeItems) ? freeItems.map(normalizeFreeItem) : []
+}
+
+function normalizeCartItem(item: any): CartItem {
+  return {
+    ...item,
+    selected_free_items: normalizeFreeItems(
+      item.selected_free_items || item.selectedFreeItems || item.free_products
+    ),
+  }
+}
 
 const oldSubtotal = computed(() => order.value?.subtotal || 0)
 const deliveryFee = computed(() => order.value?.delivery_fee || 0)
@@ -396,7 +426,7 @@ async function fetchOrderData() {
 
     const allEdits =
       (await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits)) || {}
-    newCartItems.value = allEdits[orderId] || []
+    newCartItems.value = (allEdits[orderId] || []).map(normalizeCartItem)
 
     if (newCartItems.value.length === 0 && data.products) {
       // If no edits found, maybe they came here directly or session cleared
@@ -492,25 +522,24 @@ async function handleVerifyAndSubmit() {
   try {
     // 1. Verify OTP
     await verifyServiceOtp(orderId, { otp: otpValue.value })
-
     // 2. Submit order changes
     const productsToUpdate = newCartItems.value.map(item => ({
       product_id: item.product_id,
       quantity: item.quantity,
       title: item.title,
       price: item.price,
+      duration: item.duration,
       total:
         (item.price + (item.selected_options || []).reduce((s, o) => s + o.price, 0)) *
         item.quantity,
       selected_options: item.selected_options,
-      selected_package_services: item.selected_package_items?.map(pkg =>
-        typeof pkg === 'string'
-          ? { product_id: pkg, title: '' }
-          : { product_id: pkg.product_id, title: pkg.title }
-      ),
+      selected_package_services: item.selected_package_items?.map(pkg => ({
+        product_id: pkg.product_id,
+        title: pkg.title,
+      })),
       selected_free_items: item.selected_free_items?.map(free => ({
-        free_product_id: typeof free === 'string' ? free : free.product_id,
-        title: typeof free === 'string' ? '' : free.title,
+        free_product_id: free.product_id || free.free_product_id,
+        title: free.title,
       })),
     }))
 
