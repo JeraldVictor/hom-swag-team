@@ -87,7 +87,9 @@ export function useOrderDetail() {
     try {
       order.value = await getOrderApi(id)
       try {
-        order.value = await markOrderViewedApi(id)
+        // Fire-and-forget: mark as viewed but do NOT overwrite order.value,
+        // because the PATCH response omits populated virtual fields like instruction_presets.
+        markOrderViewedApi(id).catch(() => {})
       } catch {
         // If marking as viewed fails, still keep the loaded order data.
       }

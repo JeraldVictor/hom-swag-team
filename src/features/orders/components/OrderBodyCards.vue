@@ -51,7 +51,7 @@
     </div>
 
     <!-- ── Notes & Instructions Card ─────────────────────────────────────── -->
-    <div class="content-card" v-if="!isCustomerHidden && hasOrderContext">
+    <div class="content-card" v-if="hasOrderContext">
       <div class="card-header">
         <div class="header-icon-wrap"><Icon icon="lucide:notebook-tabs" /></div>
         <h3>Notes & Instructions</h3>
@@ -62,17 +62,18 @@
             <Icon icon="lucide:message-square-quote" />
             <span>Customer Note</span>
           </div>
-          <p>{{ order.notes }}</p>
+          <p v-html="order.notes"></p>
         </div>
         <div v-if="order.custom_instruction || order.instruction_presets?.length" class="context-box instruction-box">
           <div class="box-header">
             <Icon icon="lucide:clipboard-list" />
             <span>Special Instructions</span>
           </div>
-          <p v-if="order.custom_instruction" :class="{ 'mb-2': order.instruction_presets?.length }">{{ order.custom_instruction }}</p>
+          <p v-if="order.custom_instruction" :class="{ 'mb-2': order.instruction_presets?.length }" v-html="order.custom_instruction"></p>
           <div v-if="order.instruction_presets?.length" class="preset-chips">
             <AppBadge v-for="preset in order.instruction_presets" :key="preset._id" variant="info" size="sm">
-              {{ preset.text || preset.description }}
+              {{ preset.text }}
+              {{ preset.description ? `: ${preset.description}` : '' }}
             </AppBadge>
           </div>
         </div>
