@@ -93,6 +93,58 @@
           @save-payment-status="handleSavePaymentStatus"
         />
 
+        <!-- ── COMPLETED: Payment summary + customer info ── -->
+        <div class="completed-summary-card" v-if="isCompleted">
+          <!-- Header -->
+          <div class="cs-header">
+            <div class="cs-header-icon">
+              <Icon icon="lucide:circle-check" />
+            </div>
+            <div class="cs-header-copy">
+              <p class="cs-header-title">Order Completed</p>
+              <p class="cs-header-sub">{{ formattedDate }}</p>
+            </div>
+            <span class="cs-status-badge" :class="order.payment?.status === 'paid' ? 'cs-badge-paid' : 'cs-badge-partial'">
+              {{ order.payment?.status === 'paid' ? 'Paid' : (order.payment?.status ?? 'Pending') }}
+            </span>
+          </div>
+
+          <div class="cs-divider" />
+
+          <!-- Payment rows -->
+          <div class="cs-rows">
+            <div class="cs-row">
+              <span class="cs-row-label">Order total</span>
+              <strong class="cs-row-val">₹{{ order.total ?? 0 }}</strong>
+            </div>
+            <div class="cs-row" v-if="completedPrepaid > 0">
+              <span class="cs-row-label">Prepaid online</span>
+              <strong class="cs-row-val cs-val-success">−₹{{ completedPrepaid }}</strong>
+            </div>
+            <div class="cs-row" v-if="completedCod > 0">
+              <span class="cs-row-label cs-row-label-icon"><Icon icon="lucide:banknote" class="cs-icon-cash" /> Cash (COD)</span>
+              <strong class="cs-row-val">₹{{ completedCod }}</strong>
+            </div>
+            <div class="cs-row" v-if="completedUpi > 0">
+              <span class="cs-row-label cs-row-label-icon"><Icon icon="lucide:smartphone" class="cs-icon-upi" /> UPI</span>
+              <strong class="cs-row-val">₹{{ completedUpi }}</strong>
+            </div>
+            <div class="cs-row" v-if="completedTip > 0">
+              <span class="cs-row-label cs-row-label-icon"><Icon icon="lucide:heart" class="cs-icon-tip" /> Tip <span class="cs-tip-note">· you keep this</span></span>
+              <strong class="cs-row-val cs-val-tip">+₹{{ completedTip }}</strong>
+            </div>
+          </div>
+
+          <!-- Total received -->
+          <div class="cs-total-row">
+            <span>Total received</span>
+            <strong>₹{{ order.payment?.amount_paid ?? 0 }}</strong>
+          </div>
+
+        </div>
+
+        <div v-if="isCompleted" style="height: 32px;" />
+        <div v-if="!isCompleted && orderChangeAllowed" style="height: 110px;" />
 
         <div class="action-footer" v-if="!isCompleted && orderChangeAllowed">
           <div v-if="error" class="error-banner">{{ error }}</div>
@@ -391,6 +443,7 @@ const paymentStatusOptions = [
   { label: 'Unpaid', value: 'unpaid' },
   { label: 'Conflict', value: 'conflict' },
 ]
+const showCompletedCustomer = ref(false)
 const { openNavigationMenu } = useNavigation()
 
 const hasPaymentMethod = computed(() => {
@@ -409,6 +462,15 @@ const hasUpiAmount = computed(() => {
 
 const isPrepaidOrder = computed(() => {
   return !hasCodAmount.value && !hasUpiAmount.value
+})
+
+const completedCod = computed(() => Number(order.value?.payment?.cod_amount ?? 0))
+const completedUpi = computed(() => Number(order.value?.payment?.upi_amount ?? 0))
+const completedTip = computed(() => Number(order.value?.payment?.tip ?? order.value?.tip ?? 0))
+const completedPrepaid = computed(() => {
+  const amountPaid = Number(order.value?.payment?.amount_paid ?? 0)
+  const doorCollection = completedCod.value + completedUpi.value + completedTip.value
+  return Math.max(0, amountPaid - doorCollection)
 })
 
 const paymentActionLabel = computed(() => {
@@ -1047,7 +1109,7 @@ onUnmounted(() => {
 
 /* ── Body Layout ─────────────────────────────────────────────────────────── */
 .order-content {
-  padding: 12px 14px 110px;
+  padding: 12px 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1449,4 +1511,98 @@ onUnmounted(() => {
   to   { opacity: 1; transform: translateY(0); }
 }
 .anim-fade-in { animation: fadeIn 0.25s ease both; }
+
+/* ── Completed Payment Summary Card ── */
+.completed-summary-card {
+  margin: 14px 16px;
+  background: var(--color-surface, #fff);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+.cs-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+}
+.cs-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.cs-header-copy { flex: 1; min-width: 0; }
+.cs-header-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.cs-header-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.cs-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  text-transform: capitalize;
+}
+.cs-badge-paid { background: rgba(16, 185, 129, 0.12); color: #059669; }
+.cs-badge-partial { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+.cs-divider {
+  height: 1px;
+  background: var(--color-border, #f1f1f4);
+  margin: 0 18px;
+}
+.cs-rows {
+  padding: 8px 18px;
+  display: flex;
+  flex-direction: column;
+}
+.cs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--color-border, #f1f1f4);
+}
+.cs-row:last-child { border-bottom: none; }
+.cs-row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+}
+.cs-row-val { font-weight: 700; color: var(--color-text); }
+.cs-icon-cash { color: #059669; font-size: 15px; }
+.cs-icon-upi  { color: var(--color-brand, #4f46e5); font-size: 15px; }
+.cs-icon-tip  { color: #dc2626; font-size: 15px; }
+.cs-val-success { color: #059669; }
+.cs-val-tip { color: #d97706; }
+.cs-tip-note { font-size: 11px; font-weight: 400; opacity: 0.7; }
+.cs-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 18px 14px;
+  padding: 12px 14px;
+  background: rgba(79, 70, 229, 0.07);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-brand, #4f46e5);
+}
+.cs-total-row strong { font-size: 20px; font-weight: 800; }
 </style>

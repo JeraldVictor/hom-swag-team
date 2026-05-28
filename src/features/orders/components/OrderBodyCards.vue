@@ -122,7 +122,7 @@
     </div>
 
     <!-- ── Payment Card ───────────────────────────────────────────────────── -->
-    <div v-if="!isCustomerHidden || isCompleted" class="content-card">
+    <div v-if="!isCustomerHidden && !isCompleted" class="content-card">
       <div class="card-header">
         <div class="header-icon-wrap"><Icon icon="lucide:credit-card" /></div>
         <h3>Payment</h3>
