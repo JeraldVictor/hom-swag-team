@@ -131,7 +131,7 @@ import {
   onIonViewWillEnter,
 } from '@ionic/vue'
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { useDrawer } from '@/shared/composables'
 import { useTrips } from '../composables/useTrips'
@@ -140,6 +140,7 @@ import { KANBAN_STATE } from '@/shared/models/trip.model'
 import type { TripKanbanState } from '@/shared/models/trip.model'
 
 const router = useRouter()
+const route = useRoute()
 const { trips, isLoading, error, fetchTrips, dateFilter, statusFilter, hasMore, loadMoreTrips } =
   useTrips()
 const { openDrawer } = useDrawer()
@@ -156,10 +157,35 @@ function openMenu(): void {
   openDrawer()
 }
 
+function normalizeStatusQuery(value: string): TripKanbanState | null {
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'completed') return 'trip_completed'
+  if (normalized === 'started') return 'trip_started'
+  if (normalized === 'waiting' || normalized === 'dropped_and_waiting') return 'dropped_and_waiting'
+  if (normalized === 'assigned') return 'assigned'
+  if (normalized === 'cancelled') return 'cancelled'
+  if (normalized === 'viewed_by_rider') return 'viewed_by_rider'
+  if (normalized === 'trip_started') return 'trip_started'
+  if (normalized === 'trip_completed') return 'trip_completed'
+  return null
+}
+
 onMounted(() => {
-  if (trips.value.length === 0) {
-    fetchTrips(true)
+  if (route.query.date && typeof route.query.date === 'string') {
+    const dateValue = route.query.date.toLowerCase()
+    if (dateValue === 'today' || dateValue === 'tomorrow' || dateValue === 'past') {
+      dateFilter.value = dateValue as 'today' | 'tomorrow' | 'past'
+    }
   }
+
+  if (route.query.status && typeof route.query.status === 'string') {
+    const normalizedStatus = normalizeStatusQuery(route.query.status)
+    if (normalizedStatus) {
+      statusFilter.value = normalizedStatus
+    }
+  }
+
+  fetchTrips(true)
 })
 
 onIonViewWillEnter(() => {

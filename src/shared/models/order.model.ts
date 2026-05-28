@@ -48,7 +48,34 @@ export interface OrderInstructionPreset {
 }
 
 export interface UpdateOrderPayload {
-  products?: unknown[]
+  products?: Array<{
+    order_product_id?: string
+    product_id: string
+    title: string
+    quantity: number
+    price: number
+    total: number
+    duration?: number
+    beautician_added?: boolean
+    selected_options?: {
+      order_product_option_id?: string
+      product_option_id: string
+      title: string
+      price?: number
+      beautician_added?: boolean
+    }[]
+    selected_package_items?: string[]
+    selected_package_services?: {
+      product_id: string
+      title: string
+      beautician_added?: boolean
+    }[]
+    selected_free_items?: {
+      free_product_id?: string
+      title: string
+      beautician_added?: boolean
+    }[]
+  }>
   delivery_address?: unknown
   status_reason?: string
   payment?: PaymentInfo
@@ -210,35 +237,40 @@ export interface OrderProduct {
   total: number
   duration?: number
   type?: 'service' | 'package'
-  selected_package_services?: ReadonlyArray<
-    Readonly<{
-      product_id: string
-      title: string
-    }>
-  >
-  selected_options?: ReadonlyArray<
-    Readonly<{
-      order_product_option_id?: string
-      product_option_id: string
-      title: string
-      price?: number
-      min_price?: number
-      base_price?: number
-    }>
-  >
-  selected_package_items?: ReadonlyArray<
-    Readonly<{
-      product_id: string
-      title: string
-    }>
-  >
-  selected_free_items?: ReadonlyArray<
-    Readonly<{
-      order_free_item_id?: string
-      product_id: string
-      title: string
-    }>
-  >
+  beautician_added?: boolean
+  selected_options?: {
+    order_product_option_id?: string
+    product_option_id: string
+    title: string
+    price: number
+    beautician_added?: boolean
+  }[]
+  selected_free_items?: {
+    order_free_item_id?: string
+    free_product_id: string
+    title: string
+    beautician_added?: boolean
+  }[]
+  selected_package_items?: {
+    product_id: string
+    title: string
+    beautician_added?: boolean
+  }[]
+  selected_package_services?: {
+    product_id: string
+    title: string
+    beautician_added?: boolean
+  }[]
+  upgrade_info?: {
+    original_product_id: string
+    original_title: string
+    original_price: number
+    price_difference: number
+    upgraded_by: string
+    upgraded_by_name: string
+    upgraded_by_role: 'staff' | 'beautician'
+    upgraded_at: string
+  }
 }
 
 /**

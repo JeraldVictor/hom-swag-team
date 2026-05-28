@@ -14,10 +14,6 @@
       >
         <div class="trip-card-header">
           <span class="trip-card-title">Trip {{ index + 1 }}</span>
-          <span :class="['status-chip', tripStatusClass(assignedTrip)]">
-            <Icon :icon="tripStatusIcon(assignedTrip)" />
-            {{ (assignedTrip.kanban_state || 'Assigned').replace(/_/g, ' ').toUpperCase() }}
-          </span>
         </div>
         <div class="trip-info-grid">
           <div class="trip-info-row" v-if="assignedTrip.trip_number">
@@ -95,7 +91,7 @@
 
     <!-- ── Services & Items Card ──────────────────────────────────────────── -->
     <div class="content-card">
-      <div class="card-header">
+      <div class="card-header card-header-with-action">
         <div class="header-icon-wrap"><Icon icon="lucide:shopping-bag" /></div>
         <h3>Services</h3>
       </div>
@@ -104,6 +100,8 @@
           v-for="item in order.products"
           :key="item.product_id"
           :item="item"
+          :can-upgrade="props.canUpgrade"
+          @upgrade="(item) => emit('upgrade-order', item)"
         />
       </div>
       <div class="order-summary">
@@ -259,7 +257,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Order, OrderTrip, PaymentStatus } from '@/shared/models'
+import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import { mediaUrl } from '@/shared/lib/media'
 import OrderItemRow from './OrderItemRow.vue'
 import { ORDER_STATUS } from '../../../shared/constants'
@@ -276,6 +274,7 @@ const props = defineProps<{
   hasOrderContext: boolean
   isCompleted: boolean
   isEditable: boolean
+  canUpgrade: boolean
   parsedPaymentRemark: { cod?: number | null; upi?: number | null; tip?: number | null } | null
   proofImages: ProofImage[]
   setupPhotos: ProofImage[]
@@ -293,6 +292,7 @@ const emit = defineEmits<{
   'capture-setup-photo': []
   'capture-payment-proof': []
   'save-payment-status': []
+  'upgrade-order': [item: OrderProduct]
 }>()
 
 // ── Status chip helpers ────────────────────────────────────────────────────
@@ -420,6 +420,14 @@ function formatTime(val: string): string {
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.card-header-with-action {
+  justify-content: space-between;
+}
+
+.card-header-action {
+  margin-left: auto;
 }
 
 .header-icon-wrap {

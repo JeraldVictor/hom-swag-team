@@ -10,6 +10,7 @@ import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { MainMenu, Order, Product, ProductOption } from '@/shared/models'
 
 interface CartItem {
+  order_product_id?: string
   product_id: string
   quantity: number
   title: string
@@ -17,18 +18,22 @@ interface CartItem {
   duration?: number
   image?: string
   type?: 'service' | 'package'
+  beautician_added?: boolean
   selected_options?: ReadonlyArray<{
     product_option_id: string
     title: string
     price: number
+    beautician_added?: boolean
   }>
   selected_package_items?: ReadonlyArray<{
     product_id: string
     title: string
+    beautician_added?: boolean
   }>
   selected_free_items?: ReadonlyArray<{
     product_id: string
     title: string
+    beautician_added?: boolean
   }>
 }
 
@@ -117,26 +122,31 @@ async function fetchOrderData() {
       data.products.forEach(p => {
         const pid = String(p.product_id)
         cartMap[pid] = {
+          order_product_id: p.order_product_id ? String(p.order_product_id) : undefined,
           product_id: pid,
           quantity: p.quantity,
           title: p.title,
           price: p.price,
           duration: p.duration,
           type: p.type,
+          beautician_added: p.beautician_added ?? false,
           selected_options: p.selected_options?.map(o => ({
             product_option_id: o.product_option_id,
             title: o.title,
-            price: o.price ?? o.min_price ?? o.base_price ?? 0,
+            price: o.price ?? 0,
+            beautician_added: o.beautician_added ?? false,
           })),
           selected_package_items:
             p.selected_package_items ||
             p.selected_package_services?.map(s => ({
               product_id: String(s.product_id),
               title: s.title,
+              beautician_added: s.beautician_added ?? false,
             })),
           selected_free_items: p.selected_free_items?.map(f => ({
-            product_id: String(f.product_id),
+            product_id: String(f.free_product_id),
             title: f.title,
+            beautician_added: f.beautician_added ?? false,
           })),
         }
       })
@@ -218,10 +228,26 @@ function onSelectionConfirm(data: {
 }) {
   const pid = String(data.product._id || data.product.id)
   const existing = cartMap[pid]
+  const originalItem = order.value?.products?.find(
+    p => String(p.order_product_id) === pid || String(p.product_id) === pid
+  )
+  const originalOptionIds = new Set(
+    originalItem?.selected_options?.map(o => String(o.product_option_id)) || []
+  )
+  const originalFreeIds = new Set(
+    originalItem?.selected_free_items?.map(f => String(f.free_product_id)) || []
+  )
+  const originalPackageIds = new Set(
+    originalItem?.selected_package_services?.map(s => String(s.product_id)) || []
+  )
+
   const selectedOptions = data.selectedOptions.map(o => ({
     product_option_id: String(o._id || o.id || o.product_option_id),
     title: o.title,
-    price: o.price ?? o.min_price ?? o.base_price ?? 0,
+    price: o.price ?? 0,
+    beautician_added: originalItem
+      ? !originalOptionIds.has(String(o._id || o.id || o.product_option_id))
+      : true,
   }))
 
   if (existing) {
@@ -231,8 +257,15 @@ function onSelectionConfirm(data: {
     existing.type = data.product.type
     existing.image = data.product.image_url || data.product.images?.[0]?.url
     existing.selected_options = selectedOptions
-    existing.selected_package_items = data.selectedPackageItems
-    existing.selected_free_items = data.selectedFreeItems
+    existing.selected_package_items = data.selectedPackageItems.map(item => ({
+      ...item,
+      beautician_added: originalItem ? !originalPackageIds.has(String(item.product_id)) : true,
+    }))
+    existing.selected_free_items = data.selectedFreeItems.map(item => ({
+      ...item,
+      beautician_added: originalItem ? !originalFreeIds.has(String(item.product_id)) : true,
+    }))
+    existing.beautician_added = existing.beautician_added ?? false
   } else {
     cartMap[pid] = {
       product_id: pid,
@@ -242,9 +275,16 @@ function onSelectionConfirm(data: {
       duration: data.product.duration_minutes,
       type: data.product.type,
       image: data.product.image_url || data.product.images?.[0]?.url,
+      beautician_added: true,
       selected_options: selectedOptions,
-      selected_package_items: data.selectedPackageItems,
-      selected_free_items: data.selectedFreeItems,
+      selected_package_items: data.selectedPackageItems.map(item => ({
+        ...item,
+        beautician_added: true,
+      })),
+      selected_free_items: data.selectedFreeItems.map(item => ({
+        ...item,
+        beautician_added: true,
+      })),
     }
   }
 
@@ -267,12 +307,14 @@ function addToCart(product: Product) {
       duration: product.duration_minutes,
       type: product.type,
       image: product.image_url || product.images?.[0]?.url,
+      beautician_added: true,
       selected_free_items: product.free_products?.length
         ? product.free_product_limits && !product.free_product_limits.is_unlimited
           ? []
           : product.free_products.map(fp => ({
               product_id: String(fp._id || fp.product_id),
               title: fp.title,
+              beautician_added: true,
             }))
         : undefined,
     }
@@ -397,11 +439,12 @@ watch([activeMenuId, searchQuery], () => {
           This order can only be edited on {{ scheduleDateFormatted }}.
         </div>
         <div class="product-list">
-          <div v-for="product in products" :key="product._id || product.id" class="product-item anim-fade-in">
+          <div v-for="product in products" :key="product._id || product.id" :class="['product-item anim-fade-in', { 'product-beautician-only': product.restrictions?.beautician_only }]">
             <div class="product-image-container">
               <img :src="product.image_url || (product.images?.[0]?.url) || 'https://placehold.co/200x200?text=Product'" class="product-img" />
-              <div v-if="product.restrictions?.beautician_only" class="pro-only-tag" title="Pro Only">
+              <div v-if="product.restrictions?.beautician_only" class="pro-only-tag" title="Beautician only">
                 <Icon icon="lucide:star" />
+                <span>Beautician only</span>
               </div>
               <div v-if="product.type === 'package'" class="package-tag">
                 Package
@@ -519,7 +562,27 @@ ion-segment-button {
   display: flex;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   min-height: 110px;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-beautician-only {
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
+}
+
+.pro-only-tag {
+  position: absolute;
+  top: var(--spacing-1);
+  left: var(--spacing-1);
+  background: #2563eb;
+  color: white;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .product-item:active {

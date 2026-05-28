@@ -4,14 +4,27 @@
     <div class="item-main-row">
       <div class="item-title-col">
         <span class="item-title">{{ item.title }}</span>
-        <div class="item-badges" v-if="item.total === 0 || item.type === 'package'">
+        <div class="item-badges" v-if="item.total === 0 || item.type === 'package' || item.beautician_added">
           <span v-if="item.total === 0" class="ibadge ibadge-free">Free</span>
           <span v-if="item.type === 'package'" class="ibadge ibadge-pkg">Package</span>
+          <span v-if="item.beautician_added" class="ibadge ibadge-beautician">
+            <Icon icon="lucide:user-check" class="badge-icon" /> Beautician added
+          </span>
         </div>
       </div>
-      <div class="item-price-col">
-        <span class="item-qty-price">{{ item.quantity }}×₹{{ item.price }}</span>
-        <span class="item-total">₹{{ item.total }}</span>
+      <div class="item-actions-col">
+        <div class="item-price-col">
+          <span class="item-qty-price">{{ item.quantity }}×₹{{ item.price }}</span>
+          <span class="item-total">₹{{ item.total }}</span>
+        </div>
+        <button
+          v-if="canUpgrade && !item.upgrade_info"
+          class="item-upgrade-btn"
+          @click="emit('upgrade', item)"
+        >
+          <Icon icon="lucide:arrow-up-right" class="upgrade-icon" />
+          Upgrade
+        </button>
       </div>
     </div>
 
@@ -24,7 +37,6 @@
         <Icon icon="lucide:layers" class="chip-icon" />{{ item.type === 'package' ? 'Package' : 'Service' }}
       </span>
     </div>
-
     <!-- Package included services (Bullet points) -->
     <div v-if="packageServices.length" class="item-subs-bullets">
       <ul class="bullet-list">
@@ -41,7 +53,12 @@
         :key="opt.product_option_id || opt.id || opt._id"
         class="addon-row"
       >
-        <span class="addon-name">+ {{ opt.title }}</span>
+        <span class="addon-name">
+          + {{ opt.title }}
+          <span v-if="opt.beautician_added" class="addon-beautician">
+            <Icon icon="lucide:user-check" class="badge-icon" /> Beautician added
+          </span>
+        </span>
         <span class="addon-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
       </div>
     </div>
@@ -50,6 +67,11 @@
     <div v-if="freeItems.length" class="item-subs">
       <span v-for="f in freeItems" :key="f.free_product_id || f.product_id || f._id" class="sub-tag sub-tag-gift">
         <Icon icon="lucide:gift" class="sub-icon" />{{ f.title }}
+        <Icon
+          v-if="f.beautician_added"
+          icon="lucide:user-check"
+          class="sub-badge-icon"
+        />
       </span>
     </div>
   </div>
@@ -59,7 +81,8 @@
 import { computed } from 'vue'
 import type { OrderProduct } from '@/shared/models'
 
-const props = defineProps<{ item: OrderProduct }>()
+const props = defineProps<{ item: OrderProduct; canUpgrade?: boolean }>()
+const emit = defineEmits<{ upgrade: [item: OrderProduct] }>()
 
 const packageServices = computed(
   () =>
@@ -146,6 +169,40 @@ const freeItems = computed(
   flex-shrink: 0;
 }
 
+.item-actions-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.item-upgrade-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-brand);
+  background: rgba(99, 102, 241, 0.07);
+  color: var(--color-brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.item-upgrade-btn:active {
+  background: rgba(99, 102, 241, 0.18);
+}
+
+.upgrade-icon {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
 .item-qty-price {
   font-size: 11px;
   color: var(--color-text-muted);
@@ -205,6 +262,39 @@ const freeItems = computed(
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 4px;
+}
+
+.ibadge-beautician {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.addon-beautician {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.badge-icon,
+.sub-badge-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .sub-tag {

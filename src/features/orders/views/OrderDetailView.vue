@@ -69,15 +69,13 @@
         />
 
         <div class="order-top-actions" v-if="canEditOrder && orderChangeAllowed">
-          <AppButton
-            expand="block"
-            variant="outline"
-            color="primary"
-            icon="lucide:edit-3"
-            @click="handleEditOrder"
-          >
-            Edit Order
-          </AppButton>
+          <button class="edit-order-btn" @click="handleEditOrder">
+            <span class="edit-order-btn-icon">
+              <Icon icon="lucide:edit-3" />
+            </span>
+            <span class="edit-order-btn-label">Edit Order</span>
+            <Icon icon="lucide:chevron-right" class="edit-order-btn-arrow" />
+          </button>
         </div>
 
         <OrderBodyCards
@@ -94,6 +92,8 @@
           v-model:payment-status="paymentStatus"
           :payment-status-options="paymentStatusOptions"
           :is-updating="isUpdating"
+          :can-upgrade="canUpgrade"
+          @upgrade-order="handleUpgradeOrder"
           @open-gallery="openGallery"
           @trigger-proof-input="triggerProofInput"
           @trigger-setup-input="triggerSetupInput"
@@ -253,6 +253,76 @@
       }"
       @booked="(p: string) => showSuccess(`Ride booked via ${p}`)"
     />
+
+    <!-- Upgrade Item Modal -->
+    <ion-modal
+      :is-open="showUpgradeModal"
+      @didDismiss="showUpgradeModal = false"
+      class="upgrade-modal"
+      :initial-breakpoint="0.75"
+      :breakpoints="[0, 0.75, 1]"
+      handle-behavior="cycle"
+    >
+      <div class="upgrade-modal-content">
+        <!-- Handle -->
+       
+
+        <!-- Header -->
+        <div class="upgrade-header">
+          <div class="upgrade-header-icon">
+            <Icon icon="lucide:arrow-up-right" />
+          </div>
+          <div class="upgrade-header-copy">
+            <h3 class="upgrade-title">Upgrade Service</h3>
+            <p class="upgrade-subtitle">{{ selectedItem?.title ? `Upgrading: ${selectedItem.title}` : 'Choose a better option' }}</p>
+          </div>
+          <button class="upgrade-close-btn" @click="showUpgradeModal = false">
+            <Icon icon="lucide:x" />
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="upgrade-body">
+          <div v-if="isFetchingUpgrades" class="upgrade-loading">
+            <div class="upgrade-loading-spinner">
+              <Icon icon="lucide:loader-2" class="spin" />
+            </div>
+            <p>Finding upgrade options…</p>
+          </div>
+
+          <div v-else-if="upgradableProducts.length === 0" class="upgrade-empty">
+            <div class="upgrade-empty-icon-wrap">
+              <Icon icon="lucide:package-x" />
+            </div>
+            <h4>Nothing available</h4>
+            <p>There are no upgrades for this item right now.</p>
+          </div>
+
+          <div v-else class="upgrade-list">
+            <button
+              v-for="product in upgradableProducts"
+              :key="product._id || product.id"
+              class="upgrade-item"
+              :disabled="isFetchingUpgrades"
+              @click="handleUpgrade(product)"
+            >
+              <div class="upgrade-item-left">
+                <div class="upgrade-item-icon-wrap">
+                  <Icon icon="lucide:sparkles" />
+                </div>
+                <div class="upgrade-item-copy">
+                  <p class="upgrade-item-title">{{ product.title || product.name }}</p>
+                  <p class="upgrade-item-price">₹{{ product.base_price ?? product.price ?? product.min_price ?? 0 }}</p>
+                </div>
+              </div>
+              <span class="upgrade-item-select">
+                Select <Icon icon="lucide:chevron-right" class="select-chevron" />
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </ion-modal>
 
     <!-- Image Gallery Modal -->
     <ion-modal :is-open="showGallery" @didDismiss="showGallery = false" class="gallery-modal">
@@ -806,6 +876,11 @@ function handleEditOrder() {
   router.push({ name: 'OrderEdit', params: { id: orderId } })
 }
 
+function handleUpgradeOrder(item: OrderProduct) {
+  if (!item) return
+  openUpgradeModal(item)
+}
+
 function openGallery(url: string) {
   activeImageUrl.value = url
   showGallery.value = true
@@ -1004,7 +1079,53 @@ onUnmounted(() => {
 }
 
 .order-top-actions {
-  padding: 16px;
+  padding: 12px 16px 4px;
+}
+
+.edit-order-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.06);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.edit-order-btn:active {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--color-brand);
+}
+
+.edit-order-btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.edit-order-btn-label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-brand);
+  text-align: left;
+}
+
+.edit-order-btn-arrow {
+  font-size: 16px;
+  color: var(--color-brand);
+  opacity: 0.6;
+  flex-shrink: 0;
 }
 
 /* ── Action Footer ───────────────────────────────────────────────────────── */
@@ -1068,6 +1189,186 @@ onUnmounted(() => {
 .cancel-modal { --border-radius: 28px 28px 0 0; }
 .cancel-container { padding: 6px 4px 20px; display: flex; flex-direction: column; gap: 22px; }
 .cancel-warning { text-align: center; }
+
+/* ── Upgrade Modal ───────────────────────────────────────────────────────── */
+.upgrade-modal { --border-radius: 32px 32px 0 0; }
+.upgrade-modal-content {
+  padding: 0 0 max(24px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.upgrade-drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+.upgrade-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 18px 14px;
+  flex-shrink: 0;
+}
+.upgrade-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.upgrade-header-copy { flex: 1; min-width: 0; }
+.upgrade-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.upgrade-subtitle {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upgrade-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.upgrade-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.upgrade-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 48px 12px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+.upgrade-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.upgrade-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+.upgrade-empty-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--color-surface);
+  color: var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+.upgrade-empty h4 { margin: 0; font-size: 16px; font-weight: 700; color: var(--color-text); }
+.upgrade-empty p  { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
+.upgrade-list { display: flex; flex-direction: column; gap: 10px; }
+.upgrade-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-background);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.upgrade-item:active {
+  border-color: var(--color-brand);
+  background: rgba(99, 102, 241, 0.04);
+}
+.upgrade-item:disabled { opacity: 0.5; pointer-events: none; }
+.upgrade-item-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.upgrade-item-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.upgrade-item-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.upgrade-item-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upgrade-item-price {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-brand);
+}
+.upgrade-item-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-brand);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.select-chevron { font-size: 13px; }
 .warning-icon-wrapper {
   width: 48px; height: 48px; border-radius: 14px;
   background: var(--color-danger-pale); color: var(--color-danger);

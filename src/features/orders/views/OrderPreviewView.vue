@@ -94,6 +94,10 @@
                   <div class="mic-badges">
                     <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
                     <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
+                    <AppBadge v-if="item.beautician_added" variant="secondary" size="sm">
+                      <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                      Beautician added
+                    </AppBadge>
                   </div>
                 </div>
                 <div class="mic-meta">
@@ -120,6 +124,10 @@
                   >
                     <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
                     <span>{{ service.title }}</span>
+                    <span v-if="service.beautician_added" class="mic-added-tag">
+                      <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                      Beautician added
+                    </span>
                   </div>
                 </div>
               </div>
@@ -130,6 +138,10 @@
                   <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
                     <div class="mic-item-info">
                       <span class="mic-item-title">{{ opt.title }}</span>
+                      <span v-if="opt.beautician_added" class="mic-added-tag mic-added-tag-inline">
+                        <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                        Beautician added
+                      </span>
                     </div>
                     <span class="mic-item-price">₹{{ opt.price ?? 0 }}</span>
                   </div>
@@ -146,6 +158,10 @@
                   >
                     <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
                     <span>{{ free.title }}</span>
+                    <span v-if="free.beautician_added" class="mic-added-tag">
+                      <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                      Beautician added
+                    </span>
                   </div>
                 </div>
               </div>
@@ -161,6 +177,10 @@
                   <div class="mic-badges">
                     <AppBadge v-if="item.total === 0" variant="success" size="sm">Free</AppBadge>
                     <AppBadge v-if="item.type === 'package'" variant="info" size="sm">Package</AppBadge>
+                    <AppBadge v-if="item.beautician_added" variant="secondary" size="sm">
+                      <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                      Beautician added
+                    </AppBadge>
                   </div>
                 </div>
                 <div class="mic-meta">
@@ -199,6 +219,10 @@
                     <div class="mic-item-info">
                       <span class="mic-item-title">{{ opt.title }}</span>
                       <span v-if="opt.duration" class="mic-item-meta">{{ opt.duration }} min</span>
+                      <span v-if="opt.beautician_added" class="mic-added-tag mic-added-tag-inline">
+                        <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                        Beautician added
+                      </span>
                     </div>
                     <span class="mic-item-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
                   </div>
@@ -210,6 +234,10 @@
                   <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
                     <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
                     <span>{{ service.title }}</span>
+                    <span v-if="service.beautician_added" class="mic-added-tag">
+                      <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                      Beautician added
+                    </span>
                   </div>
                 </div>
               </div>
@@ -224,6 +252,10 @@
                   >
                     <Icon icon="lucide:gift" class="mic-sub-icon text-primary" />
                     <span>{{ free.title }}</span>
+                    <span v-if="free.beautician_added" class="mic-added-tag">
+                      <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                      Beautician added
+                    </span>
                   </div>
                 </div>
               </div>
@@ -310,6 +342,7 @@ import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { Order } from '@/shared/models'
 
 interface CartItem {
+  order_product_id?: string
   product_id: string
   quantity: number
   title: string
@@ -318,6 +351,7 @@ interface CartItem {
   image?: string
   type?: 'service' | 'package'
   total?: number
+  beautician_added?: boolean
   selected_options?: {
     product_option_id: string
     title: string
@@ -325,15 +359,18 @@ interface CartItem {
     duration?: number
     min_price?: number
     base_price?: number
+    beautician_added?: boolean
   }[]
   selected_package_items?: {
     product_id: string
     title: string
+    beautician_added?: boolean
   }[]
   selected_free_items?: {
     product_id?: string
     free_product_id?: string
     title?: string
+    beautician_added?: boolean
   }[]
 }
 
@@ -354,6 +391,7 @@ function normalizeFreeItem(free: any) {
     product_id: free.product_id || free.free_product_id || free.order_free_item_id || '',
     free_product_id: free.free_product_id || free.product_id || undefined,
     title: free.title || free.name || free.product_name || 'Free item',
+    beautician_added: free.beautician_added ?? false,
   }
 }
 
@@ -364,6 +402,8 @@ function normalizeFreeItems(freeItems?: readonly any[] | any[]) {
 function normalizeCartItem(item: any): CartItem {
   return {
     ...item,
+    order_product_id: item.order_product_id,
+    beautician_added: item.beautician_added ?? false,
     selected_free_items: normalizeFreeItems(
       item.selected_free_items || item.selectedFreeItems || item.free_products
     ),
@@ -523,25 +563,58 @@ async function handleVerifyAndSubmit() {
     // 1. Verify OTP
     await verifyServiceOtp(orderId, { otp: otpValue.value })
     // 2. Submit order changes
-    const productsToUpdate = newCartItems.value.map(item => ({
-      product_id: item.product_id,
-      quantity: item.quantity,
-      title: item.title,
-      price: item.price,
-      duration: item.duration,
-      total:
-        (item.price + (item.selected_options || []).reduce((s, o) => s + o.price, 0)) *
-        item.quantity,
-      selected_options: item.selected_options,
-      selected_package_services: item.selected_package_items?.map(pkg => ({
-        product_id: pkg.product_id,
-        title: pkg.title,
-      })),
-      selected_free_items: item.selected_free_items?.map(free => ({
-        free_product_id: free.product_id || free.free_product_id,
-        title: free.title,
-      })),
-    }))
+    const productsToUpdate = newCartItems.value.map(item => {
+      const originalItem = order.value?.products?.find(
+        p =>
+          (item.order_product_id && String(p.order_product_id) === item.order_product_id) ||
+          String(p.product_id) === item.product_id
+      )
+      const originalOptionIds = new Set(
+        originalItem?.selected_options?.map(o => String(o.product_option_id)) || []
+      )
+      const originalFreeIds = new Set(
+        originalItem?.selected_free_items?.map(f => String(f.free_product_id)) || []
+      )
+      const originalPackageIds = new Set(
+        originalItem?.selected_package_services?.map(s => String(s.product_id)) || []
+      )
+      const isNewItem = !originalItem
+
+      return {
+        order_product_id: item.order_product_id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        title: item.title,
+        price: item.price,
+        duration: item.duration,
+        beautician_added: item.beautician_added ?? isNewItem,
+        total:
+          (item.price + (item.selected_options || []).reduce((s, o) => s + o.price, 0)) *
+          item.quantity,
+        selected_options: item.selected_options?.map(opt => ({
+          ...opt,
+          beautician_added:
+            opt.beautician_added ??
+            (originalItem && originalOptionIds.has(opt.product_option_id) ? false : true),
+        })),
+        selected_package_services: item.selected_package_items?.map(pkg => ({
+          product_id: pkg.product_id,
+          title: pkg.title,
+          beautician_added:
+            pkg.beautician_added ??
+            (originalItem && originalPackageIds.has(pkg.product_id) ? false : true),
+        })),
+        selected_free_items: item.selected_free_items?.map(free => ({
+          free_product_id: free.product_id || free.free_product_id || '',
+          title: free.title || '',
+          beautician_added:
+            free.beautician_added ??
+            (originalItem && originalFreeIds.has(free.product_id || free.free_product_id || '')
+              ? false
+              : true),
+        })),
+      }
+    })
 
     await updateOrder(orderId, { products: productsToUpdate })
 
@@ -859,6 +932,30 @@ onMounted(fetchOrderData)
 .mic-item-price {
   font-weight: 600;
   font-size: 0.8rem;
+}
+
+.mic-added-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--ion-color-primary, #2563eb);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.mic-added-tag-inline {
+  margin-top: 4px;
+  display: inline-flex;
+}
+
+.mic-badge-icon {
+  width: 12px;
+  height: 12px;
+}
 }
 
 .mic-actions {
