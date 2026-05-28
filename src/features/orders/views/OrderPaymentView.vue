@@ -171,10 +171,16 @@
               v-for="(image, index) in proofImages"
               :key="index"
               class="proof-thumb"
-              @click="openGallery(mediaUrl(image.url))"
             >
-              <img :src="mediaUrl(image.url)" :alt="`Proof ${index + 1}`" />
+              <img
+                :src="mediaUrl(image.url)"
+                :alt="`Proof ${index + 1}`"
+                @click="openGallery(mediaUrl(image.url))"
+              />
               <div class="proof-check"><Icon icon="lucide:check" /></div>
+              <button class="proof-delete" @click.stop="removePaymentProof(index)">
+                <Icon icon="lucide:x" />
+              </button>
             </div>
           </div>
         </div>
@@ -295,6 +301,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { alertController } from '@ionic/vue'
 import { useToast } from '@/shared/composables'
 import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
@@ -379,16 +386,49 @@ const actualUpiAmount = computed(() => Number(paymentUpiAmount.value ?? 0))
 const proofImages = computed(() => {
   if (!order.value) return []
 
-  const serviceProof = order.value.proof_of_service ?? order.value.payment?.proof
-  if (!serviceProof) return []
+  const paymentProof = order.value.payment?.proof
+  if (!paymentProof) return []
 
-  if (Array.isArray(serviceProof)) {
-    return serviceProof.filter((item): item is { url: string } => !!item?.url)
+  if (Array.isArray(paymentProof)) {
+    return paymentProof.filter((item): item is { url: string } => !!item?.url)
   }
 
-  const singleProof = serviceProof as { url?: string }
+  const singleProof = paymentProof as { url?: string }
   return singleProof.url ? [{ url: singleProof.url }] : []
 })
+
+async function presentConfirm(header: string, message: string) {
+  const alert = await alertController.create({
+    header,
+    message,
+    buttons: [
+      { text: 'No', role: 'cancel' },
+      { text: 'Yes', role: 'confirm' },
+    ],
+  })
+  await alert.present()
+  const { role } = await alert.onDidDismiss()
+  return role === 'confirm'
+}
+
+async function removePaymentProof(index: number) {
+  if (!order.value) return
+  const confirmed = await presentConfirm(
+    'Remove Proof',
+    'Are you sure you want to remove this payment proof?'
+  )
+  if (!confirmed) return
+
+  const currentProof = [...proofImages.value]
+  currentProof.splice(index, 1)
+
+  await updateOrderDetails({
+    payment: {
+      ...order.value.payment,
+      proof: currentProof,
+    },
+  })
+}
 
 const requiresProof = computed(() => !isPrepaidOrder.value && actualUpiAmount.value > 0)
 
@@ -457,11 +497,15 @@ const actionDisabled = computed(() => {
 
 watch(
   order,
-  value => {
-    if (!value) return
-    paymentCodAmount.value = null
-    paymentUpiAmount.value = null
-    paymentTipAmount.value = value.payment?.tip ?? null
+  (newVal, oldVal) => {
+    if (!newVal) return
+    // Only initialize the fields if this is the first time the order is loaded
+    // This prevents clearing user-typed values when the order object updates (e.g. after uploading proof)
+    if (!oldVal) {
+      paymentCodAmount.value = null
+      paymentUpiAmount.value = null
+      paymentTipAmount.value = newVal.payment?.tip ?? null
+    }
   },
   { immediate: true }
 )
@@ -847,6 +891,24 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 11px;
+}
+.proof-delete {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 22px;
+  height: 22px;
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  z-index: 2;
 }
 
 /* ── Sticky footer ── */

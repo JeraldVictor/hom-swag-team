@@ -40,3 +40,44 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Camera Preview Support ─────────────────────────────────────────────── */
+
+/**
+ * When the camera is active, we make the entire app background transparent
+ * so the native camera preview (rendered behind the webview) can be seen.
+ */
+body.camera-active,
+body.camera-active ion-app,
+body.camera-active ion-content,
+body.camera-active ion-page {
+  --background: transparent !important;
+  --ion-background-color: transparent !important;
+  background: transparent !important;
+}
+
+/**
+ * Hide the main router outlet so it doesn't overlay the camera preview.
+ * Modals are outside of the router outlet, so they remain visible.
+ */
+body.camera-active ion-router-outlet {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/**
+ * Ensure the camera modal is full screen and transparent.
+ */
+.camera-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+  --background: transparent !important;
+  --ion-background-color: transparent !important;
+  z-index: 9999 !important;
+}
+
+.camera-modal::part(content) {
+  background: transparent !important;
+}

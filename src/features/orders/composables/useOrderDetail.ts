@@ -126,9 +126,9 @@ export function useOrderDetail() {
   async function uploadSelfie(): Promise<boolean> {
     if (!order.value) return false
     error.value = null
+    isUpdating.value = true
     try {
       const blob = await takePhoto({ facingMode: 'user' })
-      isUpdating.value = true
       const formData = new FormData()
       formData.append('image', blob, `selfie_${order.value._id || order.value.id}.jpg`)
 
@@ -147,9 +147,9 @@ export function useOrderDetail() {
   async function captureAndUploadSetupPhoto(): Promise<boolean> {
     if (!order.value) return false
     error.value = null
+    isUpdating.value = true
     try {
       const blob = await takePhoto({ facingMode: 'user' })
-      isUpdating.value = true
       const formData = new FormData()
       formData.append(
         'image',
@@ -201,9 +201,9 @@ export function useOrderDetail() {
   async function captureAndUploadPaymentProof(): Promise<boolean> {
     if (!order.value) return false
     error.value = null
+    isUpdating.value = true
     try {
       const blob = await takePhoto()
-      isUpdating.value = true
       const id = order.value._id || order.value.id
       const formData = new FormData()
       formData.append('image', blob, `payment_proof_${id}_${Date.now()}.jpg`)
