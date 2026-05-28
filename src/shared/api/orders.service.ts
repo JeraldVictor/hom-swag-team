@@ -113,6 +113,11 @@ export async function updateOrder(id: string | number, body: UpdateOrderPayload)
   return response.data.data
 }
 
+export async function markOrderViewed(id: string | number): Promise<Order> {
+  const response = await apiClient.patch<{ data: Order }>(`/orders/${id}/viewed`, {})
+  return response.data.data
+}
+
 /**
  * Upload a selfie taken on arrival at the customer's location.
  * POST /orders/:id/arrival-selfie

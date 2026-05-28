@@ -214,6 +214,7 @@ export interface Order {
   tip?: number
   cod_collected_amount?: number
   staff_notes?: string
+  beautician_viewed?: boolean
   custom_instruction?: string
   instruction_presets?: OrderInstructionPreset[]
   /** Trip assignments for this order */

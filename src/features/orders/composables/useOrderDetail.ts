@@ -2,6 +2,7 @@ import { computed, readonly, ref } from 'vue'
 import {
   generateServiceOtp as generateServiceOtpApi,
   getOrder as getOrderApi,
+  markOrderViewed as markOrderViewedApi,
   getUpgradableProducts as getUpgradableProductsApi,
   updateOrder as updateOrderApi,
   updateOrderStatus as updateOrderStatusApi,
@@ -85,6 +86,11 @@ export function useOrderDetail() {
     error.value = null
     try {
       order.value = await getOrderApi(id)
+      try {
+        order.value = await markOrderViewedApi(id)
+      } catch {
+        // If marking as viewed fails, still keep the loaded order data.
+      }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load order'
     } finally {
