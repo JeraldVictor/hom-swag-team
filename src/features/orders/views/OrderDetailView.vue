@@ -25,15 +25,6 @@
         style="display: none"
         @change="handleCompletionProofChange"
       />
-      <input
-        ref="setupInput"
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        style="display: none"
-        @change="handleSetupPhotosChange"
-      />
       <div v-if="isLoading && !order" class="loading-state">
         <ion-spinner name="crescent" />
         <p>Loading order details...</p>
@@ -96,7 +87,6 @@
           @upgrade-order="handleUpgradeOrder"
           @open-gallery="openGallery"
           @trigger-proof-input="triggerProofInput"
-          @trigger-setup-input="triggerSetupInput"
           @upload-selfie="handleUploadSelfie"
           @capture-setup-photo="handleCaptureSetupPhoto"
           @capture-payment-proof="handleCapturePaymentProof"
@@ -370,7 +360,6 @@ const {
   advanceStatus,
   uploadSelfie,
   uploadCompletionProof,
-  uploadSetupPhotos,
   cancelAfterArrival,
   upgradeProduct,
   getUpgradableProducts,
@@ -394,7 +383,6 @@ const showUpgradeModal = ref(false)
 const isFetchingUpgrades = ref(false)
 const selectedItem = ref<OrderProduct | null>(null)
 const upgradableProducts = ref<any[]>([])
-const setupInput = ref<HTMLInputElement | null>(null)
 const proofInput = ref<HTMLInputElement | null>(null)
 const paymentStatus = ref<PaymentStatus | ''>('')
 const paymentStatusOptions = [
@@ -698,17 +686,7 @@ async function presentConfirm(header: string, message: string) {
 }
 
 async function promptSetupPhotoUpload(): Promise<void> {
-  const alert = await alertController.create({
-    header: 'Upload Setup Photos',
-    message: 'Choose whether to take a photo or upload existing setup images.',
-    mode: 'ios',
-    buttons: [
-      { text: 'Cancel', role: 'cancel' },
-      { text: 'Upload from Gallery', handler: triggerSetupInput },
-      { text: 'Take Photo', handler: handleCaptureSetupPhoto },
-    ],
-  })
-  await alert.present()
+  await handleCaptureSetupPhoto()
 }
 
 function ensureTodayEditable(): boolean {
@@ -787,7 +765,7 @@ async function handleUploadSelfie() {
     if (order.value?.status.toLowerCase() === 'reached_customer_place') {
       if (setupPhotos.value.length === 0) {
         const toast = await toastController.create({
-          message: 'Now upload setup photos using camera or gallery.',
+          message: 'Now take setup photos using the camera.',
           duration: 2500,
           color: 'warning',
           position: 'top',
@@ -827,26 +805,6 @@ async function handleCaptureSetupPhoto() {
   const uploaded = await captureAndUploadSetupPhoto()
   if (uploaded) {
     showSuccess('Setup photo uploaded successfully')
-  }
-}
-
-function triggerSetupInput() {
-  if (!ensureTodayEditable()) return
-  setupInput.value?.click()
-}
-
-async function handleSetupPhotosChange(event: Event) {
-  if (!ensureTodayEditable()) return
-  const target = event.target as HTMLInputElement
-  const files = target.files
-  if (!files || files.length === 0) return
-
-  const uploaded = await uploadSetupPhotos(files)
-  if (uploaded) {
-    showSuccess('Setup photos uploaded successfully')
-  }
-  if (setupInput.value) {
-    setupInput.value.value = ''
   }
 }
 

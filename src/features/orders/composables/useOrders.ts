@@ -181,6 +181,7 @@ export function useOrders() {
       Confirmed: 0,
       Started: 0,
       Ongoing: 0,
+      reached_customer_place: 0,
       Completed: 0,
       cancelled: 0,
     }
@@ -220,8 +221,10 @@ export function useOrders() {
         counts.cancelled += 1
       } else if (s === 'completed') {
         counts.Completed += 1
-      } else if (s === 'ongoing' || s === 'on going' || s === 'reached_customer_place') {
+      } else if (s === 'ongoing' || s === 'on going') {
         counts.Ongoing += 1
+      } else if (s === 'reached_customer_place') {
+        counts.reached_customer_place += 1
       } else if (s === 'started') {
         counts.Started += 1
       } else if (s === 'confirmed') {

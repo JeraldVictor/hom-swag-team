@@ -201,7 +201,6 @@
             <p class="proof-label">Setup Photos</p>
             <div class="proof-actions" v-if="order.status.toLowerCase() === ORDER_STATUS.REACHED_CUSTOMER_PLACE && order.arrival_selfie">
               <AppButton variant="clear" size="sm" icon="lucide:camera" @click="emit('capture-setup-photo')" class="action-btn-sm">Camera</AppButton>
-              <AppButton variant="clear" size="sm" icon="lucide:upload" @click="emit('trigger-setup-input')" class="action-btn-sm">Upload</AppButton>
             </div>
           </div>
           <div v-if="setupPhotos.length" class="proof-list">
@@ -296,7 +295,6 @@ const emit = defineEmits<{
   'update:paymentStatus': [value: PaymentStatus | '']
   'open-gallery': [url: string]
   'trigger-proof-input': []
-  'trigger-setup-input': []
   'upload-selfie': []
   'capture-setup-photo': []
   'capture-payment-proof': []
