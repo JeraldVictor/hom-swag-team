@@ -144,6 +144,14 @@
           <span>UPI</span>
           <strong>₹{{ order.payment?.upi_amount ?? parsedPaymentRemark?.upi }}</strong>
         </div>
+        <div class="payment-detail-item" v-if="pendingAmount > 0 && prepaidAmount > 0">
+          <span>Already prepaid</span>
+          <strong>₹{{ prepaidAmount }}</strong>
+        </div>
+        <div class="payment-detail-item" v-if="pendingAmount > 0">
+          <span>Pending amount</span>
+          <strong>₹{{ pendingAmount }}</strong>
+        </div>
         <div class="payment-detail-item" v-if="(order.payment?.tip ?? order.tip ?? parsedPaymentRemark?.tip ?? 0) > 0">
           <span>Tip</span>
           <strong class="text-brand">₹{{ order.payment?.tip ?? order.tip ?? parsedPaymentRemark?.tip }}</strong>
@@ -313,11 +321,34 @@ function tripStatusIcon(trip: OrderTrip) {
   return 'lucide:circle'
 }
 
-const paymentStatusKey = computed(() => props.order.payment?.status?.toLowerCase() ?? 'pending')
+const prepaidAmount = computed(() => {
+  if (!props.order.payment) return 0
+  return props.order.payment.amount_paid ?? 0
+})
+
+const pendingAmount = computed(() => {
+  const total = props.order.total ?? 0
+  return Math.max(0, total - prepaidAmount.value)
+})
+
+const paymentStatusKey = computed(() => {
+  const status = props.order.payment?.status?.toLowerCase() ?? 'pending'
+  if (
+    status === 'conflict' ||
+    status === 'unpaid' ||
+    status === 'failed' ||
+    status === 'refunded'
+  ) {
+    return status
+  }
+  if (pendingAmount.value > 0 && prepaidAmount.value > 0) return 'partial'
+  return status
+})
 
 const paymentStatusIcon = computed(() => {
   const s = paymentStatusKey.value
   if (s === 'paid') return 'lucide:check-circle-2'
+  if (s === 'partial') return 'lucide:clock'
   if (s === 'unpaid') return 'lucide:clock'
   if (s === 'conflict') return 'lucide:alert-circle'
   return 'lucide:circle-dashed'
@@ -400,6 +431,7 @@ function formatTime(val: string): string {
 }
 
 .pay-status--paid     { background: #e8f5e9;                   color: #2e7d32; }
+.pay-status--partial  { background: #fff7ed;                   color: #c2410c; }
 .pay-status--unpaid   { background: #fffbeb;                   color: #b45309; }
 .pay-status--conflict { background: var(--color-danger-pale);  color: var(--color-danger); }
 .pay-status--pending,

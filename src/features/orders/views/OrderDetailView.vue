@@ -398,6 +398,7 @@ const proofInput = ref<HTMLInputElement | null>(null)
 const paymentStatus = ref<PaymentStatus | ''>('')
 const paymentStatusOptions = [
   { label: 'Paid', value: 'paid' },
+  { label: 'Partial', value: 'partial' },
   { label: 'Unpaid', value: 'unpaid' },
   { label: 'Conflict', value: 'conflict' },
 ]
@@ -656,7 +657,15 @@ watch(
   order,
   value => {
     const status = value?.payment?.status?.toLowerCase() ?? ''
-    const allowedStatuses = ['pending', 'paid', 'unpaid', 'conflict', 'failed', 'refunded'] as const
+    const allowedStatuses = [
+      'pending',
+      'paid',
+      'partial',
+      'unpaid',
+      'conflict',
+      'failed',
+      'refunded',
+    ] as const
     paymentStatus.value = allowedStatuses.includes(status as any) ? (status as PaymentStatus) : ''
   },
 
@@ -793,8 +802,11 @@ async function handleUploadSelfie() {
 async function handleSavePaymentStatus() {
   if (!ensureTodayEditable()) return
   if (!order.value) return
-  if (!paymentStatus.value || !['paid', 'unpaid', 'conflict'].includes(paymentStatus.value)) {
-    showError('Please choose Paid, Unpaid, or Conflict before saving payment status.')
+  if (
+    !paymentStatus.value ||
+    !['paid', 'partial', 'unpaid', 'conflict'].includes(paymentStatus.value)
+  ) {
+    showError('Please choose Paid, Partial, Unpaid, or Conflict before saving payment status.')
     return
   }
 

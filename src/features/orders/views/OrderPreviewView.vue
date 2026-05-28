@@ -776,13 +776,20 @@ onMounted(fetchOrderData)
 .items-comparison {
   display: flex;
   gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
 }
 
 .items-column {
-  flex: 1;
+  flex: 0 0 80vw;
+  min-width: 260px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  scroll-snap-align: start;
 }
 
 .column-header {
@@ -955,7 +962,6 @@ onMounted(fetchOrderData)
 .mic-badge-icon {
   width: 12px;
   height: 12px;
-}
 }
 
 .mic-actions {

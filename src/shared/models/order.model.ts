@@ -15,7 +15,14 @@ export type OrderStatus =
   | 'cancelled'
   | 'cancelled_and_refunded'
 
-export type PaymentStatus = 'pending' | 'paid' | 'unpaid' | 'conflict' | 'failed' | 'refunded'
+export type PaymentStatus =
+  | 'pending'
+  | 'paid'
+  | 'partial'
+  | 'unpaid'
+  | 'conflict'
+  | 'failed'
+  | 'refunded'
 
 export interface PaymentInfo {
   status?: PaymentStatus
