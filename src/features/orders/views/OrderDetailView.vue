@@ -54,6 +54,7 @@
           :status="order.status as ORDER_STATUS"
           :effective_start_time="order.booking_info?.effective_start_time || ''"
           :effective_end_time="order.booking_info?.effective_end_time || ''"
+          :beautician_start_time="order?.booking_info?.beautician_start_time"
           @navigate="navigateToLocation"
           @book-ride="showRideModal = true"
           @copy-address="copyAddress"

@@ -12,7 +12,11 @@
           <Icon icon="lucide:map-pin" class="detail-icon" />
           <span>{{ address }}</span>
         </div>
-        <div class="hero-detail-item" v-if="effective_start_time && effective_end_time">
+        <div class="hero-detail-item" v-if="(status === ORDER_STATUS.CONFIRMED || status === ORDER_STATUS.STARTED || status === ORDER_STATUS.ONGOING || status === ORDER_STATUS.REACHED_CUSTOMER_PLACE) && beautician_start_time">
+          <Icon icon="lucide:clock" class="detail-icon" />
+          <span>{{ formatTime12(beautician_start_time) }}</span>
+        </div>
+        <div class="hero-detail-item" v-else-if="effective_start_time && effective_end_time">
           <Icon icon="lucide:clock" class="detail-icon" />
           <span>{{ formatTime12(effective_start_time) }} - {{ formatTime12(effective_end_time) }}</span>
         </div>
@@ -81,6 +85,7 @@ const props = defineProps<{
   showActions: boolean
   total: number
   date: string
+  beautician_start_time?: string
 }>()
 
 const isRideActionVisible = computed(() => {
