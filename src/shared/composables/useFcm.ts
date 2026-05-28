@@ -19,6 +19,7 @@ import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { useRouter } from 'vue-router'
 import apiClient from '@/shared/lib/api'
+import webSocketService from '@/shared/lib/websocket.service'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -81,7 +82,7 @@ export function useFcm() {
    */
   async function registerToken(token: string): Promise<void> {
     try {
-      await apiClient.post('/field/fcm-token', { token })
+      await apiClient.post('/fcm-token', { token })
     } catch (err) {
       console.warn('[FCM] registerToken failed:', err)
     }
@@ -92,7 +93,7 @@ export function useFcm() {
    */
   async function unregisterToken(token: string): Promise<void> {
     try {
-      await apiClient.delete('/field/fcm-token', { data: { token } })
+      await apiClient.delete('/fcm-token', { data: { token } })
     } catch (err) {
       console.warn('[FCM] unregisterToken failed:', err)
     }
@@ -116,10 +117,18 @@ export function useFcm() {
       await registerToken(token)
     }
 
-    // 2. Foreground messages — FCM delivers data only, no auto notification
+    // 2. Foreground messages — FCM delivers data only, no auto notification.
+    //    Skip if the socket is alive: App.vue's notification:new handler already
+    //    schedules a local notification via Socket.IO, so FCM is only needed as
+    //    a fallback when the socket connection is dead.
     const foregroundHandle = await FirebaseMessaging.addListener(
       'notificationReceived',
       async event => {
+        if (webSocketService.isConnected) {
+          // Socket path will handle it — avoid duplicate notification
+          return
+        }
+
         const { title, body, data } = event.notification
         const type = (data as Record<string, string> | undefined)?.type
         const channelId = channelIdForType(type)
