@@ -340,6 +340,7 @@
 
 <script setup lang="ts">
 import { alertController, toastController } from '@ionic/vue'
+import { onIonViewWillEnter } from '@ionic/vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
@@ -1055,6 +1056,10 @@ function handleOrderUpdated(event: Event): void {
 
 onMounted(() => {
   window.addEventListener('homswag:order-updated', handleOrderUpdated)
+  fetchOrder(orderId)
+})
+
+onIonViewWillEnter(() => {
   fetchOrder(orderId)
 })
 

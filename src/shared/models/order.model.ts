@@ -306,6 +306,7 @@ export interface UpdateOrderStatusBody {
     | 'cancel_requested'
   status_reason?: string
   otp?: string
+  skip_proof?: boolean
 }
 
 /**

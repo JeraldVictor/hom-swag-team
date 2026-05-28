@@ -15,6 +15,12 @@ import {
 import { useCamera, useDirections } from '@/shared/composables'
 import type { Order, OrderProduct, UpgradeProductBody, UpdateOrderPayload } from '@/shared/models'
 
+function dispatchOrderUpdated(orderId: string | number) {
+  window.dispatchEvent(
+    new CustomEvent('homswag:order-updated', { detail: { order_id: String(orderId) } })
+  )
+}
+
 /** Status progression for beautician */
 const NEXT_STATUS: Partial<
   Record<string, 'ongoing' | 'reached_customer_place' | 'started' | 'completed'>
@@ -86,7 +92,7 @@ export function useOrderDetail() {
     }
   }
 
-  async function advanceStatus(reason?: string, otp?: string): Promise<void> {
+  async function advanceStatus(reason?: string, otp?: string, skipProof?: boolean): Promise<void> {
     if (!order.value) return
     const next = NEXT_STATUS[order.value.status]
     if (!next) return
@@ -99,7 +105,9 @@ export function useOrderDetail() {
         status: next,
         status_reason: reason,
         otp,
+        skip_proof: skipProof,
       })
+      dispatchOrderUpdated(id)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update status'
     } finally {
@@ -118,6 +126,7 @@ export function useOrderDetail() {
 
       const id = order.value._id || order.value.id
       order.value = await uploadArrivalSelfieApi(id, formData)
+      dispatchOrderUpdated(id)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upload selfie'
@@ -142,6 +151,7 @@ export function useOrderDetail() {
 
       const id = order.value._id || order.value.id
       order.value = await uploadSetupPhotosApi(id, formData)
+      dispatchOrderUpdated(id)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upload setup photo'
@@ -170,6 +180,7 @@ export function useOrderDetail() {
     error.value = null
     try {
       order.value = await uploadSetupPhotosApi(id, formData)
+      dispatchOrderUpdated(id)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upload setup photos'
@@ -190,6 +201,7 @@ export function useOrderDetail() {
       formData.append('image', blob, `payment_proof_${id}_${Date.now()}.jpg`)
 
       order.value = await uploadPaymentProofApi(id, formData)
+      dispatchOrderUpdated(id)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to capture payment proof'
@@ -218,6 +230,7 @@ export function useOrderDetail() {
     error.value = null
     try {
       order.value = await uploadCompletionProofApi(id, formData)
+      dispatchOrderUpdated(id)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upload completion proof'
@@ -238,6 +251,7 @@ export function useOrderDetail() {
         status_reason: reason,
         otp,
       })
+      dispatchOrderUpdated(id)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to submit cancellation request'
     } finally {
@@ -253,6 +267,7 @@ export function useOrderDetail() {
       const id = order.value._id || order.value.id
       const result = await generateServiceOtpApi(id)
       order.value = await getOrderApi(id)
+      dispatchOrderUpdated(id)
       return result?.otp ?? null
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to generate OTP'
@@ -269,6 +284,7 @@ export function useOrderDetail() {
     try {
       const id = order.value._id || order.value.id
       order.value = await verifyServiceOtpApi(id, { otp })
+      dispatchOrderUpdated(id)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Invalid OTP'
@@ -285,6 +301,7 @@ export function useOrderDetail() {
     try {
       const id = order.value._id || order.value.id
       order.value = await upgradeOrderProductApi(id, body)
+      dispatchOrderUpdated(id)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upgrade product'
     } finally {
@@ -299,6 +316,7 @@ export function useOrderDetail() {
     try {
       const id = order.value._id || order.value.id
       order.value = await updateOrderApi(id, updates)
+      dispatchOrderUpdated(id)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update order'
     } finally {

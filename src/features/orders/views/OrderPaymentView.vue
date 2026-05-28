@@ -39,12 +39,24 @@
               <strong>₹{{ order.total ?? 0 }}</strong>
             </div>
             <div>
-              <p class="summary-label">Payment type</p>
-              <strong>{{ paymentTypeLabel }}</strong>
+              <p class="summary-label">Already prepaid</p>
+              <strong>{{ paymentPrepaidLabel }}</strong>
             </div>
             <div>
-              <p class="summary-label">Amount collected</p>
-              <strong>{{ formattedAmountPaid }}</strong>
+              <p class="summary-label">Amount due</p>
+              <strong>{{ remainingDueLabel }}</strong>
+            </div>
+            <div>
+              <p class="summary-label">Collected now</p>
+              <strong>{{ collectedNowLabel }}</strong>
+            </div>
+            <div>
+              <p class="summary-label">Total received</p>
+              <strong>{{ totalReceivedLabel }}</strong>
+            </div>
+            <div>
+              <p class="summary-label">Payment type</p>
+              <strong>{{ paymentTypeLabel }}</strong>
             </div>
           </div>
         </div>
@@ -57,9 +69,19 @@
             </p>
           </div>
           <div v-if="order && hasRemainingDue" class="payment-summary-note">
-            <p class="payment-note-title">Already prepaid</p>
-            <p class="payment-note-value">{{ paymentPrepaidLabel }}</p>
-            <p class="payment-note-description">Remaining amount due from customer: {{ remainingDueLabel }}</p>
+            <p class="payment-note-title">Payment breakdown</p>
+            <div class="payment-breakdown-row">
+              <span>Prepaid amount</span>
+              <strong>{{ paymentPrepaidLabel }}</strong>
+            </div>
+            <div v-if="prepaidMethodLabel" class="payment-breakdown-row">
+              <span>Prepaid via</span>
+              <strong>{{ prepaidMethodLabel }}</strong>
+            </div>
+            <div class="payment-breakdown-row">
+              <span>Collect from customer</span>
+              <strong>{{ remainingDueLabel }}</strong>
+            </div>
           </div>
           <div class="date-restriction-tip" v-if="!orderChangeAllowed && order" style="margin-bottom: 16px;">
             {{ orderDateRestrictionMessage }}
@@ -205,9 +227,6 @@ const {
 const paymentCodAmount = ref<number | null>(null)
 const paymentUpiAmount = ref<number | null>(null)
 const paymentTipAmount = ref<number | null>(null)
-const paymentCodTouched = ref(false)
-const paymentUpiTouched = ref(false)
-const syncingPaymentBreakdown = ref(false)
 const showGallery = ref(false)
 const activeImageUrl = ref('')
 
@@ -247,6 +266,22 @@ const hasUpiAmount = computed(
   () => Number(order.value?.payment?.upi_amount ?? 0) > 0 || paymentMethod.value.includes('upi')
 )
 const isPrepaidOrder = computed(() => remainingDue.value <= 0)
+const currentCollection = computed(
+  () =>
+    normalizePaymentValue(paymentCodAmount.value) + normalizePaymentValue(paymentUpiAmount.value)
+)
+const collectedNowLabel = computed(() => `₹${currentCollection.value}`)
+const totalReceivedLabel = computed(
+  () =>
+    `₹${prepaidAmount.value + currentCollection.value + normalizePaymentValue(paymentTipAmount.value)}`
+)
+const prepaidMethodLabel = computed(() => {
+  const method = order.value?.payment?.method?.toLowerCase() || ''
+  if (!method) return ''
+  if (method.includes('upi')) return 'UPI'
+  if (method.includes('cod')) return 'COD'
+  return order.value?.payment?.method?.toUpperCase() || ''
+})
 const actualUpiAmount = computed(() => Number(paymentUpiAmount.value ?? 0))
 const proofImages = computed(() => {
   if (!order.value) return []
@@ -265,7 +300,14 @@ const proofImages = computed(() => {
 const requiresProof = computed(() => !isPrepaidOrder.value && actualUpiAmount.value > 0)
 
 const paymentTypeLabel = computed(() => {
-  if (isPrepaidOrder.value) return 'Prepaid'
+  if (isPrepaidOrder.value && prepaidAmount.value > 0) {
+    return prepaidMethodLabel.value ? `Prepaid via ${prepaidMethodLabel.value}` : 'Prepaid'
+  }
+  if (!isPrepaidOrder.value && prepaidAmount.value > 0) {
+    return prepaidMethodLabel.value
+      ? `Partially prepaid via ${prepaidMethodLabel.value}`
+      : 'Partially prepaid'
+  }
   if (hasCodAmount.value && hasUpiAmount.value) return 'COD + UPI'
   if (hasUpiAmount.value) return 'UPI'
   if (hasCodAmount.value) return 'COD'
@@ -278,38 +320,13 @@ const remainingDueLabel = computed(() => {
   return `₹${remainingDue.value}`
 })
 
-const paymentPrepaidLabel = computed(() => {
-  if (!order.value) return '—'
-  return `₹${prepaidAmount.value}`
-})
+const paymentPrepaidLabel = computed(() => `₹${prepaidAmount.value}`)
 
 const hasRemainingDue = computed(() => remainingDue.value > 0)
 
 function normalizePaymentValue(value: unknown): number {
   const amount = Number(value)
   return Number.isFinite(amount) && amount >= 0 ? amount : 0
-}
-
-function syncPaymentBreakdown(changed: 'cod' | 'upi') {
-  if (syncingPaymentBreakdown.value || !order.value) return
-  syncingPaymentBreakdown.value = true
-  try {
-    const due = remainingDue.value
-    const codValue = normalizePaymentValue(paymentCodAmount.value)
-    const upiValue = normalizePaymentValue(paymentUpiAmount.value)
-
-    if (changed === 'cod') {
-      if (!paymentUpiTouched.value || upiValue === 0) {
-        paymentUpiAmount.value = Math.max(0, due - codValue)
-      }
-    } else {
-      if (!paymentCodTouched.value || codValue === 0) {
-        paymentCodAmount.value = Math.max(0, due - upiValue)
-      }
-    }
-  } finally {
-    syncingPaymentBreakdown.value = false
-  }
 }
 
 const formattedAmountPaid = computed(() => {
@@ -349,25 +366,9 @@ watch(
     paymentCodAmount.value = null
     paymentUpiAmount.value = null
     paymentTipAmount.value = value.payment?.tip ?? null
-    paymentCodTouched.value = false
-    paymentUpiTouched.value = false
   },
   { immediate: true }
 )
-
-watch(paymentCodAmount, value => {
-  if (value != null) {
-    paymentCodTouched.value = true
-    syncPaymentBreakdown('cod')
-  }
-})
-
-watch(paymentUpiAmount, value => {
-  if (value != null) {
-    paymentUpiTouched.value = true
-    syncPaymentBreakdown('upi')
-  }
-})
 
 function ensureTodayEditable(): boolean {
   if (!order.value) return false
@@ -428,10 +429,10 @@ async function handleCompleteOrder() {
       payment: {
         status: finalStatus,
         amount_paid: previousPrepaidAmount > 0 ? collectedTotal : codAmount + upiAmount + tipAmount,
-        cod_amount: codAmount || undefined,
-        upi_amount: upiAmount || undefined,
-        tip: tipAmount || undefined,
-        method: methodParts.length ? methodParts.join('+') : undefined,
+        cod_amount: codAmount,
+        upi_amount: upiAmount,
+        tip: tipAmount,
+        method: methodParts.join('+'),
       },
     })
     if (error.value) return
@@ -445,7 +446,7 @@ async function handleCompleteOrder() {
     if (error.value) return
   }
 
-  await advanceStatus()
+  await advanceStatus(undefined, undefined, true)
   if (!error.value) {
     showSuccess('Order completed successfully')
     router.replace({ name: 'OrderDetail', params: { id: orderId } })
@@ -501,8 +502,15 @@ onMounted(() => {
 }
 .summary-details {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 16px;
+}
+.payment-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
 }
 .status-pill {
   padding: 8px 12px;
