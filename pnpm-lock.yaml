@@ -11,12 +11,18 @@ importers:
       '@aejkatappaja/phantom-ui':
         specifier: ^0.10.1
         version: 0.10.1
+      '@capacitor-firebase/messaging':
+        specifier: ^8.2.0
+        version: 8.2.0(@capacitor/core@8.3.1)
       '@capacitor/android':
         specifier: ^8.3.3
         version: 8.3.3(@capacitor/core@8.3.1)
       '@capacitor/app':
         specifier: 8.1.0
         version: 8.1.0(@capacitor/core@8.3.1)
+      '@capacitor/background-runner':
+        specifier: ^3.0.0
+        version: 3.0.0(@capacitor/core@8.3.1)
       '@capacitor/camera':
         specifier: ^8.2.0
         version: 8.2.0(@capacitor/core@8.3.1)
@@ -686,6 +692,15 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@capacitor-firebase/messaging@8.2.0':
+    resolution: {integrity: sha512-zjgvBuJSFfaLVL1sU2zwg68J1nCl+wLvjCNUo5tQJyO8XilUXA0z99BKJx6S6/iSB3+zznxNeoX1Kx54bVpCtg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+      firebase: ^12.6.0
+    peerDependenciesMeta:
+      firebase:
+        optional: true
+
   '@capacitor/android@8.3.3':
     resolution: {integrity: sha512-Km7/voqtWVrN+qDHktoYb7DIliW+eakglH4jyT7C0dxODW/gDrMi19yC0ATNM2+rtaj3e2i46pgZ3A5UCa+44Q==}
     peerDependencies:
@@ -700,6 +715,11 @@ packages:
     resolution: {integrity: sha512-ohz/OUq61Y1Fc6aVSt0uDrUdeOA7oTH4pkWDbv/8I3UrPjH7oPkzYhShuDRUjekNp9RBi198VSFdt0CetpEOzw==}
     engines: {node: '>=10.3.0'}
     hasBin: true
+
+  '@capacitor/background-runner@3.0.0':
+    resolution: {integrity: sha512-BSUypHc9P7p8A8O7a686ifzUWq6W03n384C+WVpUrXHvwZdtpvm7gJO3NIXACb9mvYuKv+bh4CYv7YfB4rBIcg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@capacitor/camera@8.2.0':
     resolution: {integrity: sha512-hYfrT6xpL936qoEkIpJzSnb0fQCaTkOux1cXzGBfH8QLOGqr6gSLiWZlZz/fqMPmMKJMNRBqlTQkj5fuMhVZog==}
@@ -4733,6 +4753,10 @@ snapshots:
   '@biomejs/cli-win32-x64@2.3.11':
     optional: true
 
+  '@capacitor-firebase/messaging@8.2.0(@capacitor/core@8.3.1)':
+    dependencies:
+      '@capacitor/core': 8.3.1
+
   '@capacitor/android@8.3.3(@capacitor/core@8.3.1)':
     dependencies:
       '@capacitor/core': 8.3.1
@@ -4765,6 +4789,10 @@ snapshots:
       - react-native-b4a
       - supports-color
       - typescript
+
+  '@capacitor/background-runner@3.0.0(@capacitor/core@8.3.1)':
+    dependencies:
+      '@capacitor/core': 8.3.1
 
   '@capacitor/camera@8.2.0(@capacitor/core@8.3.1)':
     dependencies:

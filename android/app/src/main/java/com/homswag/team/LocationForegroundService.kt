@@ -1,4 +1,4 @@
-package io.ionic.starter
+package com.homswag.team
 
 import android.app.Notification
 import android.app.NotificationChannel

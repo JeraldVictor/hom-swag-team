@@ -27,7 +27,9 @@
 
 <script setup lang="ts">
 import { App } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { Icon } from '@iconify/vue'
 import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
@@ -39,9 +41,12 @@ import GlobalAlertBox from '@/shared/components/ui/GlobalAlertBox.vue'
 import { useGlobalAlerts } from '@/shared/composables/useGlobalAlerts'
 import { locationTracker } from '@/shared/composables/useLocationTracker'
 import { getIsOnline, useNetwork } from '@/shared/composables/useNetwork'
+import { useBackgroundRunner } from '@/shared/composables/useBackgroundRunner'
+import { useFcm } from '@/shared/composables/useFcm'
 import { usePermissions } from '@/shared/composables/usePermissions'
 import { useToast } from '@/shared/composables/useToast'
 import logo from '@/shared/images/HomSwagLogo.png'
+import { ENV } from '@/shared/lib/env'
 import { webSocketService } from '@/shared/lib/websocket.service'
 import type { RawNotification } from '@/shared/models/notification.model'
 import { useAppStore } from '@/shared/stores/app'
@@ -52,6 +57,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const { startListening } = useGlobalAlerts()
+const backgroundRunner = useBackgroundRunner()
+const fcm = useFcm()
 
 // Network state — reactive, shared singleton
 const { isOnline } = useNetwork()
@@ -94,6 +101,14 @@ async function finishBoot() {
   appStore.setPermissionsGranted(true)
   appStore.setBootPhase('ready')
 
+  // Sync the BFF API URL into CapacitorKV so the background runner knows
+  // where to poll. Token sync is handled inside authStore.restoreSession().
+  void backgroundRunner.syncApiUrl(ENV.VITE_BFF_API_URL)
+
+  // Create Android notification channels so the runner's local notifications
+  // use the device default tone + vibration (orders, trips, general).
+  void backgroundRunner.setupNotificationChannels()
+
   if (restored) {
     // Ensure socket is connected if we have a session
     if (authStore.accessToken) {
@@ -132,6 +147,8 @@ async function handlePermissionsGranted() {
 
 let appStateListener: PluginListenerHandle | null = null
 let apiLogoutListener: ((event: Event) => void) | null = null
+let backgroundRunnerListenerCleanup: (() => void) | null = null
+let fcmCleanup: (() => void) | null = null
 
 async function setupAppStateListener() {
   appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
@@ -174,6 +191,8 @@ onMounted(async () => {
   apiLogoutListener = async () => {
     console.warn('[App] API logout event received')
     locationTracker.stop()
+    fcmCleanup?.()
+    fcmCleanup = null
     await authStore.logout()
     await router.replace('/login')
   }
@@ -185,6 +204,38 @@ onMounted(async () => {
     notificationStore.addNotification(data)
 
     showToast(data.title || 'New notification', 'primary')
+
+    // Schedule a native local notification so it appears in the OS notification shade.
+    // Covers the case where the app is open or backgrounded with an active socket connection.
+    if (Capacitor.isNativePlatform()) {
+      const type = data.type || ''
+      let channelId = 'homswag_general'
+      if (type.includes('order') || type.includes('invoice')) channelId = 'homswag_orders'
+      else if (type.includes('trip')) channelId = 'homswag_trips'
+
+      // Strip HTML tags — notification body may contain rich text from TipTap
+      const rawBody = data.body || data.message || 'You have a new notification'
+      const plainBody = rawBody
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .trim()
+
+      const notifId = Math.abs(Date.now()) % 2147483647
+      void LocalNotifications.schedule({
+        notifications: [
+          {
+            id: notifId,
+            title: data.title || 'HomSwag',
+            body: plainBody || 'You have a new notification',
+            schedule: { at: new Date(Date.now() + 500) },
+            channelId,
+          },
+        ],
+      })
+    }
   })
 
   // Listen for order updates from admin / backend and notify active views
@@ -195,6 +246,22 @@ onMounted(async () => {
   // Start listening for high-priority alerts with sound/overlay
   startListening()
 
+  // Listen for taps on notifications scheduled by the background runner
+  backgroundRunnerListenerCleanup = await backgroundRunner.setupNotificationListener(
+    notificationId => {
+      console.log('[App] Background runner notification tapped, id:', notificationId)
+      // Navigate to the notifications view when user taps a background notification
+      void router.push('/notifications')
+    }
+  )
+
+  // Listen for taps on local notifications scheduled by the Socket.IO handler
+  if (Capacitor.isNativePlatform()) {
+    void LocalNotifications.addListener('localNotificationActionPerformed', () => {
+      void router.push('/notifications')
+    })
+  }
+
   await boot()
   await setupAppStateListener()
 })
@@ -204,12 +271,30 @@ onUnmounted(() => {
   if (apiLogoutListener) {
     window.removeEventListener('homswag:logout', apiLogoutListener)
   }
+  backgroundRunnerListenerCleanup?.()
+  fcmCleanup?.()
 })
 
 // Keep the store's isOnline in sync with the composable's reactive ref
 watch(isOnline, online => {
   appStore.setOnline(online)
 })
+
+// Initialise FCM only when the user is authenticated.
+// This ensures token registration never fires before login,
+// which would cause a 401 → logout event → boot loop.
+watch(
+  () => authStore.isAuthenticated,
+  async authenticated => {
+    if (authenticated) {
+      fcmCleanup = await fcm.init()
+    } else {
+      fcmCleanup?.()
+      fcmCleanup = null
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

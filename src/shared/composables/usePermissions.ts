@@ -20,6 +20,7 @@ import { Geolocation } from '@capacitor/geolocation'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import type { Ref } from 'vue'
 import { computed, readonly, ref } from 'vue'
+import { useBackgroundRunner } from '@/shared/composables/useBackgroundRunner'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -188,6 +189,10 @@ export function usePermissions(): UsePermissionsReturn {
       await requestLocation()
       await requestCamera()
       await requestNotifications()
+      // Request background runner notification permissions (needed for
+      // local notifications scheduled from the background runner on Android 13+).
+      const { requestPermissions: requestRunnerPermissions } = useBackgroundRunner()
+      await requestRunnerPermissions()
       // Re-read from the OS after all dialogs have closed — some Android versions
       // return stale state from requestPermissions() before the system fully registers the grant.
       await checkAll()

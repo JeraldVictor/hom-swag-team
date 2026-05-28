@@ -36,3 +36,4 @@ npm-debug.log*
 md-ig/
 .kiro/
 .playwright-mcp/
+android/app/google-services.json
