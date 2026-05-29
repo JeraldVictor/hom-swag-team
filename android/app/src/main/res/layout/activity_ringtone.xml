@@ -12,6 +12,17 @@
         android:gravity="center"
         android:orientation="vertical">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HOMSWAG ALERT"
+            android:textColor="#FFCC00"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.2"
+            android:layout_marginBottom="16dp"
+            android:gravity="center"/>
+
         <ImageView
             android:layout_width="80dp"
             android:layout_height="80dp"

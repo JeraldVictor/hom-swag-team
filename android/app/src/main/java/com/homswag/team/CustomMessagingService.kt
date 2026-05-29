@@ -92,12 +92,10 @@ class CustomMessagingService : MessagingService() {
 
         val notification = NotificationCompat.Builder(this, "homswag_ringtone")
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(title)
+            .setContentTitle("HomSwag Alert")
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            // fullScreenIntent: shows RingtoneActivity over the lock screen.
-            // On Android 14+ this requires USE_FULL_SCREEN_INTENT permission.
             .setFullScreenIntent(pendingIntent, true)
             .setAutoCancel(true)
             .setOngoing(true)

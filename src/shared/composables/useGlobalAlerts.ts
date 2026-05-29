@@ -3,8 +3,15 @@ import { webSocketService } from '@/shared/lib/websocket.service'
 import { markNotificationRead } from '@/shared/api/notifications.service'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/shared/stores/app'
-import { NativeAudio } from '@capacitor-community/native-audio'
-import { Capacitor } from '@capacitor/core'
+import { registerPlugin, Capacitor } from '@capacitor/core'
+
+interface AlarmPluginInterface {
+  playRingtone(): Promise<void>
+  stopRingtone(): Promise<void>
+}
+
+// Registered once at module level — zero overhead when unused
+const AlarmPlugin = registerPlugin<AlarmPluginInterface>('AlarmPlugin')
 
 export interface GlobalAlert {
   id: string
@@ -19,72 +26,40 @@ export interface GlobalAlert {
 const activeAlerts = ref<GlobalAlert[]>([])
 const seenAlertKeys = new Set<string>()
 
-// NativeAudio uses a string ID for the loaded asset
-const AUDIO_ASSET_ID = 'ringtone_alert'
-let audioPreloaded = false
-// Web/simulator fallback: HTML5 Audio element
+// Web/simulator fallback: HTML5 Audio element (created lazily)
 let webAudio: HTMLAudioElement | null = null
 
 export function useGlobalAlerts() {
   const router = useRouter()
   const appStore = useAppStore()
 
-  async function initAudio() {
+  async function playAlert() {
     if (!appStore.featureFlags.ringtone_alert) return
 
     if (Capacitor.isNativePlatform()) {
-      if (audioPreloaded) return
       try {
-        await NativeAudio.preload({
-          assetId: AUDIO_ASSET_ID,
-          assetPath: 'public/audio/alert.wav',
-          audioChannelNum: 1,
-          isUrl: false,
-        })
-        audioPreloaded = true
+        await AlarmPlugin.playRingtone()
       } catch (e) {
-        console.warn('Failed to preload NativeAudio:', e)
+        console.warn('[useGlobalAlerts] AlarmPlugin.playRingtone failed:', e)
       }
     } else {
-      // Web / simulator fallback
+      // Web / simulator fallback — HTML5 Audio on the default output
       if (!webAudio) {
         webAudio = new Audio('/audio/alert.wav')
         webAudio.loop = true
       }
-    }
-  }
-
-  async function playAlert() {
-    if (!appStore.featureFlags.ringtone_alert) return
-
-    await initAudio()
-
-    if (Capacitor.isNativePlatform()) {
-      if (!audioPreloaded) return
-      try {
-        // Guard against calling loop() when already looping — it would throw
-        const { isPlaying } = await NativeAudio.isPlaying({ assetId: AUDIO_ASSET_ID })
-        if (!isPlaying) {
-          await NativeAudio.loop({ assetId: AUDIO_ASSET_ID })
-        }
-      } catch (e) {
-        console.warn('Audio playback prevented or failed:', e)
+      if (webAudio.paused) {
+        webAudio.play().catch(e => console.warn('[useGlobalAlerts] Web audio play failed:', e))
       }
-    } else if (webAudio && webAudio.paused) {
-      webAudio.play().catch(e => console.warn('Web audio play failed:', e))
     }
   }
 
   async function stopAlert() {
     if (Capacitor.isNativePlatform()) {
-      if (!audioPreloaded) return
       try {
-        const { isPlaying } = await NativeAudio.isPlaying({ assetId: AUDIO_ASSET_ID })
-        if (isPlaying) {
-          await NativeAudio.stop({ assetId: AUDIO_ASSET_ID })
-        }
+        await AlarmPlugin.stopRingtone()
       } catch (e) {
-        console.warn('Failed to stop NativeAudio:', e)
+        console.warn('[useGlobalAlerts] AlarmPlugin.stopRingtone failed:', e)
       }
     } else if (webAudio && !webAudio.paused) {
       webAudio.pause()
@@ -109,10 +84,13 @@ export function useGlobalAlerts() {
 
     const resourceId =
       payload.order_id || payload.trip_id || payload.data?.order_id || payload.data?.trip_id
+    const notificationId = payload.id || payload.notification_id || payload.data?.notification_id
 
-    const key = resourceId
-      ? `${type}:${resourceId}`
-      : `${type}:${payload.id ?? `${payload.title ?? ''}:${payload.body ?? ''}`}`
+    const key = notificationId
+      ? String(notificationId)
+      : resourceId
+        ? `${type}:${resourceId}`
+        : `${type}:${payload.title ?? ''}:${payload.body ?? ''}`
 
     // Derive a display-friendly title from the type when none is provided.
     const fallbackTitle = type.includes('order_status_changed')
@@ -152,7 +130,7 @@ export function useGlobalAlerts() {
       title,
       body,
       data: payload.data ?? payload,
-      notificationId: payload.id,
+      notificationId: payload.id || payload.notification_id,
     }
   }
 
@@ -168,29 +146,31 @@ export function useGlobalAlerts() {
     }
 
     if (seenAlertKeys.has(alert.id)) {
-      console.log('[useGlobalAlerts] Alert already seen:', alert.id)
+      console.log('[useGlobalAlerts] Alert already shown in this session:', alert.id)
       return
     }
     seenAlertKeys.add(alert.id)
 
     console.log('[useGlobalAlerts] Showing Global Alert Box:', alert.title)
     activeAlerts.value.push(alert)
-    // Audio is managed by the watch below — no direct playAlert() call here to avoid double-trigger
+    void playAlert()
   }
-
-  // Watch for alerts queue changes to stop audio if queue is empty
-  watch(
-    () => activeAlerts.value.length,
-    newLength => {
-      if (newLength === 0) stopAlert()
-      else playAlert()
-    },
-    { immediate: true }
-  )
 
   async function dismissAlert(id: string) {
     activeAlerts.value = activeAlerts.value.filter(a => a.id !== id)
+    if (seenAlertKeys.has(id)) {
+      seenAlertKeys.delete(id)
+      console.log('[useGlobalAlerts] Removed alert key for reuse:', id)
+    }
   }
+
+  // Stop audio as soon as the last alert is dismissed
+  watch(
+    () => activeAlerts.value.length,
+    newLength => {
+      if (newLength === 0) void stopAlert()
+    }
+  )
 
   async function viewAlert(id: string, type: string, data: any) {
     console.log('[useGlobalAlerts] Viewing alert:', { id, type, data })

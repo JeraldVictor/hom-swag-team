@@ -80,11 +80,13 @@ class RingtoneActivity : Activity() {
             val mainIntent = Intent(this, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
                 data = Uri.parse(deepLink)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra("skip_splash", true)
                 // Also forward raw extras as a fallback for any existing intent handlers.
                 intent.extras?.let { putExtras(it) }
             }
             startActivity(mainIntent)
+            overridePendingTransition(0, 0)
             finish()
         }
 

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" tools:node="merge" />
+    <uses-permission android:name="android.permission.VIBRATE" tools:node="merge" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" tools:node="merge" />
+
+    <application tools:node="merge">
+        <activity
+            android:name=".MainActivity"
+            tools:node="merge">
+            <intent-filter tools:node="merge">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="homswag-team" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".CustomMessagingService"
+            android:exported="true"
+            android:stopWithTask="false"
+            tools:node="merge">
+            <intent-filter android:priority="1" tools:node="merge">
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".RingtoneActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            tools:node="merge" />
+    </application>
+</manifest>
