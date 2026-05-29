@@ -34,8 +34,14 @@ export function useGlobalAlerts() {
   const appStore = useAppStore()
 
   async function playAlert() {
-    if (!appStore.featureFlags.ringtone_alert) return
+    // Only return early if the flag is explicitly set to false.
+    // If it's undefined (e.g. config not loaded), we default to TRUE for safety.
+    if (appStore.featureFlags.ringtone_alert === false) {
+      console.log('[useGlobalAlerts] Ringtone alert disabled by feature flag')
+      return
+    }
 
+    console.log('[useGlobalAlerts] Playing ringtone alert...')
     if (Capacitor.isNativePlatform()) {
       try {
         await AlarmPlugin.playRingtone()
@@ -55,6 +61,7 @@ export function useGlobalAlerts() {
   }
 
   async function stopAlert() {
+    console.log('[useGlobalAlerts] Stopping ringtone alert')
     if (Capacitor.isNativePlatform()) {
       try {
         await AlarmPlugin.stopRingtone()
@@ -71,7 +78,7 @@ export function useGlobalAlerts() {
     payload: any,
     defaultType: 'order_assigned' | 'trip_assigned' | 'ringtone_alert' | null = null
   ) {
-    const rawType = payload.type || defaultType
+    const rawType = payload.type || payload.data?.type || defaultType
     if (!rawType) return null
 
     const type = String(rawType).toLowerCase()
@@ -83,8 +90,22 @@ export function useGlobalAlerts() {
     if (!isOrder && !isTrip && !isAlert) return null
 
     const resourceId =
-      payload.order_id || payload.trip_id || payload.data?.order_id || payload.data?.trip_id
-    const notificationId = payload.id || payload.notification_id || payload.data?.notification_id
+      payload.order_id ||
+      payload.orderId ||
+      payload.trip_id ||
+      payload.tripId ||
+      payload.data?.order_id ||
+      payload.data?.orderId ||
+      payload.data?.trip_id ||
+      payload.data?.tripId
+
+    const notificationId =
+      payload.id ||
+      payload.notification_id ||
+      payload.notificationId ||
+      payload.data?.id ||
+      payload.data?.notification_id ||
+      payload.data?.notificationId
 
     const key = notificationId
       ? String(notificationId)

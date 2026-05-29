@@ -171,19 +171,34 @@ async function setupAppStateListener() {
 onMounted(async () => {
   void import('@aejkatappaja/phantom-ui')
 
-  // Handle deep-links from RingtoneActivity (homswag-team://navigate/...)
-  // This fires when the user taps "View Details" on the native alarm UI and the
-  // app is brought to the foreground (or cold-started) via the intent URL.
+  // Handle deep-links from RingtoneActivity or Push Notifications (homswag-team://...)
+  // This fires when the user taps "View Details" on the native alarm UI or clicks
+  // a high-priority push notification, bringing the app to the foreground.
   void App.addListener('appUrlOpen', (event: { url: string }) => {
     const url = event.url
     console.log('[App] appUrlOpen:', url)
     try {
-      // homswag-team://navigate/orders/<id>
-      // homswag-team://navigate/trips/<id>
-      // homswag-team://navigate/notifications
-      const path = url.replace(/^homswag-team:\/\/navigate/, '')
-      if (path && path !== '/') {
-        void router.push(path)
+      if (url.startsWith('homswag-team://alert')) {
+        // homswag-team://alert?type=order_assigned&order_id=123
+        const urlObj = new URL(url.replace('homswag-team://', 'http://'))
+        const params = Object.fromEntries(
+          Array.from(urlObj.searchParams as unknown as Iterable<readonly [string, string]>)
+        )
+
+        // Ensure both cases are present for downstream consumers
+        if (params.order_id && !params.orderId) params.orderId = params.order_id
+        if (params.trip_id && !params.tripId) params.tripId = params.trip_id
+
+        console.log('[App] Alert deep-link detected:', params)
+        handleNewNotification(params)
+        return
+      }
+
+      if (url.startsWith('homswag-team://navigate')) {
+        const path = url.replace('homswag-team://navigate', '')
+        if (path && path !== '/') {
+          void router.push(path)
+        }
       }
     } catch (e) {
       console.warn('[App] appUrlOpen navigation error:', e)
@@ -229,7 +244,7 @@ onMounted(async () => {
     const notificationStore = useNotificationStore()
     notificationStore.addNotification(data)
 
-    const rawType = data.type || ''
+    const rawType = data.type || data.data?.type || ''
     const type = String(rawType).toLowerCase()
 
     // 2. Check if it's a high-priority alert (Ringtone/Order/Trip assigned or updated)
@@ -243,7 +258,8 @@ onMounted(async () => {
     if (isHighPriority) {
       console.log('[App] Triggering high-priority Global Alert UI for type:', type)
       handleNewNotification(data)
-      // Return early: the overlay handles sound and UI
+      // Return early: the overlay handles sound and UI.
+      // Crucially, we skip the standard toast and local notification.
       return
     }
 
@@ -292,6 +308,22 @@ onMounted(async () => {
       console.log('[App] Background runner notification tapped, id:', notificationId)
       // The event from background runner may include `notification` or `extras` directly
       const data = event?.notification?.extra || event?.extra || event?.data || {}
+      const rawType = data?.type || ''
+      const type = String(rawType).toLowerCase()
+
+      const isHighPriority =
+        type.includes('ringtone_alert') ||
+        type.includes('order_assigned') ||
+        type.includes('order_status_changed') ||
+        type.includes('trip_assigned') ||
+        type.includes('trip_status_changed')
+
+      if (isHighPriority) {
+        console.log('[App] High-priority background tap detected, triggering Global Alert UI')
+        handleNewNotification(data)
+        return
+      }
+
       if (data?.order_id || data?.orderId) {
         const id = data.order_id || data.orderId
         void router.push(`/orders/${id}`)

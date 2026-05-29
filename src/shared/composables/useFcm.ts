@@ -18,6 +18,7 @@ import { FirebaseMessaging } from '@capacitor-firebase/messaging'
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { useRouter } from 'vue-router'
+import { useGlobalAlerts } from './useGlobalAlerts'
 import apiClient from '@/shared/lib/api'
 import webSocketService from '@/shared/lib/websocket.service'
 
@@ -55,6 +56,7 @@ function channelIdForType(type?: string): string {
 
 export function useFcm() {
   const router = useRouter()
+  const { handleNewNotification } = useGlobalAlerts()
 
   /**
    * Request permission and return the FCM registration token.
@@ -130,7 +132,21 @@ export function useFcm() {
         }
 
         const { title, body, data } = event.notification
-        const type = (data as Record<string, string> | undefined)?.type
+        const type = String((data as Record<string, string> | undefined)?.type || '').toLowerCase()
+
+        const isHighPriority =
+          type.includes('ringtone_alert') ||
+          type.includes('order_assigned') ||
+          type.includes('order_status_changed') ||
+          type.includes('trip_assigned') ||
+          type.includes('trip_status_changed')
+
+        if (isHighPriority) {
+          console.log('[FCM] High-priority foreground message, triggering Global Alert UI')
+          handleNewNotification(data)
+          return
+        }
+
         const channelId = channelIdForType(type)
         const plainBody = body ? stripHtml(body) : 'You have a new notification'
         const notifId = Math.abs(Date.now()) % 2147483647
@@ -155,8 +171,30 @@ export function useFcm() {
     )
 
     // 3. Notification tap (app open / backgrounded → foreground)
-    const tapHandle = await FirebaseMessaging.addListener('notificationActionPerformed', _event => {
-      void router.push('/notifications')
+    const tapHandle = await FirebaseMessaging.addListener('notificationActionPerformed', event => {
+      const data = event.notification.data as any
+      const type = (data?.type || '').toLowerCase()
+
+      const isHighPriority =
+        type.includes('ringtone_alert') ||
+        type.includes('order_assigned') ||
+        type.includes('order_status_changed') ||
+        type.includes('trip_assigned') ||
+        type.includes('trip_status_changed')
+
+      if (isHighPriority) {
+        console.log('[FCM] High-priority tap detected, triggering Global Alert UI')
+        handleNewNotification(data)
+        return
+      }
+
+      if (data?.order_id || data?.orderId) {
+        void router.push(`/orders/${data.order_id || data.orderId}`)
+      } else if (data?.trip_id || data?.tripId) {
+        void router.push(`/trips/${data.trip_id || data.tripId}`)
+      } else {
+        void router.push('/notifications')
+      }
     })
 
     // 4. Token refresh — re-register updated token

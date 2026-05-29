@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -42,6 +43,12 @@ class CustomMessagingService : MessagingService() {
         val isRingtoneChannel = channelId != null && channelId == "homswag_ringtone"
 
         if (isRingtoneType || isRingtoneChannel) {
+            // Check if app is in foreground. If so, Socket.IO in App.vue handles the UI.
+            // Posting a notification here would cause a duplicate card in the drawer.
+            if (isAppInForeground()) {
+                Log.d(TAG, "App is in foreground — skipping native notification (Socket.IO will handle it)")
+                return
+            }
             Log.d(TAG, "High-priority match — triggering RingtoneActivity via FullScreenIntent")
             showRingtoneNotification(data)
         } else {
@@ -50,26 +57,55 @@ class CustomMessagingService : MessagingService() {
         }
     }
 
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        val packageName = packageName
+        for (appProcess in appProcesses) {
+            if (appProcess.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                appProcess.processName == packageName) {
+                return true
+            }
+        }
+        return false
+    }
+
     private fun showRingtoneNotification(data: Map<String, String>) {
         val title = data["title"] ?: "Incoming Alert"
         val body  = data["body"]  ?: "You have a new important notification."
 
-        // Intent that launches RingtoneActivity (the full-screen alarm UI).
+        // 1. FullScreenIntent (RingtoneActivity) — the automatic native popup/alarm.
         val ringtoneIntent = Intent(this, RingtoneActivity::class.java).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP
             )
-            // Forward all data payload fields so RingtoneActivity can display
-            // the correct title/body and pass type+id back to MainActivity.
+            for ((key, value) in data) {
+                putExtra(key, value)
+            }
+        }
+
+        // 2. ContentIntent (MainActivity) — when the user explicitly CLICKS the notification tray.
+        // We use a deep-link URL so App.vue can handle it and trigger GlobalAlertBox.
+        val type    = data["type"] ?: ""
+        val orderId = data["order_id"] ?: data["orderId"] ?: ""
+        val tripId  = data["trip_id"]  ?: data["tripId"] ?: ""
+        val deepLink = "homswag-team://alert?type=$type&order_id=$orderId&trip_id=$tripId"
+
+        val mainIntent = Intent(this, MainActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            this.data = Uri.parse(deepLink)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra("skip_splash", true)
             for ((key, value) in data) {
                 putExtra(key, value)
             }
         }
 
         val pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        val pendingIntent = PendingIntent.getActivity(this, 0, ringtoneIntent, pendingFlags)
+        val fullScreenPendingIntent = PendingIntent.getActivity(this, 1, ringtoneIntent, pendingFlags)
+        val contentPendingIntent    = PendingIntent.getActivity(this, 2, mainIntent, pendingFlags)
 
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -82,7 +118,6 @@ class CustomMessagingService : MessagingService() {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Incoming trip and order alerts"
-                // Silence the channel — RingtoneActivity uses ALARM audio directly.
                 setSound(null, null)
                 enableVibration(false)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
@@ -96,7 +131,8 @@ class CustomMessagingService : MessagingService() {
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setFullScreenIntent(pendingIntent, true)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setContentIntent(contentPendingIntent)
             .setAutoCancel(true)
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

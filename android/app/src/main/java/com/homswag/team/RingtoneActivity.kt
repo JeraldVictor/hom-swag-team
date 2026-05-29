@@ -71,11 +71,9 @@ class RingtoneActivity : Activity() {
             val type    = intent.getStringExtra("type") ?: ""
             val orderId = intent.getStringExtra("order_id") ?: ""
             val tripId  = intent.getStringExtra("trip_id")  ?: ""
-            val deepLink = when {
-                orderId.isNotEmpty() -> "homswag-team://navigate/orders/$orderId"
-                tripId.isNotEmpty()  -> "homswag-team://navigate/trips/$tripId"
-                else                 -> "homswag-team://navigate/notifications"
-            }
+            
+            // Use the "alert" path so App.vue triggers the GlobalAlertBox for consistency.
+            val deepLink = "homswag-team://alert?type=$type&order_id=$orderId&trip_id=$tripId"
 
             val mainIntent = Intent(this, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW

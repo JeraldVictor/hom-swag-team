@@ -37,6 +37,7 @@ function stopCountdown(alertId: string) {
 watch(
   () => activeAlerts.value.map(a => a.id),
   (newIds, oldIds = []) => {
+    console.log('[GlobalAlertBox] activeAlerts changed:', newIds)
     const added = newIds.filter(id => !oldIds.includes(id))
     const removed = oldIds.filter(id => !newIds.includes(id))
     added.forEach(startCountdown)
