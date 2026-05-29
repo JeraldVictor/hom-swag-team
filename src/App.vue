@@ -119,6 +119,14 @@ async function finishBoot() {
       // Fetch server config for feature flags
       await appStore.fetchConfig()
 
+      // Handle real-time feature flag updates
+      webSocketService.on('feature_flag:updated', () => {
+        appStore.fetchConfig()
+      })
+      webSocketService.on('feature_flag:deleted', (data: { key: string }) => {
+        appStore.removeFeatureFlag(data.key)
+      })
+
       // Fetch initial notifications
       const notificationStore = useNotificationStore()
       void notificationStore.fetchNotifications()

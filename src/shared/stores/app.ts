@@ -79,10 +79,30 @@ export const useAppStore = defineStore('app', () => {
   async function fetchConfig(): Promise<void> {
     try {
       const apiClient = (await import('@/shared/lib/api')).default
-      const { data } = await apiClient.get<{ data: AppConfig }>('/config')
-      config.value = data.data
+      // Fetch general config and feature flags in parallel
+      const [{ data: configData }, { data: flagsData }] = await Promise.all([
+        apiClient.get<{ data: AppConfig }>('/config'),
+        apiClient.get<Record<string, boolean>>('/feature-flags'),
+      ])
+
+      config.value = {
+        ...configData.data,
+        feature_flags: flagsData,
+      }
     } catch (e) {
       console.error('[AppStore] Failed to fetch app config:', e)
+    }
+  }
+
+  function updateFeatureFlag(key: string, enabled: boolean): void {
+    if (config.value) {
+      config.value.feature_flags[key] = enabled
+    }
+  }
+
+  function removeFeatureFlag(key: string): void {
+    if (config.value) {
+      delete config.value.feature_flags[key]
     }
   }
 
@@ -97,5 +117,7 @@ export const useAppStore = defineStore('app', () => {
     setPermissionsGranted,
     setBootPhase,
     fetchConfig,
+    updateFeatureFlag,
+    removeFeatureFlag,
   }
 })
