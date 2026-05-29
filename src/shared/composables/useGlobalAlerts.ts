@@ -2,6 +2,9 @@ import { ref, watch } from 'vue'
 import { webSocketService } from '@/shared/lib/websocket.service'
 import { markNotificationRead } from '@/shared/api/notifications.service'
 import { useRouter } from 'vue-router'
+import { useAppStore } from '@/shared/stores/app'
+import { NativeAudio } from '@capacitor-community/native-audio'
+import { Capacitor } from '@capacitor/core'
 
 export interface GlobalAlert {
   id: string
@@ -15,55 +18,94 @@ export interface GlobalAlert {
 // Shared state so that any component using this composable gets the same alerts
 const activeAlerts = ref<GlobalAlert[]>([])
 const seenAlertKeys = new Set<string>()
-let audio: HTMLAudioElement | null = null
-let audioUnlocked = false
+
+// NativeAudio uses a string ID for the loaded asset
+const AUDIO_ASSET_ID = 'ringtone_alert'
+let audioPreloaded = false
+// Web/simulator fallback: HTML5 Audio element
+let webAudio: HTMLAudioElement | null = null
 
 export function useGlobalAlerts() {
   const router = useRouter()
+  const appStore = useAppStore()
 
-  function initAudio() {
-    if (typeof window === 'undefined' || audio) return
+  async function initAudio() {
+    if (!appStore.featureFlags.ringtone_alert) return
 
-    audio = new Audio('/audio/alert.wav')
-    audio.loop = true
-    audio.preload = 'auto'
-
-    const unlockAudio = () => {
-      if (!audio || audioUnlocked) return
-
-      const currentAudio = audio
-      currentAudio
-        .play()
-        .then(() => {
-          currentAudio.pause()
-          currentAudio.currentTime = 0
-          audioUnlocked = true
+    if (Capacitor.isNativePlatform()) {
+      if (audioPreloaded) return
+      try {
+        await NativeAudio.preload({
+          assetId: AUDIO_ASSET_ID,
+          assetPath: 'public/audio/alert.wav',
+          audioChannelNum: 1,
+          isUrl: false,
         })
-        .catch(() => {
-          // Ignore autoplay restrictions until the next user gesture.
-        })
-    }
-
-    window.addEventListener('pointerdown', unlockAudio, { once: true, passive: true })
-  }
-
-  function playAlert() {
-    initAudio()
-    if (audio) {
-      audio.play().catch(e => console.warn('Audio playback prevented by browser policy:', e))
+        audioPreloaded = true
+      } catch (e) {
+        console.warn('Failed to preload NativeAudio:', e)
+      }
+    } else {
+      // Web / simulator fallback
+      if (!webAudio) {
+        webAudio = new Audio('/audio/alert.wav')
+        webAudio.loop = true
+      }
     }
   }
 
-  function stopAlert() {
-    if (audio) {
-      audio.pause()
-      audio.currentTime = 0
+  async function playAlert() {
+    if (!appStore.featureFlags.ringtone_alert) return
+
+    await initAudio()
+
+    if (Capacitor.isNativePlatform()) {
+      if (!audioPreloaded) return
+      try {
+        // Guard against calling loop() when already looping — it would throw
+        const { isPlaying } = await NativeAudio.isPlaying({ assetId: AUDIO_ASSET_ID })
+        if (!isPlaying) {
+          await NativeAudio.loop({ assetId: AUDIO_ASSET_ID })
+        }
+      } catch (e) {
+        console.warn('Audio playback prevented or failed:', e)
+      }
+    } else if (webAudio && webAudio.paused) {
+      webAudio.play().catch(e => console.warn('Web audio play failed:', e))
     }
   }
 
-  function buildAlert(payload: any, defaultType: 'order_assigned' | 'trip_assigned' | null = null) {
-    const type = payload.type || defaultType
-    if (type !== 'order_assigned' && type !== 'trip_assigned') return null
+  async function stopAlert() {
+    if (Capacitor.isNativePlatform()) {
+      if (!audioPreloaded) return
+      try {
+        const { isPlaying } = await NativeAudio.isPlaying({ assetId: AUDIO_ASSET_ID })
+        if (isPlaying) {
+          await NativeAudio.stop({ assetId: AUDIO_ASSET_ID })
+        }
+      } catch (e) {
+        console.warn('Failed to stop NativeAudio:', e)
+      }
+    } else if (webAudio && !webAudio.paused) {
+      webAudio.pause()
+      webAudio.currentTime = 0
+    }
+  }
+
+  function buildAlert(
+    payload: any,
+    defaultType: 'order_assigned' | 'trip_assigned' | 'ringtone_alert' | null = null
+  ) {
+    const rawType = payload.type || defaultType
+    if (!rawType) return null
+
+    const type = String(rawType).toLowerCase()
+
+    const isOrder = type.includes('order_assigned') || type.includes('order_status_changed')
+    const isTrip = type.includes('trip_assigned') || type.includes('trip_status_changed')
+    const isAlert = type.includes('ringtone_alert')
+
+    if (!isOrder && !isTrip && !isAlert) return null
 
     const resourceId =
       payload.order_id || payload.trip_id || payload.data?.order_id || payload.data?.trip_id
@@ -71,19 +113,42 @@ export function useGlobalAlerts() {
     const key = resourceId
       ? `${type}:${resourceId}`
       : `${type}:${payload.id ?? `${payload.title ?? ''}:${payload.body ?? ''}`}`
-    const title =
-      payload.title || (type === 'order_assigned' ? 'New Order Assigned' : 'New Trip Assigned')
-    const body =
-      payload.body ||
-      (type === 'order_assigned'
-        ? payload.order_number
-          ? `You have been assigned to order #${payload.order_number}.`
-          : 'You have been assigned to a new order.'
-        : 'You have been assigned to a new trip.')
+
+    // Derive a display-friendly title from the type when none is provided.
+    const fallbackTitle = type.includes('order_status_changed')
+      ? 'Order Update'
+      : type.includes('trip_status_changed')
+        ? 'Trip Update'
+        : isOrder
+          ? 'New Order Assigned'
+          : isTrip
+            ? 'New Trip Assigned'
+            : 'Alert Notification'
+
+    const fallbackBody = type.includes('order_status_changed')
+      ? payload.order_number
+        ? `Order #${payload.order_number} has been updated.`
+        : 'An order assigned to you has been updated.'
+      : type.includes('trip_status_changed')
+        ? 'A trip assigned to you has been updated.'
+        : isOrder
+          ? payload.order_number
+            ? `You have been assigned to order #${payload.order_number}.`
+            : 'You have been assigned to a new order.'
+          : isTrip
+            ? 'You have been assigned to a new trip.'
+            : 'You have a new important alert.'
+
+    const title = payload.title || fallbackTitle
+    const body = payload.body || fallbackBody
+
+    // Normalise to the canonical alert type so GlobalAlertBox renders the
+    // correct icon/colour for both "assigned" and "status_changed" variants.
+    const alertType = isOrder ? 'order_assigned' : isTrip ? 'trip_assigned' : 'ringtone_alert'
 
     return {
       id: key,
-      type,
+      type: alertType,
       title,
       body,
       data: payload.data ?? payload,
@@ -93,16 +158,24 @@ export function useGlobalAlerts() {
 
   function handleNewNotification(
     payload: any,
-    defaultType: 'order_assigned' | 'trip_assigned' | null = null
+    defaultType: 'order_assigned' | 'trip_assigned' | 'ringtone_alert' | null = null
   ) {
+    console.log('[useGlobalAlerts] New notification received:', payload)
     const alert = buildAlert(payload, defaultType)
-    if (!alert) return
+    if (!alert) {
+      console.log('[useGlobalAlerts] Notification type ignored by GlobalAlerts')
+      return
+    }
 
-    if (seenAlertKeys.has(alert.id)) return
+    if (seenAlertKeys.has(alert.id)) {
+      console.log('[useGlobalAlerts] Alert already seen:', alert.id)
+      return
+    }
     seenAlertKeys.add(alert.id)
 
+    console.log('[useGlobalAlerts] Showing Global Alert Box:', alert.title)
     activeAlerts.value.push(alert)
-    playAlert()
+    // Audio is managed by the watch below — no direct playAlert() call here to avoid double-trigger
   }
 
   // Watch for alerts queue changes to stop audio if queue is empty
@@ -120,6 +193,7 @@ export function useGlobalAlerts() {
   }
 
   async function viewAlert(id: string, type: string, data: any) {
+    console.log('[useGlobalAlerts] Viewing alert:', { id, type, data })
     const alert = activeAlerts.value.find(a => a.id === id)
 
     if (alert?.notificationId) {
@@ -132,22 +206,27 @@ export function useGlobalAlerts() {
 
     await dismissAlert(id)
 
-    if (type === 'trip_assigned' && data?.trip_id) {
-      router.push(`/trips/${data.trip_id}`)
-    } else if (type === 'order_assigned' && data?.order_id) {
-      router.push(`/orders/${data.order_id}`)
+    const resourceId = data?.order_id || data?.orderId || data?.trip_id || data?.tripId
+
+    if ((type.includes('trip') || type.includes('rider')) && resourceId) {
+      void router.push(`/trips/${resourceId}`)
+    } else if ((type.includes('order') || type.includes('beautician')) && resourceId) {
+      void router.push(`/orders/${resourceId}`)
+    } else {
+      void router.push('/notifications')
     }
   }
 
-  // Starts listening to the global notification event(s)
-  function startListening() {
-    return webSocketService.on('notification:new', payload => handleNewNotification(payload))
+  // starts the high-priority ringtone audio
+  async function triggerAudio() {
+    await playAlert()
   }
 
   return {
     activeAlerts,
     dismissAlert,
     viewAlert,
-    startListening,
+    handleNewNotification,
+    triggerAudio,
   }
 }

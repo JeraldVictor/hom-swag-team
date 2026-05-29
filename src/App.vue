@@ -56,7 +56,7 @@ import { useNotificationStore } from '@/shared/stores/notification'
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
-const { startListening } = useGlobalAlerts()
+const { handleNewNotification } = useGlobalAlerts()
 const backgroundRunner = useBackgroundRunner()
 const fcm = useFcm()
 
@@ -115,6 +115,10 @@ async function finishBoot() {
       webSocketService.connect(authStore.accessToken)
       // Start background location tracking if enabled
       void locationTracker.start()
+
+      // Fetch server config for feature flags
+      await appStore.fetchConfig()
+
       // Fetch initial notifications
       const notificationStore = useNotificationStore()
       void notificationStore.fetchNotifications()
@@ -167,6 +171,25 @@ async function setupAppStateListener() {
 onMounted(async () => {
   void import('@aejkatappaja/phantom-ui')
 
+  // Handle deep-links from RingtoneActivity (homswag-team://navigate/...)
+  // This fires when the user taps "View Details" on the native alarm UI and the
+  // app is brought to the foreground (or cold-started) via the intent URL.
+  void App.addListener('appUrlOpen', (event: { url: string }) => {
+    const url = event.url
+    console.log('[App] appUrlOpen:', url)
+    try {
+      // homswag-team://navigate/orders/<id>
+      // homswag-team://navigate/trips/<id>
+      // homswag-team://navigate/notifications
+      const path = url.replace(/^homswag-team:\/\/navigate/, '')
+      if (path && path !== '/') {
+        void router.push(path)
+      }
+    } catch (e) {
+      console.warn('[App] appUrlOpen navigation error:', e)
+    }
+  })
+
   // Listen for force logout events from the server (e.g. account deactivated/blocked)
   webSocketService.on('force_logout', async (data: { reason?: string }) => {
     console.warn('[App] Force logout received:', data.reason)
@@ -198,22 +221,41 @@ onMounted(async () => {
   }
   window.addEventListener('homswag:logout', apiLogoutListener)
 
-  // Listen for new notifications
+  // Unified listener for new notifications
   webSocketService.on('notification:new', (data: RawNotification) => {
+    console.log('[App] Notification received via Socket:', data)
+
+    // 1. Update the local store
     const notificationStore = useNotificationStore()
     notificationStore.addNotification(data)
 
+    const rawType = data.type || ''
+    const type = String(rawType).toLowerCase()
+
+    // 2. Check if it's a high-priority alert (Ringtone/Order/Trip assigned or updated)
+    const isHighPriority =
+      type.includes('ringtone_alert') ||
+      type.includes('order_assigned') ||
+      type.includes('order_status_changed') ||
+      type.includes('trip_assigned') ||
+      type.includes('trip_status_changed')
+
+    if (isHighPriority) {
+      console.log('[App] Triggering high-priority Global Alert UI for type:', type)
+      handleNewNotification(data)
+      // Return early: the overlay handles sound and UI
+      return
+    }
+
+    // 3. Normal notification - show toast
     showToast(data.title || 'New notification', 'primary')
 
-    // Schedule a native local notification so it appears in the OS notification shade.
-    // Covers the case where the app is open or backgrounded with an active socket connection.
+    // 4. Local notification fallback for foreground/background transition
     if (Capacitor.isNativePlatform()) {
-      const type = data.type || ''
       let channelId = 'homswag_general'
       if (type.includes('order') || type.includes('invoice')) channelId = 'homswag_orders'
       else if (type.includes('trip')) channelId = 'homswag_trips'
 
-      // Strip HTML tags — notification body may contain rich text from TipTap
       const rawBody = data.body || data.message || 'You have a new notification'
       const plainBody = rawBody
         .replace(/<[^>]*>/g, '')
@@ -229,9 +271,10 @@ onMounted(async () => {
           {
             id: notifId,
             title: data.title || 'HomSwag',
-            body: plainBody || 'You have a new notification',
-            schedule: { at: new Date(Date.now() + 500) },
+            body: plainBody,
+            schedule: { at: new Date(Date.now() + 100) },
             channelId,
+            extra: data.data || data,
           },
         ],
       })
@@ -243,22 +286,37 @@ onMounted(async () => {
     window.dispatchEvent(new CustomEvent('homswag:order-updated', { detail: data }))
   })
 
-  // Start listening for high-priority alerts with sound/overlay
-  startListening()
-
   // Listen for taps on notifications scheduled by the background runner
   backgroundRunnerListenerCleanup = await backgroundRunner.setupNotificationListener(
-    notificationId => {
+    (notificationId, event) => {
       console.log('[App] Background runner notification tapped, id:', notificationId)
-      // Navigate to the notifications view when user taps a background notification
-      void router.push('/notifications')
+      // The event from background runner may include `notification` or `extras` directly
+      const data = event?.notification?.extra || event?.extra || event?.data || {}
+      if (data?.order_id || data?.orderId) {
+        const id = data.order_id || data.orderId
+        void router.push(`/orders/${id}`)
+      } else if (data?.trip_id || data?.tripId) {
+        const id = data.trip_id || data.tripId
+        void router.push(`/trips/${id}`)
+      } else {
+        void router.push('/notifications')
+      }
     }
   )
 
   // Listen for taps on local notifications scheduled by the Socket.IO handler
   if (Capacitor.isNativePlatform()) {
-    void LocalNotifications.addListener('localNotificationActionPerformed', () => {
-      void router.push('/notifications')
+    void LocalNotifications.addListener('localNotificationActionPerformed', event => {
+      const data = event.notification.extra
+      if (data?.order_id || data?.orderId) {
+        const id = data.order_id || data.orderId
+        void router.push(`/orders/${id}`)
+      } else if (data?.trip_id || data?.tripId) {
+        const id = data.trip_id || data.tripId
+        void router.push(`/trips/${id}`)
+      } else {
+        void router.push('/notifications')
+      }
     })
   }
 

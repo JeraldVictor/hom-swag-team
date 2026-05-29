@@ -144,6 +144,7 @@ export function useFcm() {
                 body: plainBody,
                 schedule: { at: new Date(Date.now() + 300) },
                 channelId,
+                extra: data,
               },
             ],
           })

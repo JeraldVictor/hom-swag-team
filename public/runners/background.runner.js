@@ -48,6 +48,7 @@ function stripHtml(str) {
 function channelIdForType(type) {
   if (!type) return 'homswag_general';
   var t = type.toLowerCase();
+  if (t.indexOf('ringtone_alert') !== -1) return 'homswag_ringtone';
   if (t.indexOf('order') !== -1 || t.indexOf('invoice') !== -1) return 'homswag_orders';
   if (t.indexOf('trip') !== -1) return 'homswag_trips';
   return 'homswag_general';
@@ -130,6 +131,13 @@ addEventListener('notificationCheck', function(resolve, reject) {
       toShow.forEach(function(notification, index) {
         var type      = notification.type || '';
         var channelId = channelIdForType(type);
+
+        // Suppress high-priority alerts in background runner as they are 
+        // primarily handled by FCM Data-Only pushes for the Uber-style UI.
+        if (channelId === 'homswag_ringtone') {
+          return;
+        }
+
         var title     = notification.title || fallbackTitleForType(type);
         var body      = stripHtml(notification.body || notification.message || 'You have a new notification');
         // Stagger by 1 s so each notification has a distinct schedule time
@@ -147,6 +155,7 @@ addEventListener('notificationCheck', function(resolve, reject) {
           // vibration enabled — no sound file is set here so the device's
           // default notification tone is used automatically.
           channelId:  channelId,
+          extra:      notification.data || {},
         }]);
       });
 

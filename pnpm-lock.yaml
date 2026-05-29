@@ -14,6 +14,9 @@ importers:
       '@capacitor-community/camera-preview':
         specifier: ^8.0.1
         version: 8.0.1(@capacitor/core@8.3.1)
+      '@capacitor-community/native-audio':
+        specifier: ^8.0.0
+        version: 8.0.0(@capacitor/core@8.3.1)
       '@capacitor-firebase/messaging':
         specifier: ^8.2.0
         version: 8.2.0(@capacitor/core@8.3.1)(firebase@12.13.0)
@@ -703,6 +706,11 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
     peerDependencies:
       '@capacitor/core': '>=8.0.2'
+
+  '@capacitor-community/native-audio@8.0.0':
+    resolution: {integrity: sha512-2y7uZfwmAkwfaz+Sj8ZX0ZWGgBK+0Hbg3IUl8gb1brCkH3UgQLAKkMNoaxVJ6yKP5Ov9vp8wKkeyLxU2KEpNMw==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@capacitor-firebase/messaging@8.2.0':
     resolution: {integrity: sha512-zjgvBuJSFfaLVL1sU2zwg68J1nCl+wLvjCNUo5tQJyO8XilUXA0z99BKJx6S6/iSB3+zznxNeoX1Kx54bVpCtg==}
@@ -5049,6 +5057,10 @@ snapshots:
     optional: true
 
   '@capacitor-community/camera-preview@8.0.1(@capacitor/core@8.3.1)':
+    dependencies:
+      '@capacitor/core': 8.3.1
+
+  '@capacitor-community/native-audio@8.0.0(@capacitor/core@8.3.1)':
     dependencies:
       '@capacitor/core': 8.3.1
 

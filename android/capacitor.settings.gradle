@@ -5,6 +5,9 @@ project(':capacitor-android').projectDir = new File('../node_modules/.pnpm/@capa
 include ':capacitor-community-camera-preview'
 project(':capacitor-community-camera-preview').projectDir = new File('../node_modules/.pnpm/@capacitor-community+camera-preview@8.0.1_@capacitor+core@8.3.1/node_modules/@capacitor-community/camera-preview/android')
 
+include ':capacitor-community-native-audio'
+project(':capacitor-community-native-audio').projectDir = new File('../node_modules/.pnpm/@capacitor-community+native-audio@8.0.0_@capacitor+core@8.3.1/node_modules/@capacitor-community/native-audio/android')
+
 include ':capacitor-firebase-messaging'
 project(':capacitor-firebase-messaging').projectDir = new File('../node_modules/.pnpm/@capacitor-firebase+messaging@8.2.0_@capacitor+core@8.3.1_firebase@12.13.0/node_modules/@capacitor-firebase/messaging/android')
 

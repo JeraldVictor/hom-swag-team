@@ -25,6 +25,10 @@ export type BootPhase =
   /** Everything is ready — normal app flow. */
   | 'ready'
 
+export interface AppConfig {
+  feature_flags: Record<string, boolean>
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -43,12 +47,18 @@ export const useAppStore = defineStore('app', () => {
   /** Current boot phase. */
   const bootPhase = ref<BootPhase>('booting')
 
+  /** Server-provided app configuration including feature flags. */
+  const config = ref<AppConfig | null>(null)
+
   // ---------------------------------------------------------------------------
   // Getters
   // ---------------------------------------------------------------------------
 
   /** True when the app is fully ready for normal use. */
   const isReady = computed<boolean>(() => bootPhase.value === 'ready')
+
+  /** Feature flags loaded from the server */
+  const featureFlags = computed<Record<string, boolean>>(() => config.value?.feature_flags ?? {})
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -66,13 +76,26 @@ export const useAppStore = defineStore('app', () => {
     bootPhase.value = phase
   }
 
+  async function fetchConfig(): Promise<void> {
+    try {
+      const apiClient = (await import('@/shared/lib/api')).default
+      const { data } = await apiClient.get<{ data: AppConfig }>('/config')
+      config.value = data.data
+    } catch (e) {
+      console.error('[AppStore] Failed to fetch app config:', e)
+    }
+  }
+
   return {
     isOnline,
     permissionsGranted,
     bootPhase,
+    config,
     isReady,
+    featureFlags,
     setOnline,
     setPermissionsGranted,
     setBootPhase,
+    fetchConfig,
   }
 })

@@ -69,6 +69,15 @@ export function useBackgroundRunner() {
     try {
       await Promise.all([
         LocalNotifications.createChannel({
+          id: 'homswag_ringtone',
+          name: 'Alerts',
+          description: 'High priority alerts with continuous ringtone',
+          importance: 5, // IMPORTANCE_HIGH: sound + heads-up banner
+          vibration: true,
+          visibility: 1,
+          sound: 'alert.wav',
+        }),
+        LocalNotifications.createChannel({
           id: 'homswag_orders',
           name: 'Orders',
           description: 'New order and order update notifications',
@@ -149,14 +158,14 @@ export function useBackgroundRunner() {
    * Returns a cleanup function — call it on component unmount.
    */
   async function setupNotificationListener(
-    onTap: (notificationId: number) => void
+    onTap: (notificationId: number, event: any) => void
   ): Promise<() => void> {
     if (!isNative()) return () => {}
     try {
       const handle = await BackgroundRunner.addListener(
         'backgroundRunnerNotificationReceived',
         event => {
-          onTap(event.notificationId)
+          onTap(event.notificationId, event)
         }
       )
       return () => {
