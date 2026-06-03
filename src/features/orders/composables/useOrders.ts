@@ -7,14 +7,15 @@
 import { computed, readonly, ref, watch } from 'vue'
 import { getOrders } from '@/shared/api'
 import { formatISTDateShort } from '@/shared/lib/datetime'
-import type { Order, OrderStatus } from '@/shared/models'
+import type { Order } from '@/shared/models'
 
 export type OrderDateFilter = 'today' | 'tomorrow' | 'past'
+export type OrderTab = 'Confirmed' | 'Ongoing' | 'Completed' | 'Cancelled'
 
 const STATUS_PRIORITY: Record<string, number> = {
   confirmed: 1,
-  started: 2,
-  reached_customer_place: 3,
+  reached_customer_place: 2,
+  started: 3,
   ongoing: 4,
   'on going': 4,
   completed: 5,
@@ -24,12 +25,19 @@ const STATUS_PRIORITY: Record<string, number> = {
   cancelled_and_refunded: 9,
 }
 
+const TAB_STATUS_MAP: Record<OrderTab, string[]> = {
+  Confirmed: ['confirmed', 'reached_customer_place'],
+  Ongoing: ['started', 'ongoing', 'on going'],
+  Completed: ['completed'],
+  Cancelled: ['cancelled', 'cancel_requested', 'cancelled_and_refunded', 'arrived_and_cancelled'],
+}
+
 export function useOrders() {
   const orders = ref<Order[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  const statusFilter = ref<OrderStatus>('Confirmed')
+  const statusFilter = ref<OrderTab>('Confirmed')
   const dateFilter = ref<OrderDateFilter>('today')
 
   const currentPage = ref(1)
@@ -84,19 +92,6 @@ export function useOrders() {
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
     const tomorrowStr = formatISTDateShort(tomorrow.toISOString())
 
-    const allowedStatuses = [
-      'confirmed',
-      'completed',
-      'on going',
-      'ongoing',
-      'reached_customer_place',
-      'started',
-      'arrived_and_cancelled',
-      'cancel_requested',
-      'cancelled',
-      'cancelled_and_refunded',
-    ]
-
     // 1. Filtering
     const filtered = list.filter(o => {
       // Use booking_info.date if available, fallback to service_date or created_at
@@ -107,35 +102,19 @@ export function useOrders() {
       const isToday = sDateStr === todayStr
       const isTomorrow = sDateStr === tomorrowStr
       const isPast = sDateStr < todayStr
-      const s = o.status?.toLowerCase()
-      const isCompleted =
-        s === 'completed' ||
-        s === 'arrived_and_cancelled' ||
-        s === 'cancelled' ||
-        s === 'cancelled_and_refunded'
+      const s = o.status?.toLowerCase() || ''
 
       const isActive =
         s === 'ongoing' || s === 'started' || s === 'on going' || s === 'reached_customer_place'
 
-      // Filter by tab
+      // Filter by date tab
       if (dateFilter.value === 'today' && !isToday && !isActive) return false
       if (dateFilter.value === 'tomorrow' && !isTomorrow) return false
       if (dateFilter.value === 'past' && !isPast) return false
 
-      // Status filter
+      // Status filter (Tab based)
+      const allowedStatuses = TAB_STATUS_MAP[statusFilter.value]
       if (!allowedStatuses.includes(s)) return false
-
-      const activeFilter = statusFilter.value.toLowerCase()
-      if (activeFilter === 'cancelled') {
-        const isAnyCancelled =
-          s === 'cancelled' ||
-          s === 'cancel_requested' ||
-          s === 'arrived_and_cancelled' ||
-          s === 'cancelled_and_refunded'
-        if (!isAnyCancelled) return false
-      } else if (s !== activeFilter) {
-        return false
-      }
 
       return true
     })
@@ -145,7 +124,7 @@ export function useOrders() {
       const sA = a.status?.toLowerCase() || ''
       const sB = b.status?.toLowerCase() || ''
 
-      // Priority 1: Status grouping (Requested order: Confirmed -> Started -> Ongoing -> Completed)
+      // Priority 1: Status grouping
       const pA = STATUS_PRIORITY[sA] || 99
       const pB = STATUS_PRIORITY[sB] || 99
       if (pA !== pB) return pA - pB
@@ -177,13 +156,11 @@ export function useOrders() {
   })
 
   const statusCounts = computed(() => {
-    const counts: Record<string, number> = {
+    const counts: Record<OrderTab, number> = {
       Confirmed: 0,
-      Started: 0,
       Ongoing: 0,
-      reached_customer_place: 0,
       Completed: 0,
-      cancelled: 0,
+      Cancelled: 0,
     }
 
     const nowISO = new Date().toISOString()
@@ -199,12 +176,8 @@ export function useOrders() {
       const isToday = sDateStr === todayStr
       const isTomorrow = sDateStr === tomorrowStr
       const isPast = sDateStr < todayStr
-      const s = order.status?.toLowerCase()
-      const isCompleted =
-        s === 'completed' ||
-        s === 'arrived_and_cancelled' ||
-        s === 'cancelled' ||
-        s === 'cancelled_and_refunded'
+      const s = order.status?.toLowerCase() || ''
+
       const isActive =
         s === 'ongoing' || s === 'started' || s === 'on going' || s === 'reached_customer_place'
 
@@ -212,23 +185,12 @@ export function useOrders() {
       if (dateFilter.value === 'tomorrow' && !isTomorrow) continue
       if (dateFilter.value === 'past' && !isPast) continue
 
-      if (
-        s === 'cancelled' ||
-        s === 'cancel_requested' ||
-        s === 'arrived_and_cancelled' ||
-        s === 'cancelled_and_refunded'
-      ) {
-        counts.cancelled += 1
-      } else if (s === 'completed') {
-        counts.Completed += 1
-      } else if (s === 'ongoing' || s === 'on going') {
-        counts.Ongoing += 1
-      } else if (s === 'reached_customer_place') {
-        counts.reached_customer_place += 1
-      } else if (s === 'started') {
-        counts.Started += 1
-      } else if (s === 'confirmed') {
-        counts.Confirmed += 1
+      // Map status to tab for counting
+      for (const [tab, statuses] of Object.entries(TAB_STATUS_MAP)) {
+        if (statuses.includes(s)) {
+          counts[tab as OrderTab] += 1
+          break
+        }
       }
     }
 

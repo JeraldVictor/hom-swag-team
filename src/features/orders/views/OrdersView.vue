@@ -44,7 +44,7 @@
               :class="{ 'filter-chip--active': statusFilter === status }"
               @click="statusFilter = status"
             >
-              {{ getStatusLabel(status) }} ({{ statusCounts[status] ?? 0 }})
+              {{ status }} ({{ statusCounts[status] ?? 0 }})
             </div>
           </div>
         </div>
@@ -117,8 +117,8 @@ import { onIonViewWillEnter } from '@ionic/vue'
 import { onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables'
-import type { Order, OrderStatus } from '@/shared/models'
-import { type OrderDateFilter, useOrders } from '../composables/useOrders'
+import type { Order } from '@/shared/models'
+import { type OrderDateFilter, type OrderTab, useOrders } from '../composables/useOrders'
 
 const router = useRouter()
 const route = useRoute()
@@ -145,54 +145,20 @@ const placeholderOrder: Order = {
   address: { street: '123 Placeholder St', city: 'Placeholder City' },
 } as Order // using as Order to satisfy the interface which has many optional but some required fields like id
 
-const statusOptions: OrderStatus[] = [
-  'Confirmed',
-  'Started',
-  'Ongoing',
-  'reached_customer_place',
-  'Completed',
-  'cancelled',
-]
+const statusOptions: OrderTab[] = ['Confirmed', 'Ongoing', 'Completed', 'Cancelled']
 
-const statusLabels: Record<OrderStatus, string> = {
-  Confirmed: 'Confirmed',
-  Started: 'Started',
-  Ongoing: 'Ongoing',
-  reached_customer_place: 'Reached Customer Place',
-  Completed: 'Completed',
-  started: 'Started',
-  ongoing: 'Ongoing',
-  completed: 'Completed',
-  arrived_and_cancelled: 'Arrived & Cancelled',
-  cancelled: 'Cancelled',
-  cancel_requested: 'Cancellation Requested',
-  cancelled_and_refunded: 'Cancelled & Refunded',
-}
-
-function normalizeStatus(value: string): OrderStatus | null {
+function normalizeStatus(value: string): OrderTab | null {
   const normalized = value.toLowerCase()
-  switch (normalized) {
-    case 'confirmed':
-      return 'Confirmed'
-    case 'started':
-      return 'Started'
-    case 'ongoing':
-      return 'Ongoing'
-    case 'reached_customer_place':
-      return 'reached_customer_place'
-    case 'completed':
-      return 'Completed'
-    case 'cancelled':
-      return 'cancelled'
-    case 'cancel_requested':
-      return 'cancel_requested'
-    default:
-      return null
-  }
-}
-
-function getStatusLabel(status: OrderStatus): string {
-  return statusLabels[status] ?? status
+  if (['confirmed', 'reached_customer_place'].includes(normalized)) return 'Confirmed'
+  if (['started', 'ongoing'].includes(normalized)) return 'Ongoing'
+  if (['completed'].includes(normalized)) return 'Completed'
+  if (
+    ['cancelled', 'cancel_requested', 'cancelled_and_refunded', 'arrived_and_cancelled'].includes(
+      normalized
+    )
+  )
+    return 'Cancelled'
+  return null
 }
 
 function openMenu(): void {
