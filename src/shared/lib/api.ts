@@ -345,11 +345,7 @@ apiClient.interceptors.request.use(
             drainQueue(newToken)
             config.headers.set('Authorization', `Bearer ${newToken}`)
           } catch (err) {
-            isRefreshing = false
-            rejectQueue(err)
-
-            await logoutAndRedirect()
-
+            // State reset, queue rejection, and logout are handled by the response interceptor
             throw err
           }
         } else {
@@ -385,12 +381,18 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
     const requestUrl = String(originalRequest.url ?? '')
 
-    // If the refresh request itself fails, logout immediately instead of queuing.
+    // If the refresh request itself fails, handle it here.
     if (requestUrl.includes('/auth/refresh')) {
       isRefreshing = false
-      rejectQueue(new ApiError(401, 'Token refresh failed'))
-      await logoutAndRedirect()
-      return Promise.reject(new ApiError(401, 'Session expired. Please log in again.'))
+      const status = error.response?.status ?? 0
+      const apiErr = new ApiError(status, error.message ?? 'Network error during refresh')
+      rejectQueue(apiErr)
+
+      if (status === 401 || status === 400 || status === 403) {
+        await logoutAndRedirect()
+        return Promise.reject(new ApiError(status, 'Session expired. Please log in again.'))
+      }
+      return Promise.reject(apiErr)
     }
 
     // Handle 401 — attempt one token refresh then retry
@@ -422,11 +424,9 @@ apiClient.interceptors.response.use(
           headers.Authorization = `Bearer ${newToken}`
         }
         return apiClient(originalRequest)
-      } catch {
-        isRefreshing = false
-        rejectQueue(new ApiError(401, 'Token refresh failed'))
-        await logoutAndRedirect()
-        return Promise.reject(new ApiError(401, 'Session expired. Please log in again.'))
+      } catch (err) {
+        // State reset, queue rejection, and logout are handled by the response interceptor
+        return Promise.reject(err)
       }
     }
 
