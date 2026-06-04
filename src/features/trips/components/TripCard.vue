@@ -11,14 +11,20 @@
 
     <!-- Body: Info Rows -->
     <div class="order-card__body">
+      <div v-if="trip.customer_name" class="order-card__info-row">
+        <div class="order-card__icon-container">
+          <Icon icon="lucide:user-round" class="order-card__icon" aria-hidden="true" />
+        </div>
+        <span class="order-card__customer">{{ trip?.customer_name }}</span>
+      </div>
       
       <!-- Beautician Name -->
-      <div v-if="trip.beautician_name" class="order-card__info-row">
+      <div v-if="trip?.beautician_name" class="order-card__info-row">
         <div class="order-card__icon-container">
           <Icon icon="lucide:user" class="order-card__icon" aria-hidden="true" />
         </div>
-        <span class="order-card__customer">{{ trip.beautician_name }}</span>
-        <a v-if="trip.beautician_phone" :href="'tel:' + trip.beautician_phone" class="phone-btn" @click.stop>
+        <span class="order-card__customer">{{ trip?.beautician_name }}</span>
+        <a v-if="trip?.beautician_phone" :href="'tel:' + trip?.beautician_phone" class="phone-btn" @click.stop>
           <Icon icon="lucide:phone" />
         </a>
       </div>
@@ -28,11 +34,11 @@
         <div class="order-card__icon-container">
           <div class="route-dot route-dot--pickup"></div>
         </div>
-        <span class="order-card__address">{{ formatCoords(trip.pickup_location) }}</span>
+        <span class="order-card__address">{{ formatCoords(trip?.pickup_location) }}</span>
         <button 
-          v-if="hasCoordinates(trip.pickup_location)" 
+          v-if="hasCoordinates(trip?.pickup_location)" 
           class="nav-btn" 
-          @click.stop="navTo(trip.pickup_location)"
+          @click.stop="navTo(trip?.pickup_location)"
         >
           <Icon icon="lucide:navigation" />
         </button>
@@ -43,11 +49,11 @@
         <div class="order-card__icon-container">
           <div class="route-dot route-dot--drop"></div>
         </div>
-        <span class="order-card__address">{{ formatCoords(trip.drop_location) }}</span>
+        <span class="order-card__address">{{ formatCoords(trip?.drop_location) }}</span>
         <button 
-          v-if="hasCoordinates(trip.drop_location)" 
+          v-if="hasCoordinates(trip?.drop_location)" 
           class="nav-btn" 
-          @click.stop="navTo(trip.drop_location)"
+          @click.stop="navTo(trip?.drop_location)"
         >
           <Icon icon="lucide:navigation" />
         </button>
@@ -58,19 +64,19 @@
         <div class="order-card__icon-container">
           <Icon icon="lucide:map" class="order-card__icon" aria-hidden="true" />
         </div>
-        <span class="order-card__items" v-if="trip.auto_distance_km">{{ trip.auto_distance_km }} km</span>
+        <span class="order-card__items" v-if="trip?.auto_distance_km">{{ trip?.auto_distance_km }} km</span>
         <span class="order-card__items" v-else>Distance N/A</span>
 
-        <span v-if="trip.fare" class="order-card__total" style="margin-left: auto; font-weight: 800; color: var(--color-brand);">
-          ₹{{ trip.fare }}
+        <span v-if="trip?.fare" class="order-card__total" style="margin-left: auto; font-weight: 800; color: var(--color-brand);">
+          ₹{{ trip?.fare }}
         </span>
       </div>
     </div>
 
     <!-- Footer: Time -->
-    <div class="order-card__footer" v-if="trip.start_time">
+    <div class="order-card__footer" v-if="trip?.start_time">
       <Icon icon="lucide:clock" class="footer-icon" />
-      <span>{{ formatTime12(trip.start_time) }}</span>
+      <span>{{ formatTime12(trip?.start_time) }}</span>
       <span style="margin-left: auto; color: var(--color-brand); display: flex; align-items: center; gap: 4px;">
         View Details <Icon icon="lucide:arrow-right" style="font-size: 14px;" />
       </span>
@@ -121,19 +127,19 @@ const statusVariant = computed(() => {
 })
 
 function formatCoords(coords?: Coordinates): string {
-  if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') {
+  if (!coords || typeof coords?.latitude !== 'number' || typeof coords?.longitude !== 'number') {
     return 'Location not available'
   }
-  return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`
+  return `${coords.latitude?.toFixed(5)}, ${coords.longitude?.toFixed(5)}`
 }
 
 function hasCoordinates(coords?: Coordinates): coords is Coordinates {
-  return !!coords && Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude)
+  return !!coords && Number.isFinite(coords?.latitude) && Number.isFinite(coords?.longitude)
 }
 
 async function navTo(coords?: Coordinates) {
   if (!hasCoordinates(coords)) return
-  await openNavigationMenu(coords.latitude, coords.longitude, 'Location')
+  await openNavigationMenu(coords?.latitude, coords?.longitude, 'Location')
 }
 </script>
 

@@ -63,6 +63,7 @@ export interface RawTrip {
         }
       }
     | string
+    | null
   pickup_location: GeoJsonPoint
   drop_location: GeoJsonPoint
   status: string
@@ -79,9 +80,9 @@ export interface RawTrip {
   fare?: number
   notes?: string
   beautician?: {
-    name: string
-    phone: string
-  }
+    name?: string | null
+    phone?: string | null
+  } | null
 }
 
 /**

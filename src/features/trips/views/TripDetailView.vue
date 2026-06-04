@@ -165,6 +165,20 @@
               <span class="extra-label">Customer</span>
               <span class="extra-value">{{ trip.customer_name }}</span>
             </div>
+            <div class="extra-row" v-else>
+              <span class="extra-label">Customer</span>
+              <span class="extra-value extra-value--muted">Customer info unavailable</span>
+            </div>
+            <div class="extra-row" v-if="trip.beautician_name">
+              <span class="extra-label">Beautician</span>
+              <span class="extra-value">{{ trip.beautician_name }}</span>
+            </div>
+            <div class="extra-row" v-if="trip.beautician_phone">
+              <span class="extra-label">Beautician Phone</span>
+              <a class="extra-value extra-value--link" :href="`tel:${trip.beautician_phone}`">
+                {{ trip.beautician_phone }}
+              </a>
+            </div>
           </div>
 
           <!-- Notes -->
@@ -852,6 +866,8 @@ function formatCoords(coords?: Coordinates | null): string {
 
 .extra-label { color: var(--color-text-secondary); font-weight: 500; }
 .extra-value { color: var(--color-text); font-weight: 700; }
+.extra-value--muted { color: var(--color-text-muted); font-weight: 500; }
+.extra-value--link { text-decoration: none; color: var(--color-brand); }
 
 /* ── Notes ───────────────────────────────────────────────────────────────── */
 .notes-box {

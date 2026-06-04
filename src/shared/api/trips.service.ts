@@ -18,6 +18,12 @@ import type { RawTrip, Trip, TripKanbanState } from '@/shared/models/trip.model'
 
 // ── Normalization helpers ──────────────────────────────────────────────────
 
+type TripOrderDetails = Exclude<RawTrip['order_id'], string | null>
+
+function isTripOrderDetails(order: RawTrip['order_id']): order is TripOrderDetails {
+  return order !== null && typeof order === 'object'
+}
+
 /**
  * Convert a GeoJSON Point [lng, lat] to our { latitude, longitude } shape.
  */
@@ -60,17 +66,15 @@ function parseIstStartTime(orderDate?: string, orderTime?: string): string | und
 
 function normalizeTrip(raw: RawTrip): Trip {
   const orderId = raw.order_id
+  const orderDetails = isTripOrderDetails(orderId) ? orderId : null
 
-  const customerName = typeof orderId === 'object' ? orderId.customer?.full_name : undefined
-  const orderNumber = typeof orderId === 'object' ? orderId.order_number : undefined
-  const orderDate =
-    typeof orderId === 'object' ? orderId.booking_info?.date || raw.order_date : raw.order_date
+  const customerName = orderDetails?.customer?.full_name ?? undefined
+  const orderNumber = orderDetails?.order_number ?? undefined
+  const orderDate = orderDetails?.booking_info?.date || raw.order_date
   const orderTime =
-    typeof orderId === 'object'
-      ? orderId.booking_info?.effective_start_time ||
-        orderId.booking_info?.selected_start_time ||
-        raw.order_time
-      : raw.order_time
+    orderDetails?.booking_info?.effective_start_time ||
+    orderDetails?.booking_info?.selected_start_time ||
+    raw.order_time
   const scheduledStartTime = parseIstStartTime(orderDate, orderTime)
 
   return {
@@ -90,8 +94,8 @@ function normalizeTrip(raw: RawTrip): Trip {
     updated_at: raw.updated_at,
     is_two_way: raw.is_two_way,
     auto_distance_km: raw.auto_distance_km,
-    beautician_name: raw.beautician?.name,
-    beautician_phone: raw.beautician?.phone,
+    beautician_name: raw.beautician?.name ?? undefined,
+    beautician_phone: raw.beautician?.phone ?? undefined,
   }
 }
 
@@ -133,6 +137,10 @@ export async function getTrips(
   } else if (Array.isArray(response.data?.data)) {
     // Flat array format
     rawData = response.data.data
+  }
+
+  if (!Array.isArray(rawData)) {
+    rawData = []
   }
 
   return {

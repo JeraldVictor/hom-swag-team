@@ -71,10 +71,13 @@
           </div>
           <p v-if="order.custom_instruction" :class="{ 'mb-2': order.instruction_presets?.length }" v-html="order.custom_instruction"></p>
           <div v-if="order.instruction_presets?.length" class="preset-chips">
-            <AppBadge v-for="preset in order.instruction_presets" :key="preset._id" variant="info" size="sm">
-              {{ preset.text }}
-              {{ preset.description ? `: ${preset.description}` : '' }}
-            </AppBadge>
+            <template v-for="preset in order.instruction_presets" 
+              :key="preset._id">
+              <AppBadge  v-if="preset.staff_visible" variant="info" size="sm">
+                {{ preset.text }}
+                {{ preset.description ? `: ${preset.description}` : '' }}
+              </AppBadge>
+            </template>
           </div>
         </div>
         <div v-if="order.staff_notes || order.payment?.internal_comment" class="context-box internal-box">
