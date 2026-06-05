@@ -4,6 +4,8 @@
 export interface Product {
   id: string | number
   _id?: string
+  product_id?: string
+  custom_category_id?: string
   name: string
   title?: string // Some APIs use title instead of name
   description?: string

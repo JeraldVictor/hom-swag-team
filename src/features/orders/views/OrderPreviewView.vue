@@ -332,6 +332,7 @@
 import { alertController, loadingController, toastController } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getProduct } from '@/shared/api/products.service'
 import {
   generateServiceOtp,
   getOrder,
@@ -344,6 +345,7 @@ import type { Order } from '@/shared/models'
 interface CartItem {
   order_product_id?: string
   product_id: string
+  base_product_id?: string
   quantity: number
   title: string
   price: number
@@ -403,11 +405,37 @@ function normalizeCartItem(item: any): CartItem {
   return {
     ...item,
     order_product_id: item.order_product_id,
+    base_product_id: item.base_product_id || item.product_id,
     beautician_added: item.beautician_added ?? false,
     selected_free_items: normalizeFreeItems(
       item.selected_free_items || item.selectedFreeItems || item.free_products
     ),
   }
+}
+
+function isCustomCategoryProductId(productId: string): boolean {
+  return productId.startsWith('ccp_')
+}
+
+async function hydrateCartItems(items: CartItem[]): Promise<CartItem[]> {
+  return Promise.all(
+    items.map(async item => {
+      if (!isCustomCategoryProductId(item.product_id) || item.base_product_id) {
+        return item
+      }
+
+      try {
+        const product = await getProduct(item.product_id)
+        return {
+          ...item,
+          base_product_id: product.product_id || String(product._id || product.id),
+        }
+      } catch (err) {
+        console.error('Failed to hydrate custom category product', item.product_id, err)
+        return item
+      }
+    })
+  )
 }
 
 const oldSubtotal = computed(() => order.value?.subtotal || 0)
@@ -466,7 +494,7 @@ async function fetchOrderData() {
 
     const allEdits =
       (await Storage_Service.getJSON<Record<string, any>>(STORAGE_KEYS.pendingOrderEdits)) || {}
-    newCartItems.value = (allEdits[orderId] || []).map(normalizeCartItem)
+    newCartItems.value = await hydrateCartItems((allEdits[orderId] || []).map(normalizeCartItem))
 
     if (newCartItems.value.length === 0 && data.products) {
       // If no edits found, maybe they came here directly or session cleared
@@ -523,6 +551,11 @@ async function persistEdits() {
   }
 }
 
+async function ensureCartItemsReadyForSubmit(): Promise<void> {
+  newCartItems.value = await hydrateCartItems(newCartItems.value)
+  await persistEdits()
+}
+
 async function handleGenerateOtp() {
   if (!canConfirmOrder.value) {
     const warningMessage =
@@ -560,6 +593,8 @@ async function handleVerifyAndSubmit() {
 
   isVerifying.value = true
   try {
+    await ensureCartItemsReadyForSubmit()
+
     // 1. Verify OTP
     await verifyServiceOtp(orderId, { otp: otpValue.value })
     // 2. Submit order changes
@@ -582,7 +617,7 @@ async function handleVerifyAndSubmit() {
 
       return {
         order_product_id: item.order_product_id,
-        product_id: item.product_id,
+        product_id: item.base_product_id || item.product_id,
         quantity: item.quantity,
         title: item.title,
         price: item.price,

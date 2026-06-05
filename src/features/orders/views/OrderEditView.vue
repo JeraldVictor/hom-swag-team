@@ -12,6 +12,7 @@ import type { MainMenu, Order, Product, ProductOption } from '@/shared/models'
 interface CartItem {
   order_product_id?: string
   product_id: string
+  base_product_id?: string
   quantity: number
   title: string
   price: number
@@ -54,7 +55,7 @@ const orderEditAllowed = computed(() => isBookingDateToday.value)
 const scheduleDateFormatted = computed(() =>
   scheduleDate.value ? formatISTDate(scheduleDate.value) : ''
 )
-const activeMenuId = ref<string>('all')
+const activeMenuId = ref<string>('')
 const searchQuery = ref('')
 const products = ref<Product[]>([])
 const isLoading = ref(false)
@@ -113,6 +114,7 @@ async function fetchOrderData() {
     isLoading.value = true
     const data = await getOrder(orderId)
     order.value = data
+    activeMenuId.value = String((data as Order & { main_menu_id?: string }).main_menu_id || '')
 
     // Check if we have pending changes in storage
     const hasSaved = await loadFromStorage()
@@ -124,6 +126,7 @@ async function fetchOrderData() {
         cartMap[pid] = {
           order_product_id: p.order_product_id ? String(p.order_product_id) : undefined,
           product_id: pid,
+          base_product_id: pid,
           quantity: p.quantity,
           title: p.title,
           price: p.price,
@@ -162,25 +165,30 @@ async function fetchMenus() {
   try {
     const data = await getMenu()
     menus.value = data.main_menus || []
+    if (!activeMenuId.value && menus.value.length > 0) {
+      activeMenuId.value = menus.value[0]._id
+    }
   } catch (err) {
     console.error('Failed to fetch menus', err)
   }
 }
 
 async function fetchProducts() {
+  if (!activeMenuId.value) {
+    products.value = []
+    return
+  }
+
   try {
     isLoading.value = true
-    const params: any = {
+    const params = {
       limit: 100,
       is_active: true,
-    }
-
-    if (activeMenuId.value !== 'all') {
-      params.main_menu_id = activeMenuId.value
+      main_menu_id: activeMenuId.value,
     }
 
     if (searchQuery.value) {
-      params.search_query = searchQuery.value
+      Object.assign(params, { search_query: searchQuery.value })
     }
 
     const response = await getProducts(params)
@@ -256,6 +264,8 @@ function onSelectionConfirm(data: {
     existing.duration = data.product.duration_minutes
     existing.type = data.product.type
     existing.image = data.product.image_url || data.product.images?.[0]?.url
+    existing.base_product_id =
+      data.product.product_id || String(data.product._id || data.product.id)
     existing.selected_options = selectedOptions
     existing.selected_package_items = data.selectedPackageItems.map(item => ({
       ...item,
@@ -269,6 +279,7 @@ function onSelectionConfirm(data: {
   } else {
     cartMap[pid] = {
       product_id: pid,
+      base_product_id: data.product.product_id || String(data.product._id || data.product.id),
       quantity: 1,
       title: data.product.name || data.product.title || '',
       price: data.product.min_price,
@@ -301,6 +312,7 @@ function addToCart(product: Product) {
   } else {
     cartMap[pid] = {
       product_id: pid,
+      base_product_id: product.product_id || String(product._id || product.id),
       quantity: 1,
       title: product.name || product.title || '',
       price: product.min_price,
@@ -369,7 +381,6 @@ async function handleDiscard() {
 onMounted(() => {
   fetchOrderData()
   fetchMenus()
-  fetchProducts()
 })
 
 watch([activeMenuId, searchQuery], () => {
@@ -407,9 +418,6 @@ watch([activeMenuId, searchQuery], () => {
       </ion-toolbar>
       <div class="menu-tabs">
         <ion-segment scrollable v-model="activeMenuId" mode="md">
-          <ion-segment-button value="all">
-            <ion-label>All Items</ion-label>
-          </ion-segment-button>
           <ion-segment-button v-for="menu in menus" :key="menu._id" :value="menu._id">
             <ion-label>{{ menu.title }}</ion-label>
           </ion-segment-button>
@@ -429,7 +437,7 @@ watch([activeMenuId, searchQuery], () => {
         </div>
         <h3>No Products Found</h3>
         <p>Try adjusting your search or category filter.</p>
-        <AppButton variant="outline" size="sm" @click="searchQuery = ''; activeMenuId = 'all'">
+        <AppButton variant="outline" size="sm" @click="searchQuery = ''">
           Clear Filters
         </AppButton>
       </div>
