@@ -73,7 +73,7 @@
           <div v-if="order.instruction_presets?.length" class="preset-chips">
             <template v-for="preset in order.instruction_presets" 
               :key="preset._id">
-              <AppBadge  v-if="preset.staff_visible" variant="info" size="sm">
+              <AppBadge  v-if="preset.beautician_visible" variant="info" size="sm">
                 {{ preset.text }}
                 {{ preset.description ? `: ${preset.description}` : '' }}
               </AppBadge>
