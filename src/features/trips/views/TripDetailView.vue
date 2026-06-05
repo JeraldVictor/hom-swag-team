@@ -186,31 +186,6 @@
             <Icon icon="lucide:file-text" class="notes-icon" />
             <p>{{ trip.notes }}</p>
           </div>
-
-          <!-- Location Override -->
-          <div class="card override-card">
-            <button class="override-toggle" @click="showLocationOverride = !showLocationOverride">
-              <div class="override-toggle-left">
-                <Icon icon="lucide:edit-3" /> Override Coordinates
-              </div>
-              <Icon :icon="showLocationOverride ? 'lucide:chevron-up' : 'lucide:chevron-down'" />
-            </button>
-            <Transition name="expand">
-              <div v-if="showLocationOverride" class="override-body">
-                <p class="override-hint">Search by address or enter <code>lat, lng</code></p>
-                <div class="override-field">
-                  <PlacesSearchInput v-model="pickupQuery" label="Pickup location" placeholder="Search or enter lat, lng" icon="lucide:circle-dot" @place-selected="onPickupSelected" />
-                </div>
-                <div class="override-field">
-                  <PlacesSearchInput v-model="dropQuery" label="Drop location" placeholder="Search or enter lat, lng" icon="lucide:map-pin" @place-selected="onDropSelected" />
-                </div>
-                <button class="btn-apply-override" :disabled="!overridePickup && !overrideDrop" @click="applyOverrides">
-                  Apply to Map
-                </button>
-              </div>
-            </Transition>
-          </div>
-          
           <div class="bottom-spacer" />
         </div>
       </template>
