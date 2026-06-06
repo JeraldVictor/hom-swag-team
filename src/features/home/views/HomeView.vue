@@ -64,7 +64,7 @@
           </div>
 
           <!-- Earnings Overview -->
-          <div class="earnings-grid anim-grid">
+          <div class="earnings-grid anim-grid" :class="{ 'earnings-grid--rider': isRider }">
             <div class="earnings-main press-feedback" @click="goTo('/leaderboard')">
               <div class="earnings-main__top">
                 <span class="earnings-main__label">Today's Revenue</span>
@@ -75,7 +75,7 @@
                 Commission: {{ formatAmount(dashboard?.today_commission) }}
               </div>
             </div>
-            <div class="earnings-sub press-feedback" @click="goTo('/leaderboard')">
+            <div class="earnings-sub press-feedback" @click="goTo('/leaderboard')" v-if="!isRider">
               <span class="earnings-sub__label">Month Revenue</span>
               <div class="earnings-sub__amount">{{ formatAmountShort(dashboard?.month_earnings) }}</div>
               <span class="earnings-sub__label mt-4">Payable Comm.</span>
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Target Progress Card -->
-          <div v-if="dashboard?.monthly_target" class="target-card anim-card">
+          <div v-if="dashboard?.monthly_target && !isRider" class="target-card anim-card">
             <div class="target-card__header">
               <div class="target-card__title-group">
                 <Icon icon="lucide:target" class="target-card__icon" />
@@ -380,13 +380,17 @@ const cancelledOrders = computed(() =>
 // ── Computed: trip buckets ─────────────────────────────────────────────────
 
 const upcomingTrips = computed(() =>
-  trips.value.filter(t => t.kanban_state === 'assigned' || t.kanban_state === 'viewed_by_rider')
+  trips.value.filter(t => {
+    const isUpcoming = t.kanban_state === 'assigned' || t.kanban_state === 'viewed_by_rider'
+    return isUpcoming && isToday(t.order_date || t.start_time || t.created_at)
+  })
 )
 
 const activeTrips = computed(() =>
-  trips.value.filter(
-    t => t.kanban_state === 'trip_started' || t.kanban_state === 'dropped_and_waiting'
-  )
+  trips.value.filter(t => {
+    const isActive = t.kanban_state === 'trip_started' || t.kanban_state === 'dropped_and_waiting'
+    return isActive && isToday(t.order_date || t.start_time || t.created_at)
+  })
 )
 
 const completedTrips = computed(() =>
@@ -395,7 +399,7 @@ const completedTrips = computed(() =>
       t.kanban_state === 'trip_completed' ||
       t.kanban_state === 'fare_calculation_pending' ||
       t.kanban_state === 'completed'
-    return done && isToday(t.updated_at ?? t.created_at)
+    return done && isToday(t.order_date || t.start_time || t.updated_at || t.created_at)
   })
 )
 
@@ -710,6 +714,10 @@ watch([isBeautician, isRider], ([newB, newR]) => {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 10px;
+}
+
+.earnings-grid--rider {
+  grid-template-columns: 1fr;
 }
 
 .earnings-main {

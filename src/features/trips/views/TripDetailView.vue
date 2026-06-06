@@ -364,26 +364,16 @@ async function handleAdvance(): Promise<void> {
   const isTwoWayCompleting = trip.value?.kanban_state === 'dropped_and_waiting'
 
   if (isOneWayCompleting || isTwoWayCompleting) {
+    const calculatedKm = trip.value?.auto_distance_km ? `${trip.value.auto_distance_km} km` : '—'
     const alert = await alertController.create({
       header: 'Complete Trip',
-      message: 'Please enter the total distance driven (km).',
-      inputs: [
-        {
-          name: 'distance',
-          type: 'number',
-          placeholder: 'e.g. 40',
-          min: 0.1,
-        },
-      ],
+      message: `Are you sure you want to complete this trip? (Distance: ${calculatedKm})`,
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
-          text: 'Mark Completed',
-          handler: async data => {
-            const distance = parseFloat(data.distance)
-            if (isNaN(distance) || distance <= 0) return false
-
-            await advanceStatus('completed', distance)
+          text: 'Complete',
+          handler: async () => {
+            await advanceStatus('completed')
             if (!error.value) {
               showSuccess('Trip marked as completed!')
             } else {
@@ -421,9 +411,16 @@ async function openNativeNav(coords?: Coordinates): Promise<void> {
 }
 
 async function openFullRouteNav(): Promise<void> {
-  if (!hasCoordinates(effectiveDrop.value)) return
-  const { latitude: dLat, longitude: dLng } = effectiveDrop.value
-  await openNavigationMenu(dLat, dLng, 'Destination')
+  if (
+    !trip.value ||
+    !hasCoordinates(trip.value.pickup_location) ||
+    !hasCoordinates(effectiveDrop.value)
+  )
+    return
+  const origin = `${trip.value.pickup_location.latitude},${trip.value.pickup_location.longitude}`
+  const destination = `${effectiveDrop.value.latitude},${effectiveDrop.value.longitude}`
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=two-wheeler`
+  window.open(url, '_system')
 }
 
 function onPickupSelected(place: PlaceResult): void {
