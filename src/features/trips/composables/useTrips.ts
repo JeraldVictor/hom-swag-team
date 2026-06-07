@@ -6,8 +6,8 @@
 
 import type { Ref } from 'vue'
 import { readonly, ref, watch } from 'vue'
-import { getTrips } from '@/shared/api/trips.service'
 import { getOfficeId } from '@/shared/api/location.service'
+import { getTrips } from '@/shared/api/trips.service'
 import { formatISTDateShort } from '@/shared/lib/datetime'
 import type { Trip, TripKanbanState } from '@/shared/models/trip.model'
 

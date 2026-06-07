@@ -8,10 +8,10 @@
  * `/location`). The BFF field prefix is handled by the proxy / base URL.
  */
 
-import apiClient from '@/shared/lib/api'
-import { webSocketService } from '@/shared/lib/websocket.service'
 import { getProfile } from '@/shared/api/profile.service'
+import apiClient from '@/shared/lib/api'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
+import { webSocketService } from '@/shared/lib/websocket.service'
 import type { UserProfile } from '@/shared/models/user.model'
 
 // ---------------------------------------------------------------------------

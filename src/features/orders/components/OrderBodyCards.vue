@@ -268,10 +268,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import { mediaUrl } from '@/shared/lib/media'
-import OrderItemRow from './OrderItemRow.vue'
+import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import { ORDER_STATUS } from '../../../shared/constants'
+import OrderItemRow from './OrderItemRow.vue'
 
 interface ProofImage {
   url: string

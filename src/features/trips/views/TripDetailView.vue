@@ -221,9 +221,12 @@
 </template>
 
 <script setup lang="ts">
+import { alertController, onIonViewWillEnter } from '@ionic/vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { onIonViewWillEnter, alertController } from '@ionic/vue'
 import { useRoute } from 'vue-router'
+import AppBadge from '@/shared/components/ui/AppBadge.vue'
+import GoogleMapView from '@/shared/components/ui/GoogleMapView.vue'
+import PlacesSearchInput from '@/shared/components/ui/PlacesSearchInput.vue'
 import { useToast, useTracking } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTTime } from '@/shared/lib/datetime'
@@ -231,9 +234,6 @@ import { FEATURES } from '@/shared/lib/feature-flags'
 import type { Coordinates, PlaceResult } from '@/shared/models/location.model'
 import type { TripKanbanState } from '@/shared/models/trip.model'
 import { useTripDetail } from '../composables/useTripDetail'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
-import GoogleMapView from '@/shared/components/ui/GoogleMapView.vue'
-import PlacesSearchInput from '@/shared/components/ui/PlacesSearchInput.vue'
 
 // ── Route param ────────────────────────────────────────────────────────────
 

@@ -299,14 +299,14 @@
 </template>
 
 <script setup lang="ts">
+import { alertController } from '@ionic/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { alertController } from '@ionic/vue'
 import { useToast } from '@/shared/composables'
 import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
-import { useOrderDetail } from '../composables/useOrderDetail'
 import type { Order } from '@/shared/models'
+import { useOrderDetail } from '../composables/useOrderDetail'
 
 const route = useRoute()
 const router = useRouter()

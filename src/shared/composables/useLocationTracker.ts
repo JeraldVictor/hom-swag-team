@@ -31,8 +31,8 @@ import { Geolocation } from '@capacitor/geolocation'
 import type { Ref } from 'vue'
 import { ref } from 'vue'
 import {
-  getTrackingStatus,
   getOfficeId,
+  getTrackingStatus,
   pushLocation,
   setTrackingMasterStatus,
 } from '@/shared/api/location.service'

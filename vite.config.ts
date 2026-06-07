@@ -1,10 +1,10 @@
 /// <reference types="vitest" />
 
 import path from 'node:path'
+import { config as loadDotenv } from '@dotenvx/dotenvx'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 import { mobileConsolePlugin } from './plugins/mobile-console'
-import { config as loadDotenv } from '@dotenvx/dotenvx'
 
 function loadEnvironmentFiles(mode: string) {
   const isProdMode = mode === 'production' || mode === 'prod'

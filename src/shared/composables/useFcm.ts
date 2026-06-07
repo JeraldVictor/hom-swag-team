@@ -14,13 +14,13 @@
  * - Remove the token from the server on logout.
  */
 
-import { FirebaseMessaging } from '@capacitor-firebase/messaging'
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
+import { FirebaseMessaging } from '@capacitor-firebase/messaging'
 import { useRouter } from 'vue-router'
-import { useGlobalAlerts } from './useGlobalAlerts'
 import apiClient from '@/shared/lib/api'
 import webSocketService from '@/shared/lib/websocket.service'
+import { useGlobalAlerts } from './useGlobalAlerts'
 
 // ---------------------------------------------------------------------------
 // Helpers

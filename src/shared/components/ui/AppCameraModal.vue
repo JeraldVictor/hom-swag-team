@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
 import { CameraPreview } from '@capacitor-community/camera-preview'
-import { modalController } from '@ionic/vue'
 import { Icon } from '@iconify/vue'
+import { modalController } from '@ionic/vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const props = defineProps<{
   facingMode?: 'user' | 'environment'

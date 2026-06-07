@@ -12,6 +12,8 @@ import {
   IonFooter,
   IonHeader,
   IonIcon,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
   IonInput,
   IonItem,
   IonicVue,
@@ -33,14 +35,11 @@ import {
   IonTextarea,
   IonTitle,
   IonToolbar,
-  IonInfiniteScroll,
-  IonInfiniteScrollContent,
 } from '@ionic/vue'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import App from './App.vue'
-import router from './core/router'
-import { ENV } from '@/shared/lib/env'
+import OtpInput from '@/features/auth/components/OtpInput.vue'
+import RideSelectorModal from '@/shared/components/business/RideSelectorModal.vue'
 import {
   AppAvatar,
   AppBadge,
@@ -52,8 +51,9 @@ import {
   AppLabel,
   AppLoadingSpinner,
 } from '@/shared/components/ui'
-import OtpInput from '@/features/auth/components/OtpInput.vue'
-import RideSelectorModal from '@/shared/components/business/RideSelectorModal.vue'
+import { ENV } from '@/shared/lib/env'
+import App from './App.vue'
+import router from './core/router'
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css'

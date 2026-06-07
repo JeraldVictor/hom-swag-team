@@ -113,31 +113,31 @@
 </template>
 
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonButtons,
   IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonLabel,
+  IonPage,
   IonRefresher,
   IonRefresherContent,
   IonSegment,
   IonSegmentButton,
-  IonLabel,
-  IonInfiniteScroll,
-  IonInfiniteScrollContent,
+  IonTitle,
+  IonToolbar,
   onIonViewWillEnter,
 } from '@ionic/vue'
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Icon } from '@iconify/vue'
 import { useDrawer } from '@/shared/composables'
-import { useTrips } from '../composables/useTrips'
-import TripCard from '../components/TripCard.vue'
-import { KANBAN_STATE } from '@/shared/models/trip.model'
 import type { TripKanbanState } from '@/shared/models/trip.model'
+import { KANBAN_STATE } from '@/shared/models/trip.model'
+import TripCard from '../components/TripCard.vue'
+import { useTrips } from '../composables/useTrips'
 
 const router = useRouter()
 const route = useRoute()

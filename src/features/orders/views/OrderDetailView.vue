@@ -382,19 +382,18 @@
 </template>
 
 <script setup lang="ts">
-import { alertController, toastController } from '@ionic/vue'
-import { onIonViewWillEnter } from '@ionic/vue'
+import { alertController, onIonViewWillEnter, toastController } from '@ionic/vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
-import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { ORDER_STATUS } from '@/shared/constants'
-import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
+import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
-import { useOrderDetail } from '../composables/useOrderDetail'
-import OrderHeroCard from '../components/OrderHeroCard.vue'
+import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import OrderBodyCards from '../components/OrderBodyCards.vue'
+import OrderHeroCard from '../components/OrderHeroCard.vue'
+import { useOrderDetail } from '../composables/useOrderDetail'
 
 const route = useRoute()
 const router = useRouter()

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
-import { useGlobalAlerts } from '@/shared/composables/useGlobalAlerts'
 import { Icon } from '@iconify/vue'
+import { onUnmounted, ref, watch } from 'vue'
+import { useGlobalAlerts } from '@/shared/composables/useGlobalAlerts'
 
 const { activeAlerts, viewAlert, dismissAlert } = useGlobalAlerts()
 

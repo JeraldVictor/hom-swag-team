@@ -6,8 +6,8 @@
  */
 
 import { io, type Socket } from 'socket.io-client'
-import type { Coordinates } from '@/shared/models/location.model'
 import { ENV } from '@/shared/lib/env'
+import type { Coordinates } from '@/shared/models/location.model'
 
 /** Message structure for inbound events (legacy support or generic) */
 export interface WsMessage {

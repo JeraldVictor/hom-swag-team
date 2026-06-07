@@ -332,13 +332,13 @@
 import { alertController, loadingController, toastController } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getProduct } from '@/shared/api/products.service'
 import {
   generateServiceOtp,
   getOrder,
   updateOrder,
   verifyServiceOtp,
 } from '@/shared/api/orders.service'
+import { getProduct } from '@/shared/api/products.service'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { Order } from '@/shared/models'
 

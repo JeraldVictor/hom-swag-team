@@ -74,7 +74,7 @@ export function useGoogleMaps(): UseGoogleMapsReturn {
   const map = ref<google.maps.Map | null>(null)
 
   const markers = new Map<string, google.maps.Marker>()
-  let directionsRenderer: google.maps.DirectionsRenderer | null = null
+  let routePolyline: google.maps.Polyline | null = null
 
   async function initMap(options?: google.maps.MapOptions): Promise<void> {
     if (!mapRef.value) {
@@ -157,37 +157,74 @@ export function useGoogleMaps(): UseGoogleMapsReturn {
     try {
       await loadGoogleMaps()
 
-      const directionsService = new google.maps.DirectionsService()
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+      if (!apiKey) throw new Error('Missing Google Maps API Key')
 
-      if (!directionsRenderer) {
-        directionsRenderer = new google.maps.DirectionsRenderer({
-          suppressMarkers: true, // We manage our own markers
-          polylineOptions: {
-            strokeColor: '#7C3AED', // brand purple
-            strokeWeight: 5,
-            strokeOpacity: 0.85,
+      const url = `https://routes.googleapis.com/directions/v2:computeRoutes?key=${apiKey}`
+
+      const payload = {
+        origin: {
+          location: { latLng: { latitude: origin.latitude, longitude: origin.longitude } },
+        },
+        destination: {
+          location: {
+            latLng: { latitude: destination.latitude, longitude: destination.longitude },
           },
-        })
-        directionsRenderer.setMap(map.value)
+        },
+        travelMode: 'TWO_WHEELER',
+        computeAlternativeRoutes: false,
+        routeModifiers: {
+          avoidTolls: false,
+          avoidHighways: false,
+          avoidFerries: false,
+        },
       }
 
-      const result = await directionsService.route({
-        origin: { lat: origin.latitude, lng: origin.longitude },
-        destination: { lat: destination.latitude, lng: destination.longitude },
-        travelMode: google.maps.TravelMode.DRIVING,
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-FieldMask': 'routes.polyline.encodedPath',
+        },
+        body: JSON.stringify(payload),
       })
 
-      directionsRenderer.setDirections(result)
+      if (!resp.ok) {
+        console.error(`Routes API (v2) failed: ${resp.status}`)
+        return false
+      }
+
+      const data = await resp.json()
+      if (!data.routes || data.routes.length === 0) return false
+
+      const encodedPath = data.routes[0].polyline.encodedPath
+      if (!encodedPath) return false
+
+      // Use the geometry library to decode the polyline
+      const path = google.maps.geometry.encoding.decodePath(encodedPath)
+
+      clearRoute()
+
+      routePolyline = new google.maps.Polyline({
+        path,
+        geodesic: true,
+        strokeColor: '#7C3AED', // brand purple
+        strokeOpacity: 0.85,
+        strokeWeight: 5,
+        map: map.value,
+      })
+
       return true
-    } catch {
+    } catch (err) {
+      console.error('[useGoogleMaps] Failed to draw route:', err)
       return false
     }
   }
 
   function clearRoute(): void {
-    if (directionsRenderer) {
-      directionsRenderer.setMap(null)
-      directionsRenderer = null
+    if (routePolyline) {
+      routePolyline.setMap(null)
+      routePolyline = null
     }
   }
 

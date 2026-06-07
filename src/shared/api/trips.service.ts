@@ -11,8 +11,8 @@
  * We normalize these to { latitude, longitude }.
  */
 
-import apiClient from '@/shared/lib/api'
 import { getOfficeId } from '@/shared/api/location.service'
+import apiClient from '@/shared/lib/api'
 import type { Coordinates } from '@/shared/models/location.model'
 import type { RawTrip, Trip, TripKanbanState } from '@/shared/models/trip.model'
 
@@ -124,7 +124,7 @@ export async function getTrips(
 
   // Handle new paginated format vs old format
   let rawData: RawTrip[] = []
-  let pagination = undefined
+  let pagination
 
   if (response.data?.data && !Array.isArray(response.data.data) && response.data.data.data) {
     // Nested format from backend: { data: { data: [...], pagination: {...} } }

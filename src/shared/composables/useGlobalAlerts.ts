@@ -1,9 +1,9 @@
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { ref, watch } from 'vue'
-import { webSocketService } from '@/shared/lib/websocket.service'
-import { markNotificationRead } from '@/shared/api/notifications.service'
 import { useRouter } from 'vue-router'
+import { markNotificationRead } from '@/shared/api/notifications.service'
+import { webSocketService } from '@/shared/lib/websocket.service'
 import { useAppStore } from '@/shared/stores/app'
-import { registerPlugin, Capacitor } from '@capacitor/core'
 
 interface AlarmPluginInterface {
   playRingtone(): Promise<void>

@@ -10,8 +10,8 @@
  *   const map = new google.maps.Map(el, options)
  */
 
-import { FEATURES } from '@/shared/lib/feature-flags'
 import { ENV } from '@/shared/lib/env'
+import { FEATURES } from '@/shared/lib/feature-flags'
 
 let loadPromise: Promise<void> | null = null
 
@@ -61,7 +61,7 @@ export function loadGoogleMaps(): Promise<void> {
     }
 
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey ?? ''}&libraries=places&callback=${callbackName}&loading=async`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey ?? ''}&libraries=places,geometry&callback=${callbackName}&loading=async`
     script.async = true
     script.defer = true
     script.onerror = () => {

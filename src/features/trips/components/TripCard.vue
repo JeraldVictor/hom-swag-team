@@ -86,11 +86,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import AppBadge from '@/shared/components/ui/AppBadge.vue'
+import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, formatTime12 } from '@/shared/lib/datetime'
 import type { Coordinates } from '@/shared/models/location.model'
 import type { Trip } from '@/shared/models/trip.model'
-import { useNavigation } from '@/shared/composables/useNavigation'
-import AppBadge from '@/shared/components/ui/AppBadge.vue'
 
 interface Props {
   trip: Trip

@@ -2,8 +2,8 @@ import { computed, readonly, ref } from 'vue'
 import {
   generateServiceOtp as generateServiceOtpApi,
   getOrder as getOrderApi,
-  markOrderViewed as markOrderViewedApi,
   getUpgradableProducts as getUpgradableProductsApi,
+  markOrderViewed as markOrderViewedApi,
   updateOrder as updateOrderApi,
   updateOrderStatus as updateOrderStatusApi,
   upgradeOrderProduct as upgradeOrderProductApi,
@@ -14,7 +14,7 @@ import {
   verifyServiceOtp as verifyServiceOtpApi,
 } from '@/shared/api'
 import { useCamera, useDirections } from '@/shared/composables'
-import type { Order, OrderProduct, UpgradeProductBody, UpdateOrderPayload } from '@/shared/models'
+import type { Order, OrderProduct, UpdateOrderPayload, UpgradeProductBody } from '@/shared/models'
 
 function dispatchOrderUpdated(orderId: string | number) {
   window.dispatchEvent(
