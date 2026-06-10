@@ -183,47 +183,47 @@ src/
     │   │   └── ProfileView.vue        # View: personal info, documents/KYC grid, account links; Edit modal: photo upload, personal details, emergency contact, document upload; role-specific document slots
     │   └── index.ts
     │
-    ├── notifications/             # In-app notifications (scaffolded)
+    ├── notifications/             # In-app notifications (implemented)
     │   ├── views/
     │   │   └── NotificationsView.vue
     │   └── index.ts
     │
-    ├── complaints/                # Complaints (scaffolded, beautician only)
+    ├── complaints/                # Complaints (implemented, beautician only)
     │   ├── views/
     │   │   └── ComplaintsView.vue
     │   └── index.ts
     │
-    ├── sessions/                  # Active sessions (scaffolded)
+    ├── sessions/                  # Active sessions (implemented)
     │   ├── views/
     │   │   └── SessionsView.vue
     │   └── index.ts
     │
-    ├── support/                   # Support & feedback (scaffolded)
+    ├── support/                   # Support & feedback (implemented)
     │   ├── views/
     │   │   └── SupportView.vue
     │   └── index.ts
     │
-    ├── external-bookings/         # External bookings (scaffolded, beautician only)
+    ├── external-bookings/         # External bookings (implemented, beautician only)
     │   ├── views/
     │   │   └── ExternalBookingsView.vue
     │   └── index.ts
     │
-    ├── reimbursements/            # Travel reimbursements (scaffolded)
+    ├── reimbursements/            # Travel reimbursements (implemented)
     │   ├── views/
     │   │   └── ReimbursementsView.vue
     │   └── index.ts
     │
-    ├── leaderboard/               # Performance leaderboard (scaffolded)
+    ├── leaderboard/               # Performance leaderboard (implemented)
     │   ├── views/
     │   │   └── LeaderboardView.vue
     │   └── index.ts
     │
-    ├── sos/                       # SOS emergency alerts (scaffolded)
+    ├── sos/                       # SOS emergency alerts (implemented)
     │   ├── views/
     │   │   └── SosView.vue
     │   └── index.ts
     │
-    └── trip-fees/                 # Trip fees report (scaffolded, rider only)
+    └── trip-fees/                 # Trip fees report (implemented, rider only)
         ├── views/
         │   └── TripFeesView.vue
         └── index.ts

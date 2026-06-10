@@ -38,15 +38,15 @@ The app has a solid working foundation with most core features fully implemented
 | OT requests | ✅ Complete | `OtRequestsView` via `useOtRequests`; create/cancel overtime entries |
 | Weekly off | ✅ Complete | `WeeklyOffView` via `useWeeklyOff`; create/cancel recurring week-off requests |
 | Calendar | ✅ Complete | `CalendarView` fetches leaves and holidays; monthly grid with colour-coded dots; event types: paid_leave, sick_leave, loss_of_pay, block_time, holiday |
-| Notifications | 🟡 Scaffolded | `NotificationsView` exists, route defined; `notifications.service.ts` implemented |
-| Complaints (beautician) | 🟡 Scaffolded | `ComplaintsView` exists, route defined; `complaints.service.ts` implemented; home dashboard shows alert when complaints exist |
-| Sessions | 🟡 Scaffolded | `SessionsView` exists, route defined; `sessions.service.ts` implemented; linked from Profile |
-| Support & Feedback | 🟡 Scaffolded | `SupportView` exists, route defined; `support.service.ts` implemented; linked from Profile and Home quick actions |
-| External Bookings (beautician) | 🟡 Scaffolded | `ExternalBookingsView` exists, route defined; `external-bookings.service.ts` implemented |
-| Reimbursements | 🟡 Scaffolded | `ReimbursementsView` exists, route defined; `reimbursements.service.ts` implemented |
+| Notifications | ✅ Complete | `NotificationsView` with list/read/read-all API integration |
+| Complaints (beautician) | ✅ Complete | `ComplaintsView` with API integration; home dashboard shows alert when complaints exist |
+| Sessions | ✅ Complete | Active session list and revoke flow linked from Profile |
+| Support & Feedback | ✅ Complete | Submit and list support tickets; linked from Profile and Home quick actions |
+| External Bookings (beautician) | ✅ Complete | External bookings list/create/proof upload |
+| Reimbursements | ✅ Complete | Reimbursement list/create/proof upload/cancel |
 | Leaderboard | ✅ Complete | Competitive rankings with Weekly, Monthly, and Yearly views; top 5 unmasked, others masked except self; tracks revenue (excluding hygiene/surge fees) and order counts |
-| SOS | 🟡 Scaffolded | `SosView` exists, route defined; `sos.service.ts` implemented (trigger, get latest, resolve) |
-| Trip Fees (rider) | 🟡 Scaffolded | `TripFeesView` exists, route defined; `trip-fees.service.ts` implemented |
+| SOS | ✅ Complete | Trigger latest alert and resolve flow via `sos.service.ts` |
+| Trip Fees (rider) | ✅ Complete | Rider trip-fee report via `trip-fees.service.ts` |
 | Google Maps | ✅ Complete | `GoogleMapView` component + `useGoogleMaps` composable; feature-flag gated via `VITE_FEATURE_MAPS` |
 | Places Search | ✅ Complete | `PlacesSearchInput` component + `usePlacesSearch` composable; lat/lng direct entry support |
 
@@ -80,6 +80,7 @@ Key BFF endpoints used:
 - `GET /leaderboard` — leaderboard (beautician only)
 - `POST /sos`, `GET /sos/latest`, `PATCH /sos/:id/resolve` — SOS alerts
 - `GET /trip-fees` — trip fees report for riders
+- Field routes are split on the server into catalog, leave, order, profile, support/misc, trip, FCM, and auth route modules, but exposed to this app under the same `/bff/field/*` surface.
 
 ## Dark Mode
 

@@ -24,9 +24,10 @@
 - `@capacitor/haptics`, `@capacitor/keyboard`, `@capacitor/status-bar` — Native shell utilities
 
 ## Build & Tooling
-- **Vite 5** — Dev server (port 8090) and bundler
+- **Vite 5.4+** — Dev server (port 8090) and bundler
 - **vue-tsc** — TypeScript type checking for Vue files
 - **pnpm** — Package manager (use `pnpm` for all installs, not npm/yarn)
+- No Node engine or packageManager is currently pinned in `package.json`; use the workspace active Node version.
 - **@vitejs/plugin-legacy** — Legacy browser support
 - **@types/google.maps** — TypeScript types for Google Maps JS API
 
