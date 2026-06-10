@@ -7,7 +7,6 @@ export enum ORDER_STATUS {
   STARTED = 'started',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
-  DROPPED_AND_WAITING = 'dropped_and_waiting',
   CANCEL_REQUESTED = 'cancel_requested',
   CANCELLED_AND_REFUNDED = 'cancelled_and_refunded',
   RE_ASSIGN_REQUIRED = 're_assign_required',
