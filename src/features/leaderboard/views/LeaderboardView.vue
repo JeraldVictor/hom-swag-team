@@ -92,6 +92,13 @@
           <p class="restriction-banner__text">Showing top 3 {{ rolePluralLabel }}.</p>
         </div>
 
+        <div v-if="prizeCards.length > 0" class="prize-strip" aria-label="Leaderboard bonus prizes">
+          <div v-for="prize in prizeCards" :key="prize.rank" class="prize-card">
+            <span class="prize-card__rank">{{ prize.label }}</span>
+            <span class="prize-card__amount">{{ formatCurrency(prize.amount) }}</span>
+          </div>
+        </div>
+
         <!-- Podium (top 3) -->
         <div v-if="top3.length > 0" class="podium">
           <!-- 2nd place -->
@@ -101,7 +108,6 @@
               <span v-else class="podium-avatar__initials">{{ initials(top3[1].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[1].name.split(' ')[0] }}</p>
-            <p class="podium-count">{{ top3[1].count }}</p>
             <div class="podium-block podium-block--second">
               <span class="podium-rank">2</span>
             </div>
@@ -115,7 +121,6 @@
               <span v-else class="podium-avatar__initials">{{ initials(top3[0].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[0].name.split(' ')[0] }}</p>
-            <p class="podium-count">{{ top3[0].count }}</p>
             <div class="podium-block podium-block--first">
               <span class="podium-rank">1</span>
             </div>
@@ -128,7 +133,6 @@
               <span v-else class="podium-avatar__initials">{{ initials(top3[2].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[2].name.split(' ')[0] }}</p>
-            <p class="podium-count">{{ top3[2].count }}</p>
             <div class="podium-block podium-block--third">
               <span class="podium-rank">3</span>
             </div>
@@ -194,11 +198,11 @@
                   {{ entry.name }} 
                   <span v-if="entry.is_self" class="entry-you">(You)</span>
                 </p>
-                <p class="entry-count">{{ entry.count }} {{ countLabel }}</p>
               </div>
-              <span v-if="entry.amount" class="entry-earnings">
+              <span v-if="entry.amount && !isMaskedEntry(entry)" class="entry-earnings">
                 {{ formatAmount(entry.amount) }}
               </span>
+              <span v-else-if="isMaskedEntry(entry)" class="entry-earnings entry-earnings--masked">—</span>
             </div>
           </div>
         </div>
@@ -213,7 +217,6 @@
             </div>
             <div class="entry-info">
               <p class="entry-name">{{ data.self_entry.name }} <span class="entry-you">(You)</span></p>
-              <p class="entry-count">{{ data.self_entry.count }} {{ countLabel }}</p>
             </div>
           </div>
         </div>
@@ -226,7 +229,7 @@
 import { onIonViewWillEnter } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
 import { getLeaderboard } from '@/shared/api'
-import type { LeaderboardData, LeaderboardPeriod } from '@/shared/models'
+import type { LeaderboardData, LeaderboardEntry, LeaderboardPeriod } from '@/shared/models'
 
 const data = ref<LeaderboardData | null>(null)
 const isLoading = ref(false)
@@ -244,8 +247,23 @@ const rest = computed(() => data.value?.entries.slice(3) ?? [])
 const isRiderLeaderboard = computed(() => data.value?.role === 'rider')
 const roleLabel = computed(() => (isRiderLeaderboard.value ? 'Rider' : 'Beautician'))
 const rolePluralLabel = computed(() => (isRiderLeaderboard.value ? 'Riders' : 'Beauticians'))
-const countLabel = computed(() => (isRiderLeaderboard.value ? 'trips' : 'orders'))
 const amountLabel = computed(() => (isRiderLeaderboard.value ? 'Distance' : 'Revenue'))
+const prizeAmounts = computed(() => {
+  if (!data.value?.prizes) return []
+  return isRiderLeaderboard.value
+    ? (data.value.prizes.rider ?? [])
+    : (data.value.prizes.beutician ?? [])
+})
+const prizeCards = computed(() =>
+  prizeAmounts.value
+    .slice(0, 2)
+    .map((amount, index) => ({
+      rank: index + 1,
+      label: index === 0 ? '1st Bonus' : '2nd Bonus',
+      amount,
+    }))
+    .filter(prize => prize.amount > 0)
+)
 const emptyStateText = computed(() =>
   isRiderLeaderboard.value
     ? 'Check back later when trips are completed.'
@@ -265,7 +283,15 @@ function formatAmount(amount: number): string {
     return `${amount.toLocaleString('en-IN')} km`
   }
 
+  return formatCurrency(amount)
+}
+
+function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString('en-IN')}`
+}
+
+function isMaskedEntry(entry: LeaderboardEntry): boolean {
+  return entry.user_id === 'masked'
 }
 
 async function fetchLeaderboard(): Promise<void> {
@@ -346,6 +372,38 @@ onIonViewWillEnter(() => {
   font-weight: 500;
 }
 
+.prize-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 16px 0;
+}
+
+.prize-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.prize-card__rank {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.prize-card__amount {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  color: var(--color-success-text);
+}
+
 /* Podium */
 .podium {
   display: flex;
@@ -401,13 +459,6 @@ onIonViewWillEnter(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-}
-
-.podium-count {
-  margin: 0 0 6px;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-align: center;
 }
 
 .podium-block {
@@ -526,17 +577,15 @@ onIonViewWillEnter(() => {
   font-weight: 700;
 }
 
-.entry-count {
-  margin: 2px 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
 .entry-earnings {
   font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--color-success-text);
   flex-shrink: 0;
+}
+
+.entry-earnings--masked {
+  color: var(--color-text-muted);
 }
 
 /* Self entry card */

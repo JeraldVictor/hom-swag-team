@@ -20,12 +20,19 @@ export interface LeaderboardEntry {
 
 export type LeaderboardPeriod = 'weekly' | 'monthly' | 'yearly' | 'financial_year' | 'all_time'
 
+export interface LeaderboardPrizes {
+  beutician?: number[]
+  rider?: number[]
+}
+
 export interface LeaderboardData {
   period: LeaderboardPeriod
   role: 'beautician' | 'rider'
   entries: LeaderboardEntry[]
   /** The logged-in user's own entry (may be outside top N) */
   self_entry?: LeaderboardEntry
+  /** Office-configured leaderboard bonus/prize amounts */
+  prizes?: LeaderboardPrizes
   /** Whether the full list is visible (permission-gated for riders — top 3 only) */
   is_restricted: boolean
 }

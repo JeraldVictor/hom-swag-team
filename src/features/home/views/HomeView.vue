@@ -86,23 +86,31 @@
           </div>
 
           <!-- Target Progress Card -->
-          <div v-if="dashboard?.monthly_target && !isRider" class="target-card anim-card">
+          <div
+            v-if="dashboard && (dashboard.monthly_target || isRider)"
+            class="target-card anim-card press-feedback"
+            @click="goTo('/target-details')"
+          >
             <div class="target-card__header">
               <div class="target-card__title-group">
                 <Icon icon="lucide:target" class="target-card__icon" />
-                <span class="target-card__title">Monthly Target</span>
+                <span class="target-card__title">{{ isRider ? 'Trip Earnings' : 'Monthly Target' }}</span>
               </div>
               <span class="target-card__status" :class="dashboard.target_achieved ? 'status--achieved' : 'status--pending'">
-                {{ dashboard.target_achieved ? 'Achieved' : 'In Progress' }}
+                {{ isRider ? 'Details' : dashboard.target_achieved ? 'Achieved' : 'In Progress' }}
               </span>
             </div>
             <div class="target-card__progress">
-              <div class="target-card__bar">
+              <div v-if="!isRider" class="target-card__bar">
                 <div class="target-card__fill" :style="{ width: `${targetProgress}%` }" />
               </div>
               <div class="target-card__labels">
-                <span class="target-card__current">{{ formatAmountShort(dashboard.month_earnings) }}</span>
-                <span class="target-card__goal">Goal: {{ formatAmountShort(dashboard.monthly_target) }}</span>
+                <span class="target-card__current">
+                  {{ isRider ? `${dashboard.month_completed_count} trips` : formatAmountShort(dashboard.month_earnings) }}
+                </span>
+                <span class="target-card__goal">
+                  {{ isRider ? `Commission: ${formatAmountShort(dashboard.month_commission)}` : `Goal: ${formatAmountShort(dashboard.monthly_target)}` }}
+                </span>
               </div>
             </div>
           </div>

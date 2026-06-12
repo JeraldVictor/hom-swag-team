@@ -180,6 +180,7 @@ const primaryItems = computed<NavItem[]>(() => {
   }
 
   items.push({ label: 'Calendar', icon: 'lucide:calendar-days', route: '/calendar' })
+  items.push({ label: 'Payout History', icon: 'lucide:wallet-cards', route: '/payouts' })
   items.push({ label: 'Notifications', icon: 'lucide:bell', route: '/notifications' })
   items.push({ label: 'Reimbursements', icon: 'lucide:receipt-text', route: '/reimbursements' })
 

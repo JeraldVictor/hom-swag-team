@@ -75,6 +75,16 @@ export type {
 } from './ot-request.model'
 // Pagination models
 export type { PaginatedResponse } from './pagination.model'
+// Payout history models
+export type {
+  PayoutComponent,
+  PayoutComponentType,
+  PayoutHistoryEntry,
+  PayoutHistoryResponse,
+  PayoutHistorySummary,
+  PayoutRole,
+  PayoutStatus,
+} from './payout-history.model'
 // Product models
 export type { Product, ProductOption } from './product.model'
 // Reimbursement models
@@ -88,6 +98,12 @@ export type {
 export type { SosAlert, SosStatus, SosTriggerBody } from './sos.model'
 // Support models
 export type { SupportBody, SupportCategory, SupportTicket } from './support.model'
+// Target details models
+export type {
+  TargetDetailsData,
+  TargetDetailsOrder,
+  TargetDetailsTrip,
+} from './target-details.model'
 // Trip models
 export type { GeoJsonPoint, RawTrip, Trip, TripKanbanState } from './trip.model'
 // Trip Fees models

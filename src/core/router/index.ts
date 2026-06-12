@@ -157,6 +157,20 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/leaderboard/views/LeaderboardView.vue'),
       },
 
+      // Monthly payout history (both roles)
+      {
+        path: 'payouts',
+        name: 'PayoutHistory',
+        component: () => import('@/features/payout-history/views/PayoutHistoryView.vue'),
+      },
+
+      // Monthly target details (beautician only)
+      {
+        path: 'target-details',
+        name: 'TargetDetails',
+        component: () => import('@/features/target-details/views/TargetDetailsView.vue'),
+      },
+
       // SOS (both roles)
       {
         path: 'sos',

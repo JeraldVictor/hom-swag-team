@@ -25,8 +25,8 @@
       <div class="profile-hero anim-hero">
         <div class="profile-avatar" @click="openEdit">
           <img
-            v-if="profile.photo?.url"
-            :src="profile.photo.url"
+            v-if="profilePhotoUrl"
+            :src="profilePhotoUrl"
             :alt="profile.name"
             class="profile-avatar__img"
           />
@@ -190,8 +190,8 @@
             <div class="photo-picker">
               <div class="photo-picker__preview">
                 <img
-                  v-if="photoPreview || profile.photo?.url"
-                  :src="photoPreview || profile.photo?.url"
+                  v-if="photoPreview || profilePhotoUrl"
+                  :src="photoPreview || profilePhotoUrl"
                   alt="Profile photo"
                   class="photo-picker__img"
                 />
@@ -210,7 +210,7 @@
                   />
                 </label>
                 <button
-                  v-if="photoPreview || profile.photo?.url"
+                  v-if="photoPreview || profilePhotoUrl"
                   class="photo-btn photo-btn--danger"
                   @click="removePhoto"
                 >
@@ -280,6 +280,31 @@
                     </template>
                     <template v-else>Not uploaded</template>
                   </p>
+                  <button
+                    v-if="doc.url"
+                    type="button"
+                    class="doc-upload-preview"
+                    @click="viewDoc(doc)"
+                  >
+                    <span class="doc-upload-preview__thumb">
+                      <img
+                        v-if="isImageDocument(doc)"
+                        :src="doc.url"
+                        :alt="`${doc.label} preview`"
+                        class="doc-upload-preview__img"
+                      />
+                      <Icon
+                        v-else
+                        :icon="isPdfDocument(doc) ? 'lucide:file-text' : 'lucide:file'"
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <span class="doc-upload-preview__body">
+                      <span class="doc-upload-preview__title">Preview</span>
+                      <span class="doc-upload-preview__url">{{ previewFileLabel(doc) }}</span>
+                    </span>
+                    <Icon icon="lucide:external-link" class="doc-upload-preview__open" aria-hidden="true" />
+                  </button>
                 </div>
               </div>
               <div class="doc-upload-row__actions">
@@ -329,9 +354,10 @@ import { onIonViewWillEnter } from '@ionic/vue'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getProfile, updateProfile, uploadProfilePhoto } from '@/shared/api'
+import { getProfile, updateProfile, uploadProfileDocument, uploadProfilePhoto } from '@/shared/api'
 import { useDrawer, useToast } from '@/shared/composables'
-import type { ProfileDocument, UserProfile } from '@/shared/models'
+import { mediaUrl } from '@/shared/lib/media'
+import type { UserProfile } from '@/shared/models'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 
 const router = useRouter()
@@ -365,6 +391,7 @@ interface DocSlot {
   uploaded: boolean
   verified: boolean
   url?: string
+  mimeType?: string
 }
 
 // Common docs for both roles
@@ -393,7 +420,8 @@ const documentSlots = computed<DocSlot[]>(() => {
       ...def,
       uploaded: !!uploaded?.url,
       verified: !!uploaded?.verified,
-      url: uploaded?.url,
+      url: uploaded?.url ? mediaUrl(uploaded.url) : undefined,
+      mimeType: uploaded?.mime_type,
     }
   })
 })
@@ -410,6 +438,7 @@ const initials = computed(() => {
 })
 
 const roleLabel = computed(() => (isBeautician.value ? 'Beautician' : 'Rider'))
+const profilePhotoUrl = computed(() => mediaUrl(profile.value.photo?.url))
 
 // ── Edit state ─────────────────────────────────────────────────────────────
 
@@ -464,7 +493,7 @@ function removePhoto(): void {
 
 // ── Document handling ──────────────────────────────────────────────────────
 
-function onDocSelected(event: Event, type: string): void {
+async function onDocSelected(event: Event, type: string): Promise<void> {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   if (file.size > 10 * 1024 * 1024) {
@@ -472,31 +501,35 @@ function onDocSelected(event: Event, type: string): void {
     return
   }
 
-  // Optimistically update the local documents list
-  const existing = profile.value.documents ?? []
-  const idx = existing.findIndex(d => d.type === type)
-  const newDoc: ProfileDocument = {
-    type,
-    label: documentSlots.value.find(s => s.type === type)?.label ?? type,
-    url: URL.createObjectURL(file),
-    mime_type: file.type,
-    uploaded_at: new Date().toISOString(),
-    verified: false,
+  isSaving.value = true
+  saveError.value = null
+  try {
+    const formData = new FormData()
+    formData.append('document', file)
+    const uploaded = await uploadProfileDocument(type, formData)
+    const existing = [...(profile.value.documents ?? [])]
+    const idx = existing.findIndex(d => d.type === type)
+    if (idx >= 0) {
+      existing[idx] = uploaded
+    } else {
+      existing.push(uploaded)
+    }
+    profile.value = { ...profile.value, documents: existing }
+    authStore.setUserProfile(profile.value)
+    showSuccess(
+      `${uploaded.label ?? documentSlots.value.find(s => s.type === type)?.label ?? type} uploaded`
+    )
+  } catch (err) {
+    saveError.value = err instanceof Error ? err.message : 'Failed to upload document'
+    showError(saveError.value)
+  } finally {
+    isSaving.value = false
+    ;(event.target as HTMLInputElement).value = ''
   }
-
-  if (idx >= 0) {
-    existing[idx] = newDoc
-  } else {
-    existing.push(newDoc)
-  }
-  profile.value = { ...profile.value, documents: [...existing] }
-
-  showSuccess(`${newDoc.label} uploaded`)
-  // When wired to API: call uploadProfileDocument(type, formData)
 }
 
 function viewDoc(doc: DocSlot): void {
-  if (doc.url) window.open(doc.url, '_blank')
+  if (doc.url) window.open(doc.url, '_system')
 }
 
 // ── Save ───────────────────────────────────────────────────────────────────
@@ -514,12 +547,8 @@ async function handleSave(): Promise<void> {
     if (photoFile.value) {
       const formData = new FormData()
       formData.append('photo', photoFile.value)
-      try {
-        const updated = await uploadProfilePhoto(formData)
-        profile.value = { ...profile.value, photo: updated.photo }
-      } catch {
-        // Non-critical — continue with other updates
-      }
+      const updated = await uploadProfilePhoto(formData)
+      profile.value = { ...profile.value, photo: updated.photo }
     }
 
     // Update profile fields
@@ -563,6 +592,22 @@ function formatDate(iso?: string): string {
 
 function goTo(path: string): void {
   router.push(path)
+}
+
+function isImageDocument(doc: DocSlot): boolean {
+  if (doc.mimeType?.startsWith('image/')) return true
+  return /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(doc.url ?? '')
+}
+
+function isPdfDocument(doc: DocSlot): boolean {
+  if (doc.mimeType === 'application/pdf') return true
+  return /\.pdf(\?.*)?$/i.test(doc.url ?? '')
+}
+
+function previewFileLabel(doc: DocSlot): string {
+  if (isPdfDocument(doc)) return 'PDF document'
+  if (isImageDocument(doc)) return 'Image file'
+  return doc.mimeType || 'Uploaded file'
 }
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -1136,6 +1181,72 @@ onIonViewWillEnter(() => {
   gap: 4px;
   margin: 2px 0 0;
   font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.doc-upload-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.doc-upload-preview:active { transform: scale(0.99); }
+
+.doc-upload-preview__thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 17px;
+}
+
+.doc-upload-preview__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.doc-upload-preview__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-upload-preview__title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.doc-upload-preview__url {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-upload-preview__open {
+  flex-shrink: 0;
+  font-size: 15px;
   color: var(--color-text-muted);
 }
 
