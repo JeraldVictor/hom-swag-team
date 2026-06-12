@@ -206,6 +206,13 @@ export interface Order {
   subtotal?: number
   total?: number
   discount_total?: number
+  membership_plan_id?: string
+  membership_charge?: number
+  membership_discount_total?: number
+  membership_free_item_total?: number
+  one_time_discount_type?: 'percentage' | 'fixed'
+  one_time_discount_value?: number
+  one_time_discount_amount?: number
   delivery_fee?: number
   convenience_fees?: number
   hygiene_fees?: number

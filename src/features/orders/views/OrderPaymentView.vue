@@ -491,7 +491,7 @@ const actionDisabled = computed(() => {
   if (requiresProof.value && proofImages.value.length === 0) return true
   const codValue = normalizePaymentValue(paymentCodAmount.value)
   const upiValue = normalizePaymentValue(paymentUpiAmount.value)
-  if (codValue + upiValue <= 0) return true
+  if (codValue + upiValue < remainingDue.value) return true
   return false
 })
 
@@ -548,8 +548,8 @@ async function handleCompleteOrder() {
   const previousPrepaidAmount = Number(order.value.payment?.amount_paid ?? 0)
 
   if (!isPrepaidOrder.value) {
-    if (codAmount + upiAmount <= 0) {
-      showError('Please enter the cash collected amount.')
+    if (codAmount + upiAmount < remainingDue.value) {
+      showError(`Please collect the full pending amount of ₹${remainingDue.value}.`)
       return
     }
     if (requiresProof.value && proofImages.value.length === 0) {
@@ -563,11 +563,10 @@ async function handleCompleteOrder() {
     if (codAmount > 0) methodParts.push('COD')
     if (upiAmount > 0) methodParts.push('UPI')
     const collectedTotal = previousPrepaidAmount + codAmount + upiAmount + tipAmount
-    const finalStatus = collectedTotal >= orderTotal.value ? 'paid' : 'partial'
 
     await updateOrderDetails({
       payment: {
-        status: finalStatus,
+        status: 'paid',
         amount_paid: previousPrepaidAmount > 0 ? collectedTotal : codAmount + upiAmount + tipAmount,
         cod_amount: codAmount,
         upi_amount: upiAmount,

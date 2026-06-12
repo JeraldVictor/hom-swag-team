@@ -42,6 +42,12 @@
               <div class="new">₹{{ deliveryFee }}</div>
             </div>
 
+            <div class="comparison-row" v-if="membershipCharge > 0">
+              <div class="label">Membership</div>
+              <div class="old">₹{{ membershipCharge }}</div>
+              <div class="new">₹{{ membershipCharge }}</div>
+            </div>
+
             <div class="comparison-row" v-if="otherCharges > 0">
               <div class="label">Other Charges</div>
               <div class="old">₹{{ otherCharges }}</div>
@@ -441,6 +447,7 @@ async function hydrateCartItems(items: CartItem[]): Promise<CartItem[]> {
 const oldSubtotal = computed(() => order.value?.subtotal || 0)
 const deliveryFee = computed(() => order.value?.delivery_fee || 0)
 const discountTotal = computed(() => order.value?.discount_total || 0)
+const membershipCharge = computed(() => order.value?.membership_charge || 0)
 const surgeAmount = computed(() => order.value?.booking_info?.surge_amount || 0)
 const convenienceFees = computed(() => order.value?.convenience_fees || 0)
 const hygieneFees = computed(() => order.value?.hygiene_fees || 0)
@@ -461,10 +468,19 @@ const preservedCharges = computed(
 )
 
 const newTotal = computed(() => {
-  return newSubtotal.value + preservedCharges.value - discountTotal.value
+  return Math.max(
+    0,
+    newSubtotal.value + membershipCharge.value + preservedCharges.value - discountTotal.value
+  )
 })
 
 const priceDifference = computed(() => newTotal.value - oldTotal.value)
+
+const existingAmountPaid = computed(() => {
+  const payment = order.value?.payment
+  const amount = Number(payment?.amount_paid ?? payment?.actual_paid_amount ?? 0)
+  return Number.isFinite(amount) ? amount : 0
+})
 
 const minimumOrderValue = computed(() => {
   return Number(
@@ -651,7 +667,22 @@ async function handleVerifyAndSubmit() {
       }
     })
 
-    await updateOrder(orderId, { products: productsToUpdate })
+    const nextPaymentStatus =
+      existingAmountPaid.value >= newTotal.value
+        ? 'paid'
+        : existingAmountPaid.value > 0
+          ? 'partial'
+          : (order.value?.payment?.status ?? 'pending')
+
+    await updateOrder(orderId, {
+      products: productsToUpdate,
+      payment: {
+        ...(order.value?.payment ?? {}),
+        status: nextPaymentStatus,
+        amount_paid: existingAmountPaid.value,
+        order_amount: newTotal.value,
+      },
+    })
 
     // 3. Cleanup
     const allEdits =
