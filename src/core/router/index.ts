@@ -150,7 +150,7 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/reimbursements/views/ReimbursementsView.vue'),
       },
 
-      // Leaderboard (beautician only)
+      // Leaderboard (both roles)
       {
         path: 'leaderboard',
         name: 'Leaderboard',

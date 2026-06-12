@@ -83,13 +83,13 @@
               <Icon icon="lucide:trophy" class="empty-state__icon" aria-hidden="true" />
             </div>
             <p class="empty-state__title">No Data Available</p>
-            <p class="empty-state__text">Check back later when orders are completed and revenue is generated.</p>
+            <p class="empty-state__text">{{ emptyStateText }}</p>
           </div>
         </template>
         <!-- Restriction notice for riders -->
         <div v-if="data.is_restricted" class="restriction-banner">
           <Icon icon="lucide:lock" class="restriction-banner__icon" aria-hidden="true" />
-          <p class="restriction-banner__text">Showing top 3 Beauticians.</p>
+          <p class="restriction-banner__text">Showing top 3 {{ rolePluralLabel }}.</p>
         </div>
 
         <!-- Podium (top 3) -->
@@ -141,7 +141,7 @@
             <thead>
               <tr>
                 <th class="year-table__header-rank">Rank</th>
-                <th class="year-table__header-name">Beautician Name</th>
+                <th class="year-table__header-name">{{ roleLabel }} Name</th>
               </tr>
             </thead>
             <tbody>
@@ -172,8 +172,8 @@
           <!-- Table Headers -->
           <div class="table-header">
             <span class="table-header__rank">Rank</span>
-            <span class="table-header__name">Beautician</span>
-            <span class="table-header__earnings">Revenue</span>
+            <span class="table-header__name">{{ roleLabel }}</span>
+            <span class="table-header__earnings">{{ amountLabel }}</span>
           </div>
           
           <div class="list">
@@ -194,10 +194,10 @@
                   {{ entry.name }} 
                   <span v-if="entry.is_self" class="entry-you">(You)</span>
                 </p>
-                <p class="entry-count">{{ entry.count }} orders</p>
+                <p class="entry-count">{{ entry.count }} {{ countLabel }}</p>
               </div>
               <span v-if="entry.amount" class="entry-earnings">
-                ₹{{ entry.amount.toLocaleString('en-IN') }}
+                {{ formatAmount(entry.amount) }}
               </span>
             </div>
           </div>
@@ -213,7 +213,7 @@
             </div>
             <div class="entry-info">
               <p class="entry-name">{{ data.self_entry.name }} <span class="entry-you">(You)</span></p>
-              <p class="entry-count">{{ data.self_entry.count }} orders</p>
+              <p class="entry-count">{{ data.self_entry.count }} {{ countLabel }}</p>
             </div>
           </div>
         </div>
@@ -241,6 +241,16 @@ const periods: { value: LeaderboardPeriod; label: string }[] = [
 
 const top3 = computed(() => data.value?.entries.slice(0, 3) ?? [])
 const rest = computed(() => data.value?.entries.slice(3) ?? [])
+const isRiderLeaderboard = computed(() => data.value?.role === 'rider')
+const roleLabel = computed(() => (isRiderLeaderboard.value ? 'Rider' : 'Beautician'))
+const rolePluralLabel = computed(() => (isRiderLeaderboard.value ? 'Riders' : 'Beauticians'))
+const countLabel = computed(() => (isRiderLeaderboard.value ? 'trips' : 'orders'))
+const amountLabel = computed(() => (isRiderLeaderboard.value ? 'Distance' : 'Revenue'))
+const emptyStateText = computed(() =>
+  isRiderLeaderboard.value
+    ? 'Check back later when trips are completed.'
+    : 'Check back later when orders are completed and revenue is generated.'
+)
 
 function initials(name: string): string {
   return name
@@ -248,6 +258,14 @@ function initials(name: string): string {
     .slice(0, 2)
     .map(n => n[0]?.toUpperCase() ?? '')
     .join('')
+}
+
+function formatAmount(amount: number): string {
+  if (isRiderLeaderboard.value) {
+    return `${amount.toLocaleString('en-IN')} km`
+  }
+
+  return `₹${amount.toLocaleString('en-IN')}`
 }
 
 async function fetchLeaderboard(): Promise<void> {
