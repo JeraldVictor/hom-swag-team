@@ -332,6 +332,10 @@ apiClient.interceptors.request.use(
       return config
     }
 
+    if (config.headers.get('Authorization')) {
+      return config
+    }
+
     const accessToken = await Storage_Service.getString(STORAGE_KEYS.accessToken)
 
     if (accessToken) {

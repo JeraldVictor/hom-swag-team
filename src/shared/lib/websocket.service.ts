@@ -20,6 +20,7 @@ type EventHandler = (data: any) => void
 
 class WebSocketService {
   private socket: Socket | null = null
+  private currentToken: string | null = null
   private listeners: Set<MessageListener> = new Set()
   private eventHandlers: Map<string, Set<EventHandler>> = new Map()
 
@@ -52,13 +53,14 @@ class WebSocketService {
    * @param token  The user's access token.
    */
   connect(token: string): void {
-    if (this.socket?.connected) return
+    if (this.socket?.connected && this.currentToken === token) return
 
     // If we're already connecting/connected with a different socket, clean it up
     if (this.socket) {
       this.socket.disconnect()
     }
 
+    this.currentToken = token
     console.log('[WebSocketService] Connecting wsUrl=', this.wsUrl)
     this.socket = io(this.wsUrl, {
       auth: { token },
@@ -96,6 +98,7 @@ class WebSocketService {
       this.socket.disconnect()
       this.socket = null
     }
+    this.currentToken = null
   }
 
   /**

@@ -110,28 +110,6 @@ async function finishBoot() {
   void backgroundRunner.setupNotificationChannels()
 
   if (restored) {
-    // Ensure socket is connected if we have a session
-    if (authStore.accessToken) {
-      webSocketService.connect(authStore.accessToken)
-      // Start background location tracking if enabled
-      void locationTracker.start()
-
-      // Fetch server config for feature flags
-      await appStore.fetchConfig()
-
-      // Handle real-time feature flag updates
-      webSocketService.on('feature_flag:updated', () => {
-        appStore.fetchConfig()
-      })
-      webSocketService.on('feature_flag:deleted', (data: { key: string }) => {
-        appStore.removeFeatureFlag(data.key)
-      })
-
-      // Fetch initial notifications
-      const notificationStore = useNotificationStore()
-      void notificationStore.fetchNotifications()
-    }
-
     if (router.currentRoute.value.path === '/login') {
       await router.replace('/home')
     }
@@ -160,14 +138,19 @@ async function handlePermissionsGranted() {
 let appStateListener: PluginListenerHandle | null = null
 let apiLogoutListener: ((event: Event) => void) | null = null
 let backgroundRunnerListenerCleanup: (() => void) | null = null
-let fcmCleanup: (() => void) | null = null
+let fcmCleanup: (() => void | Promise<void>) | null = null
+let activeSessionToken: string | null = null
 
 async function setupAppStateListener() {
   appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
-    if (isActive && authStore.isAuthenticated && !locationTracker.isTracking.value) {
-      // App returned to foreground and user is authenticated — restart tracker
-      // if it was stopped (e.g. by the OS killing the background process)
-      void locationTracker.start()
+    if (isActive) {
+      void backgroundRunner.cancelPendingAlertSeries()
+
+      if (authStore.isAuthenticated && !locationTracker.isTracking.value) {
+        // App returned to foreground and user is authenticated — restart tracker
+        // if it was stopped (e.g. by the OS killing the background process)
+        void locationTracker.start()
+      }
     }
   })
 }
@@ -185,6 +168,7 @@ onMounted(async () => {
   void App.addListener('appUrlOpen', (event: { url: string }) => {
     const url = event.url
     console.log('[App] appUrlOpen:', url)
+    void backgroundRunner.cancelPendingAlertSeries()
     try {
       if (url.startsWith('homswag-team://alert')) {
         // homswag-team://alert?type=order_assigned&order_id=123
@@ -237,12 +221,19 @@ onMounted(async () => {
   apiLogoutListener = async () => {
     console.warn('[App] API logout event received')
     locationTracker.stop()
-    fcmCleanup?.()
+    await fcmCleanup?.()
     fcmCleanup = null
     await authStore.logout()
     await router.replace('/login')
   }
   window.addEventListener('homswag:logout', apiLogoutListener)
+
+  webSocketService.on('feature_flag:updated', () => {
+    void appStore.fetchConfig()
+  })
+  webSocketService.on('feature_flag:deleted', (data: { key: string }) => {
+    appStore.removeFeatureFlag(data.key)
+  })
 
   // Unified listener for new notifications
   webSocketService.on('notification:new', (data: RawNotification) => {
@@ -316,6 +307,7 @@ onMounted(async () => {
       console.log('[App] Background runner notification tapped, id:', notificationId)
       // The event from background runner may include `notification` or `extras` directly
       const data = event?.notification?.extra || event?.extra || event?.data || {}
+      void backgroundRunner.cancelAlertSeries(data?.alert_series_base_id, data?.alert_series_count)
       const rawType = data?.type || ''
       const type = String(rawType).toLowerCase()
 
@@ -348,6 +340,7 @@ onMounted(async () => {
   if (Capacitor.isNativePlatform()) {
     void LocalNotifications.addListener('localNotificationActionPerformed', event => {
       const data = event.notification.extra
+      void backgroundRunner.cancelAlertSeries(data?.alert_series_base_id, data?.alert_series_count)
       if (data?.order_id || data?.orderId) {
         const id = data.order_id || data.orderId
         void router.push(`/orders/${id}`)
@@ -370,7 +363,7 @@ onUnmounted(() => {
     window.removeEventListener('homswag:logout', apiLogoutListener)
   }
   backgroundRunnerListenerCleanup?.()
-  fcmCleanup?.()
+  void fcmCleanup?.()
 })
 
 // Keep the store's isOnline in sync with the composable's reactive ref
@@ -378,17 +371,40 @@ watch(isOnline, online => {
   appStore.setOnline(online)
 })
 
-// Initialise FCM only when the user is authenticated.
-// This ensures token registration never fires before login,
-// which would cause a 401 → logout event → boot loop.
+// Keep realtime notification ownership tied to the active access token.
+// This handles cold boot, logout, and switching users in the same app session.
 watch(
-  () => authStore.isAuthenticated,
-  async authenticated => {
-    if (authenticated) {
-      fcmCleanup = await fcm.init()
-    } else {
-      fcmCleanup?.()
+  () => authStore.accessToken,
+  async token => {
+    const notificationStore = useNotificationStore()
+
+    if (!token) {
+      activeSessionToken = null
+      await fcmCleanup?.()
       fcmCleanup = null
+      webSocketService.disconnect()
+      locationTracker.stop()
+      notificationStore.clearNotifications()
+      return
+    }
+
+    if (activeSessionToken === token) return
+
+    await fcmCleanup?.()
+    fcmCleanup = null
+    activeSessionToken = token
+
+    webSocketService.connect(token)
+    void locationTracker.start()
+    void appStore.fetchConfig()
+    notificationStore.clearNotifications()
+    void notificationStore.fetchNotifications()
+
+    try {
+      fcmCleanup = await fcm.init()
+    } catch (err) {
+      fcmCleanup = null
+      console.warn('[App] FCM init failed:', err)
     }
   },
   { immediate: true }

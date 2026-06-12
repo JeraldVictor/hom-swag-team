@@ -120,7 +120,8 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = userProfile
 
     // Sync token to CapacitorKV for background runner access
-    const { syncAuthToken, syncApiUrl } = useBackgroundRunner()
+    const { clearAuthToken, syncAuthToken, syncApiUrl } = useBackgroundRunner()
+    await clearAuthToken()
     void syncAuthToken(newAccessToken)
     void syncApiUrl(ENV.VITE_BFF_API_URL)
   }

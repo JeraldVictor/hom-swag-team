@@ -19,6 +19,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { FirebaseMessaging } from '@capacitor-firebase/messaging'
 import { useRouter } from 'vue-router'
 import apiClient from '@/shared/lib/api'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import webSocketService from '@/shared/lib/websocket.service'
 import { useGlobalAlerts } from './useGlobalAlerts'
 
@@ -93,9 +94,12 @@ export function useFcm() {
   /**
    * Remove the FCM token from the server (call on logout).
    */
-  async function unregisterToken(token: string): Promise<void> {
+  async function unregisterToken(token: string, accessToken?: string | null): Promise<void> {
     try {
-      await apiClient.delete('/fcm-token', { data: { token } })
+      await apiClient.delete('/fcm-token', {
+        data: { token },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      })
     } catch (err) {
       console.warn('[FCM] unregisterToken failed:', err)
     }
@@ -114,6 +118,7 @@ export function useFcm() {
     if (!isNative()) return () => {}
 
     // 1. Register token
+    const sessionAccessToken = await Storage_Service.getString(STORAGE_KEYS.accessToken)
     const token = await getToken()
     if (token) {
       await registerToken(token)
@@ -207,7 +212,7 @@ export function useFcm() {
       await tapHandle.remove()
       await refreshHandle.remove()
       if (token) {
-        await unregisterToken(token)
+        await unregisterToken(token, sessionAccessToken)
       }
     }
   }

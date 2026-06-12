@@ -24,6 +24,9 @@ import { Preferences } from '@capacitor/preferences'
 
 /** Must match the `label` in capacitor.config.ts BackgroundRunner plugin config. */
 const RUNNER_LABEL = 'com.homswag.team.background.notifications'
+const ALERT_REPEAT_COUNT = 30
+const ALERT_NOTIFICATION_ID_BASE = 1600000000
+const ALERT_NOTIFICATION_ID_LIMIT = 1700000000
 
 /** CapacitorKV keys written here and read by the runner script. */
 const KV_AUTH_TOKEN = 'backgroundAuthToken'
@@ -104,6 +107,49 @@ export function useBackgroundRunner() {
       ])
     } catch (err) {
       console.warn('[BackgroundRunner] setupNotificationChannels failed:', err)
+    }
+  }
+
+  async function cancelAlertSeries(
+    baseId?: number | string,
+    count = ALERT_REPEAT_COUNT
+  ): Promise<void> {
+    if (!isNative() || baseId === undefined || baseId === null) return
+
+    const numericBaseId = Number(baseId)
+    const numericCount = Number(count)
+    if (!Number.isFinite(numericBaseId)) return
+    if (!Number.isFinite(numericCount) || numericCount <= 0) return
+
+    try {
+      await LocalNotifications.cancel({
+        notifications: Array.from({ length: numericCount }, (_, index) => ({
+          id: numericBaseId + index,
+        })),
+      })
+    } catch (err) {
+      console.warn('[BackgroundRunner] cancelAlertSeries failed:', err)
+    }
+  }
+
+  async function cancelPendingAlertSeries(): Promise<void> {
+    if (!isNative()) return
+
+    try {
+      const pending = await LocalNotifications.getPending()
+      const alertNotifications = pending.notifications
+        .filter(
+          notification =>
+            notification.id >= ALERT_NOTIFICATION_ID_BASE &&
+            notification.id < ALERT_NOTIFICATION_ID_LIMIT
+        )
+        .map(notification => ({ id: notification.id }))
+
+      if (alertNotifications.length === 0) return
+
+      await LocalNotifications.cancel({ notifications: alertNotifications })
+    } catch (err) {
+      console.warn('[BackgroundRunner] cancelPendingAlertSeries failed:', err)
     }
   }
 
@@ -199,6 +245,8 @@ export function useBackgroundRunner() {
     syncApiUrl,
     clearAuthToken,
     setupNotificationChannels,
+    cancelAlertSeries,
+    cancelPendingAlertSeries,
     requestPermissions,
     checkPermissions,
     setupNotificationListener,

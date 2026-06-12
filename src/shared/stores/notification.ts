@@ -99,6 +99,12 @@ export const useNotificationStore = defineStore('notifications', () => {
     }
   }
 
+  const clearNotifications = () => {
+    notifications.value = []
+    unreadCount.value = 0
+    isLoading.value = false
+  }
+
   return {
     notifications,
     isLoading,
@@ -108,5 +114,6 @@ export const useNotificationStore = defineStore('notifications', () => {
     markAsRead,
     markAllRead,
     addNotification,
+    clearNotifications,
   }
 })
