@@ -1,5 +1,5 @@
 {
-  "name": "hom-swag-team",
+  "name": "homswag-partner",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -70,5 +70,5 @@
     "vitest": "^0.34.6",
     "vue-tsc": "^2.2.12"
   },
-  "description": "An Ionic project"
+  "description": "HomSwag Partner mobile app"
 }

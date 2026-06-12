@@ -1,4 +1,4 @@
-# HomSwagTeam — PROD Deployment & Debug APK Guide
+# HomSwag Partner — PROD Deployment & Debug APK Guide
 
 ## Prerequisites
 

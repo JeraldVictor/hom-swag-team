@@ -14,7 +14,7 @@ export const ENV = {
   VITE_BFF_API_URL: import.meta.env.VITE_BFF_API_URL,
   VITE_BFF_BASE_URL: (import.meta.env.VITE_BFF_BASE_URL as string | undefined) ?? '',
   VITE_MEDIA_BASE_URL:
-    (import.meta.env.VITE_MEDIA_BASE_URL as string | undefined) ?? 'http://api.alpha.homswag.com',
+    (import.meta.env.VITE_MEDIA_BASE_URL as string | undefined) ?? 'https://partner.homswag.com',
   VITE_WS_URL: (import.meta.env.VITE_WS_URL as string | undefined) ?? 'http://localhost:3000',
   VITE_GOOGLE_MAPS_API_KEY: (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined) ?? '',
   VITE_FEATURE_MAPS: import.meta.env.VITE_FEATURE_MAPS === 'true',

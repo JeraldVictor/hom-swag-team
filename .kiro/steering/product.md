@@ -1,6 +1,6 @@
 # Product
 
-**HomSwagTeam** is a mobile-first field worker app built with Ionic + Vue 3 + Capacitor, targeting iOS and Android via a single codebase. It also runs as a Progressive Web App (PWA).
+**HomSwag Partner** is a mobile-first field worker app built with Ionic + Vue 3 + Capacitor, targeting iOS and Android via a single codebase. It also runs as a Progressive Web App (PWA).
 
 ## Users
 

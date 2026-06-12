@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:3000/bff/field
     description: Development server
-  - url: https://api.alpha.homswag.com/bff/field
+  - url: https://partner.homswag.com/bff/field
     description: API server
 paths:
   /auth/otp/request:

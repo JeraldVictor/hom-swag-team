@@ -23,7 +23,7 @@ import { Preferences } from '@capacitor/preferences'
 // ---------------------------------------------------------------------------
 
 /** Must match the `label` in capacitor.config.ts BackgroundRunner plugin config. */
-const RUNNER_LABEL = 'com.homswag.team.background.notifications'
+const RUNNER_LABEL = 'com.homswag.partner.background.notifications'
 const ALERT_REPEAT_COUNT = 30
 const ALERT_NOTIFICATION_ID_BASE = 1600000000
 const ALERT_NOTIFICATION_ID_LIMIT = 1700000000

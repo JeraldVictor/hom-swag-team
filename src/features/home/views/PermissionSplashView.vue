@@ -7,7 +7,7 @@
         alt="HomSwag"
         class="perm-splash__logo"
       />
-      <h1 class="perm-splash__app-name">HomSwag Team</h1>
+      <h1 class="perm-splash__app-name">HomSwag Partner</h1>
     </div>
 
     <!-- Intro copy -->

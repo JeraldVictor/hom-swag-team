@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
     BASE_URL: process.env.BASE_URL ?? '/',
     VITE_BFF_API_URL: process.env.VITE_BFF_API_URL ?? '',
     VITE_BFF_BASE_URL: process.env.VITE_BFF_BASE_URL ?? 'http://localhost:3000',
-    VITE_MEDIA_BASE_URL: process.env.VITE_MEDIA_BASE_URL ?? 'http://alpha.homswag.com',
+    VITE_MEDIA_BASE_URL: process.env.VITE_MEDIA_BASE_URL ?? 'https://partner.homswag.com',
     VITE_WS_URL: process.env.VITE_WS_URL ?? 'http://localhost:3000',
     VITE_GOOGLE_MAPS_API_KEY: process.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
     VITE_FEATURE_MAPS: process.env.VITE_FEATURE_MAPS ?? 'false',

@@ -3,8 +3,8 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.homswag.team',
-  appName: 'HomSwagTeam',
+  appId: 'com.homswag.partner',
+  appName: 'HomSwag Partner',
   webDir: 'dist',
   plugins: {
     // Route all XHR / fetch calls through the native HTTP layer.
@@ -16,7 +16,7 @@ const config: CapacitorConfig = {
     // Background Runner — polls /notifications when the app is backgrounded
     // and fires a local notification for any new unread items.
     BackgroundRunner: {
-      label: 'com.homswag.team.background.notifications',
+      label: 'com.homswag.partner.background.notifications',
       src: 'runners/background.runner.js',
       event: 'notificationCheck',
       repeat: true,

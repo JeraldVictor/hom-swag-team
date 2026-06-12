@@ -162,7 +162,7 @@ async function setupAppStateListener() {
 onMounted(async () => {
   void import('@aejkatappaja/phantom-ui')
 
-  // Handle deep-links from RingtoneActivity or Push Notifications (homswag-team://...)
+  // Handle deep-links from RingtoneActivity or Push Notifications (homswag-partner://...)
   // This fires when the user taps "View Details" on the native alarm UI or clicks
   // a high-priority push notification, bringing the app to the foreground.
   void App.addListener('appUrlOpen', (event: { url: string }) => {
@@ -170,9 +170,9 @@ onMounted(async () => {
     console.log('[App] appUrlOpen:', url)
     void backgroundRunner.cancelPendingAlertSeries()
     try {
-      if (url.startsWith('homswag-team://alert')) {
-        // homswag-team://alert?type=order_assigned&order_id=123
-        const urlObj = new URL(url.replace('homswag-team://', 'http://'))
+      if (url.startsWith('homswag-partner://alert')) {
+        // homswag-partner://alert?type=order_assigned&order_id=123
+        const urlObj = new URL(url.replace('homswag-partner://', 'http://'))
         const params = Object.fromEntries(
           Array.from(urlObj.searchParams as unknown as Iterable<readonly [string, string]>)
         )
@@ -186,8 +186,8 @@ onMounted(async () => {
         return
       }
 
-      if (url.startsWith('homswag-team://navigate')) {
-        const path = url.replace('homswag-team://navigate', '')
+      if (url.startsWith('homswag-partner://navigate')) {
+        const path = url.replace('homswag-partner://navigate', '')
         if (path && path !== '/') {
           void router.push(path)
         }

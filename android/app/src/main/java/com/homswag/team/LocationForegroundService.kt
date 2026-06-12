@@ -1,4 +1,4 @@
-package com.homswag.team
+package com.homswag.partner
 
 import android.app.Notification
 import android.app.NotificationChannel

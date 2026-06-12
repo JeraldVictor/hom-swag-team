@@ -1,5 +1,5 @@
 /**
- * Background Runner Script — HomSwag Team App
+ * Background Runner Script — HomSwag Partner App
  *
  * Executed by @capacitor/background-runner in a headless JS environment.
  * No access to the webview, Vue state, or ES module imports.

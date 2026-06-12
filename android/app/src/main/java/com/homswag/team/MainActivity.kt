@@ -1,4 +1,4 @@
-package com.homswag.team
+package com.homswag.partner
 
 import android.content.Intent
 import android.os.Bundle
@@ -22,6 +22,6 @@ class MainActivity : BridgeActivity() {
         if (intent == null) return false
         if (intent.getBooleanExtra("skip_splash", false)) return true
         val data = intent.data ?: return false
-        return data.scheme == "homswag-team" && data.path?.startsWith("/navigate") == true
+        return data.scheme == "homswag-partner" && data.path?.startsWith("/navigate") == true
     }
 }

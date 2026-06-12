@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">HomSwagTeam</string>
-    <string name="title_activity_main">HomSwagTeam</string>
-    <string name="package_name">com.homswag.team</string>
-    <string name="custom_url_scheme">com.homswag.team</string>
+    <string name="app_name">HomSwag Partner</string>
+    <string name="title_activity_main">HomSwag Partner</string>
+    <string name="package_name">com.homswag.partner</string>
+    <string name="custom_url_scheme">com.homswag.partner</string>
 </resources>

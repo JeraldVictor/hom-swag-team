@@ -1,4 +1,4 @@
-package com.homswag.team
+package com.homswag.partner
 
 import android.content.Intent
 import android.os.Build

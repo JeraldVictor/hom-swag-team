@@ -1,4 +1,4 @@
-package com.homswag.team
+package com.homswag.partner
 
 import android.app.Activity
 import android.app.KeyguardManager
@@ -66,14 +66,14 @@ class RingtoneActivity : Activity() {
             Log.d(TAG, "Accept tapped — launching MainActivity")
             stopAlarm()
 
-            // Build a homswag-team:// deep-link URL so the Capacitor app's
+            // Build a homswag-partner:// deep-link URL so the Capacitor app's
             // App.addListener('appUrlOpen') handler can navigate to the right screen.
             val type    = intent.getStringExtra("type") ?: ""
             val orderId = intent.getStringExtra("order_id") ?: ""
             val tripId  = intent.getStringExtra("trip_id")  ?: ""
             
             // Use the "alert" path so App.vue triggers the GlobalAlertBox for consistency.
-            val deepLink = "homswag-team://alert?type=$type&order_id=$orderId&trip_id=$tripId"
+            val deepLink = "homswag-partner://alert?type=$type&order_id=$orderId&trip_id=$tripId"
 
             val mainIntent = Intent(this, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW

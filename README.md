@@ -1,4 +1,4 @@
-# HomSwagTeam
+# HomSwag Partner
 
 A mobile-first field worker app built with Ionic + Vue 3 + Capacitor for iOS and Android. Also runs as a PWA.
 

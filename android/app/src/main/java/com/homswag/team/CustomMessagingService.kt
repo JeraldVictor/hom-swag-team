@@ -1,4 +1,4 @@
-package com.homswag.team
+package com.homswag.partner
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -91,7 +91,7 @@ class CustomMessagingService : MessagingService() {
         val type    = data["type"] ?: ""
         val orderId = data["order_id"] ?: data["orderId"] ?: ""
         val tripId  = data["trip_id"]  ?: data["tripId"] ?: ""
-        val deepLink = "homswag-team://alert?type=$type&order_id=$orderId&trip_id=$tripId"
+        val deepLink = "homswag-partner://alert?type=$type&order_id=$orderId&trip_id=$tripId"
 
         val mainIntent = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW

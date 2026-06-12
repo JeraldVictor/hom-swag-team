@@ -1,6 +1,6 @@
 # Firebase Cloud Messaging (FCM) Setup Guide
 
-This guide walks you through configuring FCM for the HomSwagTeam mobile app and the server so push notifications are delivered even when the app is killed or backgrounded.
+This guide walks you through configuring FCM for the HomSwag Partner mobile app and the server so push notifications are delivered even when the app is killed or backgrounded.
 
 ---
 
@@ -8,7 +8,7 @@ This guide walks you through configuring FCM for the HomSwagTeam mobile app and 
 
 | Layer | What it does |
 |---|---|
-| **HomSwagTeam (mobile)** | Registers the FCM token with the server on login; handles foreground messages and notification taps via `useFcm` composable |
+| **HomSwag Partner (mobile)** | Registers the FCM token with the server on login; handles foreground messages and notification taps via `useFcm` composable |
 | **Server** | Stores FCM tokens in MongoDB; sends FCM messages when a notification is created via `NotificationService.sendNotification()` |
 
 ---
@@ -26,15 +26,15 @@ This guide walks you through configuring FCM for the HomSwagTeam mobile app and 
 ### 2a. Register the Android app in Firebase
 
 1. In the Firebase console click **Add app → Android**.
-2. Set the **Android package name** to `com.homswag.team` (matches `capacitor.config.ts`).
+2. Set the **Android package name** to `com.homswag.partner` (matches `capacitor.config.ts`).
 3. Download the generated `google-services.json` file.
 4. Place the file at:
    ```
-   HomSwagTeam/android/app/google-services.json
+   android/app/google-services.json
    ```
    > ⚠️ This file contains API keys. **Do not commit it to a public repository.** Add it to `.gitignore` or manage it via a secrets vault.
 
-5. Make sure the `google-services` Gradle plugin is applied. Open `HomSwagTeam/android/build.gradle` and verify:
+5. Make sure the `google-services` Gradle plugin is applied. Open `android/build.gradle` and verify:
    ```groovy
    buildscript {
      dependencies {
@@ -42,7 +42,7 @@ This guide walks you through configuring FCM for the HomSwagTeam mobile app and 
      }
    }
    ```
-   And in `HomSwagTeam/android/app/build.gradle`:
+   And in `android/app/build.gradle`:
    ```groovy
    apply plugin: 'com.google.gms.google-services'
    ```
@@ -69,11 +69,11 @@ The following meta-data entries are already present in `android/app/src/main/And
 ### 3a. Register the iOS app in Firebase
 
 1. In the Firebase console click **Add app → iOS**.
-2. Set the **iOS bundle ID** to `com.homswag.team`.
+2. Set the **iOS bundle ID** to `com.homswag.partner`.
 3. Download `GoogleService-Info.plist`.
 4. Place the file at:
    ```
-   HomSwagTeam/ios/App/App/GoogleService-Info.plist
+   ios/App/App/GoogleService-Info.plist
    ```
    > ⚠️ Do not commit this file to a public repository.
 
@@ -136,7 +136,7 @@ server/src/services/notification.service.ts
   ├─ Emits Socket.IO event (instant, when socket alive)
   └─ Sends FCM to registered device tokens (instant, any app state)
 
-HomSwagTeam/src/shared/composables/useFcm.ts
+src/shared/composables/useFcm.ts
   ├─ On login: registers FCM token with POST /bff/field/fcm-token
   ├─ Foreground: shows LocalNotification
   ├─ Background / killed: OS shows FCM-delivered notification
@@ -165,10 +165,10 @@ If FCM delivery fails the server logs a warning (`[FCM] Failed to send push noti
 
 | File | Change |
 |---|---|
-| `HomSwagTeam/src/shared/composables/useFcm.ts` | New — FCM composable |
-| `HomSwagTeam/src/App.vue` | Imports and initialises `useFcm` |
-| `HomSwagTeam/capacitor.config.ts` | Added `@capacitor-firebase/messaging` reference |
-| `HomSwagTeam/android/app/src/main/AndroidManifest.xml` | Added FCM meta-data entries |
+| `src/shared/composables/useFcm.ts` | New — FCM composable |
+| `src/App.vue` | Imports and initialises `useFcm` |
+| `capacitor.config.ts` | Added `@capacitor-firebase/messaging` reference |
+| `android/app/src/main/AndroidManifest.xml` | Added FCM meta-data entries |
 | `server/src/models/FcmToken.ts` | New — MongoDB model for device tokens |
 | `server/src/lib/fcm.ts` | New — Firebase Admin SDK wrapper |
 | `server/src/services/notification.service.ts` | Sends FCM push after Socket.IO emit |
