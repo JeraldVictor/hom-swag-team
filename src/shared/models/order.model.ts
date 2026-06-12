@@ -35,6 +35,9 @@ export interface PaymentInfo {
   change_given?: number
   refund_amount?: number
   partial_refund_amount?: number
+  cancellation_charge?: number
+  cancellation_paid_amount?: number
+  cancellation_refund_amount?: number
   tip?: number
   cod_amount?: number
   upi_amount?: number
