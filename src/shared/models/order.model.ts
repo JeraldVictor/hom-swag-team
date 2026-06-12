@@ -41,7 +41,18 @@ export interface PaymentInfo {
   remark?: string
   staff_comment?: string
   internal_comment?: string
-  proof?: { url?: string; key?: string } | Array<{ url?: string; key?: string }>
+  proof?: { url?: string; key?: string } | readonly { url?: string; key?: string }[]
+  history?: readonly PaymentHistoryEntry[]
+}
+
+export interface PaymentHistoryEntry {
+  label: string
+  method?: string
+  reference?: string
+  amount: number
+  status?: PaymentStatus | string
+  remark?: string
+  recorded_at: string
 }
 
 export interface OrderInstructionPreset {
@@ -196,6 +207,10 @@ export interface Order {
   created_at?: string
   /** ISO 8601 date-time string */
   updated_at?: string
+  /** ISO 8601 date-time string */
+  status_updated_at?: string
+  /** ISO 8601 date-time string */
+  booking_time?: string
   notes?: string
   /** OTP for service start verification */
   service_otp?: string

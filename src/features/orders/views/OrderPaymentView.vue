@@ -53,79 +53,78 @@
           </div>
         </div>
 
-        <!-- ── PAYMENT INPUTS ── -->
-        <div class="inputs-card">
-          <p class="inputs-card-title">What you collected</p>
-
-          <!-- Cash row -->
-          <div class="input-row" v-if="!isPrepaidOrder">
-            <div class="input-icon cash">
-              <Icon icon="lucide:banknote" />
+        <div class="payment-summary-card">
+          <div class="summary-tile">
+            <span>Order total</span>
+            <strong>₹{{ orderTotal }}</strong>
+          </div>
+          <div class="summary-tile paid">
+            <span>Paid so far</span>
+            <strong>₹{{ prepaidAmount }}</strong>
+          </div>
+          <div class="summary-tile pending">
+            <span>Pending</span>
+            <strong>₹{{ remainingDue }}</strong>
+          </div>
+          <div class="summary-breakdown">
+            <div>
+              <span>Cash</span>
+              <strong>₹{{ completedCod }}</strong>
             </div>
-            <div class="input-body">
-              <label class="input-label">Cash collected</label>
-              <div class="input-wrap">
-                <span class="currency-prefix">₹</span>
-                <ion-input
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  v-model.number="paymentCodAmount"
-                  placeholder="0"
-                  :disabled="!orderChangeAllowed"
-                  class="big-input"
-                />
+            <div>
+              <span>UPI</span>
+              <strong>₹{{ completedUpi }}</strong>
+            </div>
+            <div>
+              <span>Online/prepaid</span>
+              <strong>₹{{ completedOther }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="history-card" v-if="paymentHistoryRows.length">
+          <div class="history-header">
+            <div>
+              <p class="history-title">Payment history</p>
+              <p class="history-subtitle">{{ paymentHistoryRows.length }} payment record{{ paymentHistoryRows.length === 1 ? '' : 's' }}</p>
+            </div>
+            <Icon icon="lucide:receipt-text" class="history-header-icon" />
+          </div>
+          <div class="history-list">
+            <div
+              v-for="(entry, index) in paymentHistoryRows"
+              :key="`${entry.label}-${entry.amount}-${index}`"
+              class="history-row"
+            >
+              <div class="history-index">{{ index + 1 }}</div>
+              <div class="history-body">
+                <div class="history-line">
+                  <span>{{ entry.label }}</span>
+                  <strong :class="entry.amount < 0 ? 'history-negative' : ''">{{ formatPaymentAmount(entry.amount) }}</strong>
+                </div>
+                <div class="history-meta">
+                  <span>{{ entry.method || 'Payment' }}</span>
+                  <span v-if="entry.recorded_at">{{ formatISTDateShort(entry.recorded_at) }}</span>
+                  <span v-if="entry.reference">Ref {{ entry.reference }}</span>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="row-divider" v-if="!isPrepaidOrder" />
-
-          <!-- UPI row -->
-          <div class="input-row" v-if="!isPrepaidOrder">
-            <div class="input-icon upi">
-              <Icon icon="lucide:smartphone" />
-            </div>
-            <div class="input-body">
-              <label class="input-label">UPI collected</label>
-              <div class="input-wrap">
-                <span class="currency-prefix">₹</span>
-                <ion-input
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  v-model.number="paymentUpiAmount"
-                  placeholder="0"
-                  :disabled="!orderChangeAllowed"
-                  class="big-input"
-                />
-              </div>
-            </div>
+        <!-- ── RECORD PAYMENT ── -->
+        <div class="record-card">
+          <div>
+            <p class="record-title">Record payment</p>
+            <p class="record-subtitle">Add each customer payment as a separate record.</p>
           </div>
-
-          <div class="row-divider" />
-
-          <!-- Tip row -->
-          <div class="input-row">
-            <div class="input-icon tip">
-              <Icon icon="lucide:heart" />
-            </div>
-            <div class="input-body">
-              <label class="input-label">Tip <span class="optional-tag">optional · you keep this</span></label>
-              <div class="input-wrap">
-                <span class="currency-prefix">₹</span>
-                <ion-input
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  v-model.number="paymentTipAmount"
-                  placeholder="0"
-                  :disabled="!orderChangeAllowed"
-                  class="big-input"
-                />
-              </div>
-            </div>
-          </div>
+          <AppButton
+            icon="lucide:plus"
+            :disabled="!orderChangeAllowed || remainingDue <= 0"
+            @click="openRecordPaymentModal"
+          >
+            Record
+          </AppButton>
         </div>
 
         <!-- ── UPI QR CODE ── -->
@@ -193,23 +192,16 @@
     <!-- ── STICKY FOOTER: balance + actions ── -->
     <div class="sticky-footer" v-if="order">
       <!-- Balance bar — shown when something is entered -->
-      <div class="balance-bar" v-if="!isPrepaidOrder && currentCollection > 0">
+      <div class="balance-bar" v-if="!isPrepaidOrder">
         <div class="balance-col">
-          <span class="balance-label">You collected</span>
-          <strong class="balance-val">₹{{ currentCollection }}</strong>
+          <span class="balance-label">Paid so far</span>
+          <strong class="balance-val">₹{{ prepaidAmount }}</strong>
         </div>
         <div class="balance-divider" />
-        <div class="balance-col" :class="changeAmount >= 0 ? 'change-positive' : 'change-negative'">
-          <span class="balance-label">{{ changeAmount >= 0 ? 'Return change' : 'Still pending' }}</span>
-          <strong class="balance-val">₹{{ Math.abs(changeAmount) }}</strong>
+        <div class="balance-col change-negative">
+          <span class="balance-label">Still pending</span>
+          <strong class="balance-val">₹{{ remainingDue }}</strong>
         </div>
-        <template v-if="normalizePaymentValue(paymentTipAmount) > 0">
-          <div class="balance-divider" />
-          <div class="balance-col tip-col">
-            <span class="balance-label">Tip (yours)</span>
-            <strong class="balance-val tip-val">+₹{{ normalizePaymentValue(paymentTipAmount) }}</strong>
-          </div>
-        </template>
       </div>
 
       <div class="footer-actions">
@@ -269,17 +261,13 @@
 
           <div class="summary-sep" v-if="!isPrepaidOrder" />
 
-          <div class="summary-line" v-if="!isPrepaidOrder">
+          <div class="summary-line" v-if="completedCod > 0">
             <span><Icon icon="lucide:banknote" class="summary-icon" /> Cash (COD)</span>
-            <strong>₹{{ normalizePaymentValue(paymentCodAmount) }}</strong>
+            <strong>₹{{ completedCod }}</strong>
           </div>
-          <div class="summary-line" v-if="!isPrepaidOrder">
+          <div class="summary-line" v-if="completedUpi > 0">
             <span><Icon icon="lucide:smartphone" class="summary-icon" /> UPI</span>
-            <strong>₹{{ normalizePaymentValue(paymentUpiAmount) }}</strong>
-          </div>
-          <div class="summary-line" v-if="normalizePaymentValue(paymentTipAmount) > 0">
-            <span><Icon icon="lucide:heart" class="summary-icon" /> Tip</span>
-            <strong>₹{{ normalizePaymentValue(paymentTipAmount) }}</strong>
+            <strong>₹{{ completedUpi }}</strong>
           </div>
 
           <div class="summary-sep" />
@@ -288,10 +276,85 @@
             <span>Total received</span>
             <strong>{{ totalReceivedLabel }}</strong>
           </div>
-          <div class="summary-line change-line" v-if="changeAmount > 0">
-            <span><Icon icon="lucide:arrow-left-right" class="summary-icon" /> Change to return</span>
-            <strong class="text-warning">₹{{ changeAmount }}</strong>
+        </div>
+      </div>
+    </ion-modal>
+
+    <!-- ── RECORD PAYMENT MODAL ── -->
+    <ion-modal :is-open="showRecordPayment" @didDismiss="dismissRecordPaymentModal" class="record-modal" :initial-breakpoint="0.7" :breakpoints="[0, 0.7, 1]">
+      <div class="record-sheet">
+        <div class="record-sheet-header">
+          <h2 class="record-sheet-title">
+            {{ completeAfterRecordingPayment ? 'Record final payment' : 'Record payment' }}
+          </h2>
+          <p class="record-sheet-sub">Pending ₹{{ remainingDue }}</p>
+        </div>
+        <div class="record-form">
+          <label class="record-field-label">Payment method</label>
+          <ion-segment v-model="recordPaymentMethod">
+            <ion-segment-button value="cash">
+              <ion-label>Cash</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="upi">
+              <ion-label>UPI</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="online">
+              <ion-label>Online</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+
+          <label class="record-field-label">Amount</label>
+          <div class="record-amount-wrap">
+            <span>₹</span>
+            <ion-input
+              v-model.number="recordPaymentAmount"
+              type="number"
+              inputmode="decimal"
+              min="0"
+              :max="remainingDue"
+              placeholder="0"
+            />
           </div>
+
+          <label class="record-field-label">Tip</label>
+          <div class="record-amount-wrap">
+            <span>₹</span>
+            <ion-input
+              v-model.number="recordPaymentTipAmount"
+              type="number"
+              inputmode="decimal"
+              min="0"
+              placeholder="0"
+            />
+          </div>
+
+          <div class="record-total-box">
+            <span>Total customer pays now</span>
+            <strong>₹{{ recordPaymentGrandTotal }}</strong>
+            <small>
+              Payment ₹{{ recordPaymentBaseAmount }} + Tip ₹{{ recordPaymentTipValue }}
+            </small>
+          </div>
+
+          <label class="record-field-label">Reference</label>
+          <ion-input
+            v-model="recordPaymentReference"
+            placeholder="Transaction ID or note"
+            :disabled="recordPaymentMethod === 'cash'"
+            class="record-text-input"
+          />
+
+          <label class="record-field-label">Remark</label>
+          <ion-textarea
+            v-model="recordPaymentRemark"
+            placeholder="Optional payment note"
+            auto-grow
+            class="record-text-input"
+          />
+        </div>
+        <div class="record-actions">
+          <AppButton variant="outline" @click="dismissRecordPaymentModal">Cancel</AppButton>
+          <AppButton :loading="isUpdating" @click="saveRecordedPayment">Save payment</AppButton>
         </div>
       </div>
     </ion-modal>
@@ -305,7 +368,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
-import type { Order } from '@/shared/models'
+import type { Order, PaymentStatus } from '@/shared/models'
+import type { PaymentInfo } from '@/shared/models/order.model'
 import { useOrderDetail } from '../composables/useOrderDetail'
 
 const route = useRoute()
@@ -323,12 +387,21 @@ const {
   captureAndUploadPaymentProof,
 } = useOrderDetail()
 
-const paymentCodAmount = ref<number | null>(null)
-const paymentUpiAmount = ref<number | null>(null)
-const paymentTipAmount = ref<number | null>(null)
 const showGallery = ref(false)
 const activeImageUrl = ref('')
 const showCustomerSummary = ref(false)
+const showRecordPayment = ref(false)
+const recordPaymentMethod = ref<'cash' | 'upi' | 'online'>('cash')
+const recordPaymentAmount = ref<number | null>(null)
+const recordPaymentTipAmount = ref<number | null>(null)
+const recordPaymentReference = ref('')
+const recordPaymentRemark = ref('')
+const completeAfterRecordingPayment = ref(false)
+const recordPaymentBaseAmount = computed(() => normalizePaymentValue(recordPaymentAmount.value))
+const recordPaymentTipValue = computed(() => normalizePaymentValue(recordPaymentTipAmount.value))
+const recordPaymentGrandTotal = computed(
+  () => recordPaymentBaseAmount.value + recordPaymentTipValue.value
+)
 
 const scheduleDate = computed(
   () => order.value?.booking_info?.date ?? order.value?.service_date ?? ''
@@ -366,15 +439,7 @@ const hasUpiAmount = computed(
   () => Number(order.value?.payment?.upi_amount ?? 0) > 0 || paymentMethod.value.includes('upi')
 )
 const isPrepaidOrder = computed(() => remainingDue.value <= 0)
-const currentCollection = computed(
-  () =>
-    normalizePaymentValue(paymentCodAmount.value) + normalizePaymentValue(paymentUpiAmount.value)
-)
-const collectedNowLabel = computed(() => `₹${currentCollection.value}`)
-const totalReceivedLabel = computed(
-  () =>
-    `₹${prepaidAmount.value + currentCollection.value + normalizePaymentValue(paymentTipAmount.value)}`
-)
+const totalReceivedLabel = computed(() => `₹${prepaidAmount.value}`)
 const prepaidMethodLabel = computed(() => {
   const method = order.value?.payment?.method?.toLowerCase() || ''
   if (!method) return ''
@@ -382,7 +447,12 @@ const prepaidMethodLabel = computed(() => {
   if (method.includes('cod')) return 'COD'
   return order.value?.payment?.method?.toUpperCase() || ''
 })
-const actualUpiAmount = computed(() => Number(paymentUpiAmount.value ?? 0))
+const completedCod = computed(() => Number(order.value?.payment?.cod_amount ?? 0))
+const completedUpi = computed(() => Number(order.value?.payment?.upi_amount ?? 0))
+const completedOther = computed(() =>
+  Math.max(0, prepaidAmount.value - completedCod.value - completedUpi.value)
+)
+const actualUpiAmount = computed(() => completedUpi.value)
 const proofImages = computed(() => {
   if (!order.value) return []
 
@@ -430,7 +500,7 @@ async function removePaymentProof(index: number) {
   })
 }
 
-const requiresProof = computed(() => !isPrepaidOrder.value && actualUpiAmount.value > 0)
+const requiresProof = computed(() => actualUpiAmount.value > 0 && proofImages.value.length === 0)
 
 const paymentTypeLabel = computed(() => {
   if (isPrepaidOrder.value && prepaidAmount.value > 0) {
@@ -456,13 +526,136 @@ const remainingDueLabel = computed(() => {
 const paymentPrepaidLabel = computed(() => `₹${prepaidAmount.value}`)
 
 const hasRemainingDue = computed(() => remainingDue.value > 0)
+const paymentHistoryRows = computed(() => {
+  const history = order.value?.payment?.history ?? []
+  if (history.length > 0) return history
 
-// Balance: positive = give change back, negative = still pending
-const changeAmount = computed(() => currentCollection.value - remainingDue.value)
+  const rows: Array<{
+    label: string
+    method?: string
+    reference?: string
+    amount: number
+    recorded_at?: string
+  }> = []
+  const codAmount = Number(order.value?.payment?.cod_amount ?? 0)
+  const upiAmount = Number(order.value?.payment?.upi_amount ?? 0)
+  const splitTotal = Math.max(0, codAmount) + Math.max(0, upiAmount)
+  const prepaid = Math.max(0, prepaidAmount.value - splitTotal)
+  const recordedAt = order.value?.status_updated_at ?? order.value?.booking_time
+
+  if (prepaid > 0) {
+    rows.push({
+      label: 'Prepaid payment',
+      method: prepaidMethodLabel.value || order.value?.payment?.method,
+      reference: order.value?.payment?.reference,
+      amount: prepaid,
+      recorded_at: recordedAt,
+    })
+  }
+  if (codAmount > 0)
+    rows.push({ label: 'Cash payment', method: 'Cash', amount: codAmount, recorded_at: recordedAt })
+  if (upiAmount > 0) {
+    rows.push({
+      label: 'UPI payment',
+      method: 'UPI',
+      reference: order.value?.payment?.reference,
+      amount: upiAmount,
+      recorded_at: recordedAt,
+    })
+  }
+
+  return rows
+})
 
 function normalizePaymentValue(value: unknown): number {
   const amount = Number(value)
   return Number.isFinite(amount) && amount >= 0 ? amount : 0
+}
+
+function formatPaymentAmount(amount: number): string {
+  const prefix = amount < 0 ? '-₹' : '₹'
+  return `${prefix}${Math.abs(amount)}`
+}
+
+function openRecordPaymentModal(completeAfterSave = false) {
+  completeAfterRecordingPayment.value = completeAfterSave
+  recordPaymentMethod.value = 'cash'
+  recordPaymentAmount.value = remainingDue.value > 0 ? remainingDue.value : null
+  recordPaymentTipAmount.value = null
+  recordPaymentReference.value = ''
+  recordPaymentRemark.value = ''
+  showRecordPayment.value = true
+}
+
+function dismissRecordPaymentModal() {
+  showRecordPayment.value = false
+  completeAfterRecordingPayment.value = false
+}
+
+async function saveRecordedPayment() {
+  if (!ensureTodayEditable()) return
+  if (!order.value) return
+
+  const amount = normalizePaymentValue(recordPaymentAmount.value)
+  const tipAmount = normalizePaymentValue(recordPaymentTipAmount.value)
+  if (amount <= 0 && tipAmount <= 0) {
+    showError('Enter a payment or tip amount greater than ₹0.')
+    return
+  }
+  if (amount > remainingDue.value) {
+    showError(`Payment cannot be more than the pending amount of ₹${remainingDue.value}.`)
+    return
+  }
+
+  const previousPaid = Number(order.value.payment?.amount_paid ?? 0)
+  const nextPaid = Number((previousPaid + amount).toFixed(2))
+  const paymentStatus: PaymentStatus =
+    amount > 0
+      ? nextPaid >= orderTotal.value
+        ? 'paid'
+        : 'partial'
+      : (order.value.payment?.status ?? 'pending')
+  const nextPayment: PaymentInfo = {
+    ...order.value.payment,
+    status: paymentStatus,
+    amount_paid: nextPaid,
+    order_amount: orderTotal.value,
+    method: recordPaymentMethod.value,
+    reference:
+      recordPaymentMethod.value === 'cash' ? undefined : recordPaymentReference.value || undefined,
+    remark: recordPaymentRemark.value || undefined,
+    tip: Number((Number(order.value.payment?.tip ?? order.value.tip ?? 0) + tipAmount).toFixed(2)),
+    cod_amount:
+      recordPaymentMethod.value === 'cash'
+        ? Number((Number(order.value.payment?.cod_amount ?? 0) + amount).toFixed(2))
+        : order.value.payment?.cod_amount,
+    upi_amount:
+      recordPaymentMethod.value === 'upi'
+        ? Number((Number(order.value.payment?.upi_amount ?? 0) + amount).toFixed(2))
+        : order.value.payment?.upi_amount,
+  }
+
+  await updateOrderDetails({ payment: nextPayment })
+  if (error.value) {
+    showError(error.value)
+    return
+  }
+
+  showRecordPayment.value = false
+  showSuccess('Payment recorded')
+
+  if (completeAfterRecordingPayment.value) {
+    completeAfterRecordingPayment.value = false
+    if (remainingDue.value > 0) {
+      showError(`Payment recorded. ₹${remainingDue.value} is still pending.`)
+      return
+    }
+    if (recordPaymentMethod.value === 'upi' && proofImages.value.length === 0) {
+      showError('Payment recorded. Capture UPI payment proof before completing the order.')
+      return
+    }
+    await completePaidOrder()
+  }
 }
 
 const formattedAmountPaid = computed(() => {
@@ -487,11 +680,7 @@ const actionDisabled = computed(() => {
   if (!orderChangeAllowed.value) return true
   if (!order.value) return true
   if (order.value.status?.toLowerCase() !== 'started') return true
-  if (isPrepaidOrder.value) return false
-  if (requiresProof.value && proofImages.value.length === 0) return true
-  const codValue = normalizePaymentValue(paymentCodAmount.value)
-  const upiValue = normalizePaymentValue(paymentUpiAmount.value)
-  if (codValue + upiValue < remainingDue.value) return true
+  if (requiresProof.value) return true
   return false
 })
 
@@ -502,9 +691,10 @@ watch(
     // Only initialize the fields if this is the first time the order is loaded
     // This prevents clearing user-typed values when the order object updates (e.g. after uploading proof)
     if (!oldVal) {
-      paymentCodAmount.value = null
-      paymentUpiAmount.value = null
-      paymentTipAmount.value = newVal.payment?.tip ?? null
+      recordPaymentAmount.value = null
+      recordPaymentTipAmount.value = null
+      recordPaymentReference.value = ''
+      recordPaymentRemark.value = ''
     }
   },
   { immediate: true }
@@ -542,40 +732,22 @@ async function handleCompleteOrder() {
     return
   }
 
-  const codAmount = normalizePaymentValue(paymentCodAmount.value)
-  const upiAmount = normalizePaymentValue(paymentUpiAmount.value)
-  const tipAmount = normalizePaymentValue(paymentTipAmount.value ?? order.value.payment?.tip ?? 0)
-  const previousPrepaidAmount = Number(order.value.payment?.amount_paid ?? 0)
-
-  if (!isPrepaidOrder.value) {
-    if (codAmount + upiAmount < remainingDue.value) {
-      showError(`Please collect the full pending amount of ₹${remainingDue.value}.`)
-      return
-    }
-    if (requiresProof.value && proofImages.value.length === 0) {
-      showError('Capture UPI payment proof before completing the order.')
-      return
-    }
+  if (remainingDue.value > 0) {
+    openRecordPaymentModal(true)
+    return
+  }
+  if (requiresProof.value) {
+    showError('Capture UPI payment proof before completing the order.')
+    return
   }
 
-  if (!isPrepaidOrder.value) {
-    const methodParts: string[] = []
-    if (codAmount > 0) methodParts.push('COD')
-    if (upiAmount > 0) methodParts.push('UPI')
-    const collectedTotal = previousPrepaidAmount + codAmount + upiAmount + tipAmount
+  await completePaidOrder()
+}
 
-    await updateOrderDetails({
-      payment: {
-        status: 'paid',
-        amount_paid: previousPrepaidAmount > 0 ? collectedTotal : codAmount + upiAmount + tipAmount,
-        cod_amount: codAmount,
-        upi_amount: upiAmount,
-        tip: tipAmount,
-        method: methodParts.join('+'),
-      },
-    })
-    if (error.value) return
-  } else if (order.value.payment?.status?.toLowerCase() !== 'paid') {
+async function completePaidOrder() {
+  if (!order.value) return
+
+  if (order.value.payment?.status?.toLowerCase() !== 'paid') {
     await updateOrderDetails({
       payment: {
         status: 'paid',
@@ -681,6 +853,240 @@ onMounted(() => {
   font-size: 13px;
   opacity: 0.8;
   margin-top: 4px;
+}
+
+/* ── Payment summary ── */
+.payment-summary-card {
+  margin: 14px 16px 0;
+  background: var(--color-surface, #fff);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.summary-tile {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 10px;
+}
+.summary-tile span,
+.summary-breakdown span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+.summary-tile strong,
+.summary-breakdown strong {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--color-text, #111827);
+}
+.summary-tile.paid {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+.summary-tile.pending {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.18);
+}
+.summary-breakdown {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.summary-breakdown div {
+  border-top: 1px solid #eef2f7;
+  padding-top: 10px;
+}
+
+/* ── Payment history ── */
+.history-card {
+  margin: 14px 16px 0;
+  background: var(--color-surface, #fff);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  padding: 16px;
+}
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.history-title,
+.history-subtitle {
+  margin: 0;
+}
+.history-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text, #111827);
+}
+.history-subtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+.history-header-icon {
+  font-size: 22px;
+  color: var(--color-brand, #4f46e5);
+}
+.history-list {
+  display: grid;
+  gap: 10px;
+}
+.history-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.history-index {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--color-brand, #4f46e5);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.history-body {
+  flex: 1;
+  min-width: 0;
+}
+.history-line,
+.history-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.history-line span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text, #111827);
+}
+.history-line strong {
+  font-size: 14px;
+  color: var(--color-success, #059669);
+  white-space: nowrap;
+}
+.history-line strong.history-negative {
+  color: var(--color-danger, #dc2626);
+}
+.history-meta {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* ── Record payment ── */
+.record-card {
+  margin: 14px 16px 0;
+  background: var(--color-surface, #fff);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.record-title,
+.record-subtitle,
+.record-sheet-title,
+.record-sheet-sub {
+  margin: 0;
+}
+.record-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text, #111827);
+}
+.record-subtitle,
+.record-sheet-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+}
+.record-sheet {
+  background: var(--color-surface, #fff);
+  min-height: 100%;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+}
+.record-sheet-header {
+  margin-bottom: 18px;
+}
+.record-sheet-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--color-text, #111827);
+}
+.record-form {
+  display: grid;
+  gap: 10px;
+}
+.record-field-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+}
+.record-amount-wrap,
+.record-text-input {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+}
+.record-amount-wrap {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+.record-amount-wrap span {
+  color: var(--color-text-muted);
+  font-weight: 800;
+  font-size: 18px;
+}
+.record-total-box {
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.18);
+  border-radius: 14px;
+  padding: 12px;
+}
+.record-total-box span,
+.record-total-box small {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.record-total-box strong {
+  display: block;
+  color: var(--color-brand, #4f46e5);
+  font-size: 22px;
+  font-weight: 900;
+  margin: 2px 0;
+}
+.record-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 /* ── Inputs card ── */
