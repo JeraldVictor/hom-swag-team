@@ -144,19 +144,24 @@ function setRef(el: unknown, index: number): void {
 
 <style scoped>
 .otp-input {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(6px, 1.8vw, 10px);
+  width: min(100%, 338px);
+  margin-inline: auto;
+  justify-items: stretch;
 }
 
 .otp-input__box {
-  width: 48px;
-  height: 56px;
+  width: 100%;
+  max-width: 48px;
+  min-width: 0;
+  height: clamp(40px, 12vw, 56px);
   border: 2px solid var(--color-border, #e5e7eb);
   border-radius: var(--radius-lg, 12px);
   background: var(--color-surface, #ffffff);
   color: var(--color-text, #111827);
-  font-size: var(--font-size-2xl, 24px);
+  font-size: clamp(16px, 4.2vw, 24px);
   font-weight: var(--font-weight-bold, 700);
   text-align: center;
   outline: none;
@@ -188,5 +193,17 @@ function setRef(el: unknown, index: number): void {
 .otp-input__box::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+@media (max-width: 360px) {
+  .otp-input {
+    gap: 5px;
+  }
+
+  .otp-input__box {
+    height: 44px;
+    font-size: 16px;
+    border-radius: var(--radius-md, 10px);
+  }
 }
 </style>
