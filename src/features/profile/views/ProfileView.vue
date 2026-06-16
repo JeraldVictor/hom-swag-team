@@ -356,7 +356,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getProfile, updateProfile, uploadProfileDocument, uploadProfilePhoto } from '@/shared/api'
 import { useDrawer, useToast } from '@/shared/composables'
-import { mediaUrl } from '@/shared/lib/media'
+import { bumpMediaBuster, mediaUrl } from '@/shared/lib/media'
 import type { UserProfile } from '@/shared/models'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 
@@ -547,14 +547,15 @@ async function handleSave(): Promise<void> {
     if (photoFile.value) {
       const formData = new FormData()
       formData.append('photo', photoFile.value)
-      const updated = await uploadProfilePhoto(formData)
-      profile.value = { ...profile.value, photo: updated.photo }
+      const updatedPhoto = await uploadProfilePhoto(formData)
+      bumpMediaBuster()
+      profile.value = { ...profile.value, photo: updatedPhoto.photo }
+      photoPreview.value = null
+      photoFile.value = null
     }
 
     // Update profile fields
-    const updates: Record<string, unknown> = {
-      name: editForm.value.name,
-    }
+    const updates: Record<string, unknown> = { name: editForm.value.name }
     if (editForm.value.email) updates.email = editForm.value.email
     if (editForm.value.date_of_birth) updates.date_of_birth = editForm.value.date_of_birth
     if (editForm.value.address) updates.address = editForm.value.address
@@ -564,10 +565,14 @@ async function handleSave(): Promise<void> {
       updates.emergency_contact_phone = editForm.value.emergency_contact_phone
 
     const updated = await updateProfile(updates)
-    profile.value = { ...profile.value, ...updated }
+    if (updated) {
+      profile.value = { ...profile.value, ...updated }
+    } else if (Object.keys(updates).length > 0) {
+      profile.value = { ...profile.value, ...updates }
+    }
 
     // Sync to auth store so header/drawer reflect the new name
-    authStore.setUserProfile(profile.value)
+    await authStore.setUserProfile(profile.value)
 
     isSaving.value = false
     showEdit.value = false
