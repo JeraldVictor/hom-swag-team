@@ -10,7 +10,7 @@ src/
 │
 ├── core/
 │   ├── router/
-│   │   └── index.ts               # All route definitions + beforeEach auth guard + offline guard
+│   │   └── index.ts               # All route definitions + beforeEach auth guard
 │   └── theme/
 │       ├── index.ts               # Design token constants (TypeScript, as const)
 │       └── variables.css          # CSS custom properties + Ionic variable overrides
@@ -29,28 +29,33 @@ src/
 │   │   ├── notifications.service.ts  # getNotifications, markNotificationRead, markAllNotificationsRead
 │   │   ├── orders.service.ts      # getOrders, getOrder, updateOrderStatus, generateServiceOtp, verifyServiceOtp, upload ArrivalSelfie, uploadCompletionProof, getPaymentLink, updateSelfRideStatus, updateOrder
 │   │   ├── ot-requests.service.ts # getOtRequests, createOtRequest, cancelOtRequest
+│   │   ├── payout-history.service.ts # getPayoutHistory
 │   │   ├── products.service.ts    # getProducts, getProductById
 │   │   ├── profile.service.ts     # getProfile, updateProfile, uploadProfilePhoto, uploadProfileDocument, deleteProfileDocument
 │   │   ├── reimbursements.service.ts  # getReimbursements, createReimbursement, uploadReimbursementProof, cancelReimbursement
-│   │   ├── sessions.service.ts    # getSessions, revokeSession
 │   │   ├── sos.service.ts         # triggerSos, getLatestSos, resolveSos
 │   │   ├── support.service.ts     # createSupportTicket, getSupportTickets
+│   │   ├── target-details.service.ts # getTargetDetails
 │   │   ├── trip-fees.service.ts   # getTripFeesReport(params?) — rider earnings breakdown
 │   │   ├── trips.service.ts       # getTrips, getTrip, updateTripStatus, confirmCustomerLocation, updateRiderSelfRideStatus; normalizes GeoJSON coordinates
 │   │   ├── weekly-off.service.ts  # getWeeklyOffRequests, createWeeklyOffRequest, cancelWeeklyOffRequest
 │   │   └── index.ts               # Barrel export
 │   │
 │   ├── components/
+│   │   ├── app/                   # App-level shell components
+│   │   ├── business/              # Domain UI such as RideSelectorModal
 │   │   └── ui/                    # Generic, stateless UI primitives
 │   │       ├── AppAvatar.vue
 │   │       ├── AppBadge.vue
 │   │       ├── AppButton.vue
+│   │       ├── AppCameraModal.vue
 │   │       ├── AppCard.vue
 │   │       ├── AppDrawer.vue      # Slide-in nav drawer (reads useDrawer, no props)
 │   │       ├── AppImage.vue
 │   │       ├── AppInput.vue
 │   │       ├── AppLabel.vue
 │   │       ├── AppLoadingSpinner.vue
+│   │       ├── GlobalAlertBox.vue
 │   │       ├── GoogleMapView.vue  # Google Maps component; props: height, center, zoom, pickup, drop, livePosition, showRoute; emits: map-ready, map-error; feature-flag gated via FEATURES.maps
 │   │       ├── PlacesSearchInput.vue  # Google Places Autocomplete input; supports lat/lng direct entry; emits: place-selected
 │   │       └── index.ts           # Barrel export
@@ -62,7 +67,10 @@ src/
 │   │   ├── useDialog.ts           # Confirmation dialog helper
 │   │   ├── useDirections.ts       # Directions/routing helpers
 │   │   ├── useDrawer.ts           # Global drawer open/close (module-level ref)
+│   │   ├── useFcm.ts              # Firebase/FCM registration and message handling
+│   │   ├── useFeatureFlags.ts     # Runtime feature flag helpers
 │   │   ├── useGeolocation.ts      # Reactive GPS state, permission requests, position watching, WebSocket emission
+│   │   ├── useGlobalAlerts.ts     # Global alert/notification presentation helpers
 │   │   ├── useGoogleMaps.ts       # Google Maps instance management: init, markers, route drawing (Routes API v2 + fetch), bounds fitting; renders routes via Polyline
 │   │   ├── useLocationTracker.ts  # Polling location tracker (60s default); checks BFF tracking status; Android foreground service; exports module-level singleton `locationTracker`
 │   │   ├── useNetwork.ts          # Reactive navigator.onLine state; exports `getIsOnline()` for use outside components (used by router guard and App.vue)
@@ -76,6 +84,7 @@ src/
 │   ├── stores/                    # Global Pinia stores
 │   │   ├── app.ts                 # Boot lifecycle (booting → needs-permissions → ready), isOnline, permissionsGranted
 │   │   ├── auth.ts                # Tokens, user profile, login/logout/refresh/restoreSession; starts/stops locationTracker on login/logout; setUserProfile() for profile sync
+│   │   ├── notification.ts        # FCM/in-app notification state
 │   │   ├── ui.ts                  # activeTab, isLoading, toastQueue
 │   │   ├── userType.ts            # Derives isBeautician/isRider from auth store
 │   │   └── index.ts               # Barrel export
@@ -93,11 +102,12 @@ src/
 │   │   ├── order.model.ts         # Order, OrderStatus, UpdateOrderStatusBody, VerifyServiceOtpBody interfaces
 │   │   ├── ot-request.model.ts    # OtRequest, OtRequestCreateBody interfaces
 │   │   ├── pagination.model.ts    # PaginatedResponse, PaginationMeta interfaces
+│   │   ├── payout-history.model.ts # Monthly payout history interfaces
 │   │   ├── product.model.ts       # Product, ProductOption interfaces
 │   │   ├── reimbursement.model.ts # Reimbursement, ReimbursementBody interfaces
-│   │   ├── session.model.ts       # Session interfaces
 │   │   ├── sos.model.ts           # SosAlert, SosTriggerBody interfaces
 │   │   ├── support.model.ts       # SupportTicket, SupportBody interfaces
+│   │   ├── target-details.model.ts # Beautician target details interfaces
 │   │   ├── trip-fees.model.ts     # TripFeesReport interfaces
 │   │   ├── trip.model.ts          # Trip, RawTrip, TripKanbanState interfaces; GeoJSON normalization
 │   │   ├── user.model.ts          # UserType ('rider'|'beautician'), UserProfile, ProfileDocument interfaces
@@ -106,7 +116,7 @@ src/
 │   │
 │   ├── lib/                       # Core utilities
 │   │   ├── api.ts                 # Axios client — JWT injection, proactive refresh, 401 retry, ApiError
-│   │   ├── datetime.ts            # IST-aware date/time utils (date-fns v3): formatDate, formatTime, formatRelative, todayISO, etc.
+│   │   ├── datetime.ts            # IST-aware date/time utils (date-fns v4): formatDate, formatTime, formatRelative, todayISO, etc.
 │   │   ├── feature-flags.ts       # FEATURES object: maps, directions — driven by VITE_FEATURE_MAPS, VITE_FEATURE_DIRECTIONS env vars
 │   │   ├── google-maps.ts         # Lazy Google Maps JS API loader with Places library; auth error detection; retry support
 │   │   ├── location.service.ts    # LocationService class wrapping @capacitor/geolocation; clamps watch interval to 30s max; auto-POSTs to BFF on each position update
@@ -142,7 +152,10 @@ src/
     ├── orders/                    # Beautician orders (implemented)
     │   ├── views/
     │   │   ├── OrdersView.vue         # List with skeleton, pull-to-refresh, empty/error states
-    │   │   └── OrderDetailView.vue    # Status advancement, OTP generate/verify, cancel-after-arrival
+    │   │   ├── OrderDetailView.vue    # Status advancement, OTP generate/verify, cancel-after-arrival
+    │   │   ├── OrderEditView.vue      # Beautician-restricted catalog/cart edits
+    │   │   ├── OrderPaymentView.vue   # Payment collection/status screen
+    │   │   └── OrderPreviewView.vue   # Order preview
     │   ├── components/
     │   │   └── OrderCard.vue          # Order summary card for list view
     │   ├── composables/
@@ -193,11 +206,6 @@ src/
     │   │   └── ComplaintsView.vue
     │   └── index.ts
     │
-    ├── sessions/                  # Active sessions (implemented)
-    │   ├── views/
-    │   │   └── SessionsView.vue
-    │   └── index.ts
-    │
     ├── support/                   # Support & feedback (implemented)
     │   ├── views/
     │   │   └── SupportView.vue
@@ -216,6 +224,16 @@ src/
     ├── leaderboard/               # Performance leaderboard (implemented)
     │   ├── views/
     │   │   └── LeaderboardView.vue
+    │   └── index.ts
+    │
+    ├── payout-history/            # Monthly payout history (implemented)
+    │   ├── views/
+    │   │   └── PayoutHistoryView.vue
+    │   └── index.ts
+    │
+    ├── target-details/            # Beautician target details (implemented)
+    │   ├── views/
+    │   │   └── TargetDetailsView.vue
     │   └── index.ts
     │
     ├── sos/                       # SOS emergency alerts (implemented)
@@ -240,6 +258,9 @@ All routes are defined in `src/core/router/index.ts`. The `TabsLayout` shell wra
 | `/home` | `HomeView` (inside TabsLayout) | Yes |
 | `/orders` | `OrdersView` | Yes |
 | `/orders/:id` | `OrderDetailView` | Yes |
+| `/orders/:id/edit` | `OrderEditView` | Yes |
+| `/orders/:id/payment` | `OrderPaymentView` | Yes |
+| `/orders/:id/preview` | `OrderPreviewView` | Yes |
 | `/trips` | `TripsView` | Yes |
 | `/trips/:id` | `TripDetailView` | Yes |
 | `/leave` | `LeaveView` | Yes |
@@ -249,20 +270,19 @@ All routes are defined in `src/core/router/index.ts`. The `TabsLayout` shell wra
 | `/profile` | `ProfileView` | Yes |
 | `/notifications` | `NotificationsView` | Yes |
 | `/complaints` | `ComplaintsView` | Yes |
-| `/sessions` | `SessionsView` | Yes |
 | `/support` | `SupportView` | Yes |
 | `/external-bookings` | `ExternalBookingsView` | Yes |
 | `/reimbursements` | `ReimbursementsView` | Yes |
 | `/leaderboard` | `LeaderboardView` | Yes |
+| `/payouts` | `PayoutHistoryView` | Yes |
+| `/target-details` | `TargetDetailsView` | Yes |
 | `/sos` | `SosView` | Yes |
 | `/trip-fees` | `TripFeesView` | Yes |
 | `/error` | `ErrorView` | No |
 | `/page-not-found` | `PageNotFoundView` | No |
 | `/:pathMatch(.*)` | → redirects to `/page-not-found` | — |
 
-The `beforeEach` guard:
-1. Reads the access token directly from `Storage_Service` (not the Pinia store) so it works on hard reloads before `App.vue`'s `restoreSession()` has run.
-2. Calls `getIsOnline()` from `useNetwork` — returns `false` (blocks navigation) when the device is offline.
+The `beforeEach` guard reads the access token directly from `Storage_Service` (not the Pinia store) so it works on hard reloads before `App.vue`'s `restoreSession()` has run. Offline handling is done by the `NoInternetView` overlay in `App.vue`; the router no longer blocks navigation for `navigator.onLine === false` on Android cold starts.
 
 ## Conventions
 

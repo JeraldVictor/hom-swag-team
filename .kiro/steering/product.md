@@ -17,8 +17,9 @@ The app has a solid working foundation with most core features fully implemented
 - **Auth** — Full two-step OTP login flow (phone → 6-digit OTP → token storage → session restore on boot).
 - **App shell** — Authenticated tab layout (`TabsLayout`) with 5 tabs: Home, Orders (beautician) or Trips (rider), Calendar, Profile. Slide-in navigation drawer (`AppDrawer`). Each view renders its own `<ion-header>`.
 - **Boot lifecycle** — `App.vue` manages a 3-phase boot: network check → permission check → session restore. Shows `NoInternetView` overlay when offline, `PermissionSplashView` when permissions not yet granted.
-- **Routing** — All routes defined with auth guard and offline guard. Unauthenticated users redirected to `/login`. Navigation blocked when device is offline.
+- **Routing** — All routes defined with an auth guard. Unauthenticated users redirect to `/login`; offline state is handled by the app-level `NoInternetView` overlay.
 - **Location tracking** — GPS polling every 60s via `useLocationTracker` singleton; checks BFF tracking status flag before each push; Android foreground service support for background tracking.
+- **Push notifications** — Firebase/FCM support with native message handling, notification store, and token registration against the field BFF.
 
 ## Features
 
@@ -39,12 +40,14 @@ The app has a solid working foundation with most core features fully implemented
 | Weekly off | ✅ Complete | `WeeklyOffView` via `useWeeklyOff`; create/cancel recurring week-off requests |
 | Calendar | ✅ Complete | `CalendarView` fetches leaves and holidays; monthly grid with colour-coded dots; event types: paid_leave, sick_leave, loss_of_pay, block_time, holiday |
 | Notifications | ✅ Complete | `NotificationsView` with list/read/read-all API integration |
+| FCM push notifications | ✅ Complete | `useFcm`, notification store, Capacitor Firebase Messaging, Android `CustomMessagingService` |
 | Complaints (beautician) | ✅ Complete | `ComplaintsView` with API integration; home dashboard shows alert when complaints exist |
-| Sessions | ✅ Complete | Active session list and revoke flow linked from Profile |
 | Support & Feedback | ✅ Complete | Submit and list support tickets; linked from Profile and Home quick actions |
 | External Bookings (beautician) | ✅ Complete | External bookings list/create/proof upload |
 | Reimbursements | ✅ Complete | Reimbursement list/create/proof upload/cancel |
 | Leaderboard | ✅ Complete | Competitive rankings with Weekly, Monthly, and Yearly views; top 5 unmasked, others masked except self; tracks revenue (excluding hygiene/surge fees) and order counts |
+| Payout history | ✅ Complete | Monthly payout history view and API integration for both roles |
+| Target details | ✅ Complete | Beautician target progress/details view |
 | SOS | ✅ Complete | Trigger latest alert and resolve flow via `sos.service.ts` |
 | Trip Fees (rider) | ✅ Complete | Rider trip-fee report via `trip-fees.service.ts` |
 | Google Maps | ✅ Complete | `GoogleMapView` component + `useGoogleMaps` composable; feature-flag gated via `VITE_FEATURE_MAPS` |
@@ -73,13 +76,15 @@ Key BFF endpoints used:
 - `GET /weekly-off-requests`, `POST /weekly-off-requests`, `DELETE /weekly-off-requests/:id` — week-off management
 - `GET /notifications`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` — notifications
 - `GET /complaints` — complaints visible to beautician
-- `GET /sessions`, `DELETE /sessions/:id` — session management
 - `POST /support`, `GET /support` — support tickets
 - `GET /external-bookings`, `POST /external-bookings` — external bookings
 - `GET /reimbursements`, `POST /reimbursements` — reimbursements
 - `GET /leaderboard` — leaderboard (beautician only)
+- `GET /payouts` — monthly payout history
+- `GET /target-details` — beautician target details
 - `POST /sos`, `GET /sos/latest`, `PATCH /sos/:id/resolve` — SOS alerts
 - `GET /trip-fees` — trip fees report for riders
+- FCM token registration is handled through the field FCM route module.
 - Field routes are split on the server into catalog, leave, order, profile, support/misc, trip, FCM, and auth route modules, but exposed to this app under the same `/bff/field/*` surface.
 
 ## Dark Mode

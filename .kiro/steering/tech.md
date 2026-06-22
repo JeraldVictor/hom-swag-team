@@ -9,6 +9,8 @@
 - **Capacitor 8** — Native mobile runtime (iOS/Android)
 - **Pinia 3** — State management
 - **Axios 1** — HTTP client (wrapped in `src/shared/lib/api.ts`)
+- **Firebase 12 + Capacitor Firebase Messaging** — FCM push notifications
+- **Socket.IO Client 4** — realtime client dependency available for server event streams
 - **TypeScript 5.9** (strict mode) — Language
 
 ## Icons
@@ -17,10 +19,14 @@
 
 ## Capacitor Plugins
 - `@capacitor/preferences` — Persistent key-value storage (wrapped by `Storage_Service`)
+- `@capacitor-community/camera-preview` — Native camera preview support
+- `@capacitor-community/native-audio` — Native alert/audio playback
 - `@capacitor/camera` — Camera access
 - `@capacitor/geolocation` — GPS location (used by `useLocationTracker` and `LocationService`)
 - `@capacitor/local-notifications` — Local push notifications
+- `@capacitor-firebase/messaging` — Firebase Cloud Messaging
 - `@capacitor/app` — App lifecycle events (used by `useLocationTracker` for Android foreground service)
+- `@capacitor/background-runner` — Background task runner support
 - `@capacitor/haptics`, `@capacitor/keyboard`, `@capacitor/status-bar` — Native shell utilities
 
 ## Build & Tooling
@@ -52,6 +58,7 @@ pnpm dev              # Start dev server on port 8090
 
 # Build
 pnpm build            # Type-check + build for production (outputs to dist/)
+pnpm build:dev        # Type-check + build with default Vite mode
 pnpm preview          # Preview production build on port 8090
 
 # Testing
@@ -111,7 +118,7 @@ Available keys: `accessToken`, `refreshToken`, `userType`, `userProfile`, `devic
 
 ## Date & Time (`src/shared/lib/datetime.ts`)
 
-IST-aware (UTC+5:30) date/time utilities built on **date-fns v3**. All functions accept `string | Date | null | undefined` and return `''` / `false` for null/invalid input — safe to call without guards.
+IST-aware (UTC+5:30) date/time utilities built on **date-fns v4**. All functions accept `string | Date | null | undefined` and return `''` / `false` for null/invalid input — safe to call without guards.
 
 ```ts
 import {
