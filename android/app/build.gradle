@@ -17,10 +17,42 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            // Load signing config from local.properties or project properties / env
+            def releaseStoreFile = project.hasProperty('RELEASE_STORE_FILE') ? project.property('RELEASE_STORE_FILE') : System.getenv('RELEASE_STORE_FILE')
+            def releaseStorePassword = project.hasProperty('RELEASE_STORE_PASSWORD') ? project.property('RELEASE_STORE_PASSWORD') : System.getenv('RELEASE_STORE_PASSWORD')
+            def releaseKeyAlias = project.hasProperty('RELEASE_KEY_ALIAS') ? project.property('RELEASE_KEY_ALIAS') : System.getenv('RELEASE_KEY_ALIAS')
+            def releaseKeyPassword = project.hasProperty('RELEASE_KEY_PASSWORD') ? project.property('RELEASE_KEY_PASSWORD') : System.getenv('RELEASE_KEY_PASSWORD')
+
+            def localProperties = new Properties()
+            def localPropertiesFile = rootProject.file('local.properties')
+            if (localPropertiesFile.exists()) {
+                localPropertiesFile.withReader('UTF-8') { reader ->
+                    localProperties.load(reader)
+                }
+                releaseStoreFile = releaseStoreFile ?: localProperties.getProperty('release.store.file')
+                releaseStorePassword = releaseStorePassword ?: localProperties.getProperty('release.store.password')
+                releaseKeyAlias = releaseKeyAlias ?: localProperties.getProperty('release.key.alias')
+                releaseKeyPassword = releaseKeyPassword ?: localProperties.getProperty('release.key.password')
+            }
+
+            if (releaseStoreFile) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (project.hasProperty('RELEASE_STORE_FILE') || rootProject.file('local.properties').exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

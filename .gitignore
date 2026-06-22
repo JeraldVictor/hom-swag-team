@@ -36,3 +36,4 @@ npm-debug.log*
 md-ig/
 .playwright-mcp/
 android/app/google-services.json
+**/homswag.keystore

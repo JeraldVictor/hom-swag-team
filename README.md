@@ -32,6 +32,33 @@ ionic cap run android -l --external # Run on Android device with live reload
 ionic cap run android --external --mode prod # Run on Android device on PRODUCTION BUILD
 ```
 
+## Production Release Commands
+
+To build and sign a production Android App Bundle (`.aab`) for the Google Play Store:
+
+```bash
+# 1. Compile web assets for production
+pnpm build
+
+# 2. Sync built web assets to the Android platform wrapper
+pnpm exec cap sync android
+
+# 3. Generate the signed release bundle (.aab)
+cd android && ./gradlew bundleRelease && cd ..
+```
+
+The output `.aab` file will be generated at:
+`android/app/build/outputs/bundle/release/app-release.aab`
+
+> **Note:** Signing configurations (passwords and key aliases) are dynamically loaded from the git-ignored `android/local.properties` file:
+> ```properties
+> release.store.file=../../homswag.keystore
+> release.store.password=xxxxxx
+> release.key.alias=xxxxxx
+> release.key.password=xxxxxx
+> ```
+
+
 ## Feature Flags
 
 Runtime feature flags are defined in `src/shared/lib/feature-flags.ts` and driven by Vite environment variables. Import the `FEATURES` object wherever conditional behaviour is needed:

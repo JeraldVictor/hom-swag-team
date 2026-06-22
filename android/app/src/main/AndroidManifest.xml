@@ -27,10 +27,7 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".CustomMessagingService"
-            android:exported="true"
-            android:stopWithTask="false">
+        <service android:name=".CustomMessagingService" android:exported="true" android:stopWithTask="false">
             <intent-filter android:priority="1">
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
@@ -42,7 +39,8 @@
             android:excludeFromRecents="true"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
-            android:theme="@style/AppTheme.NoActionBarLaunch" />
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+        />
 
         <provider
             android:authorities="${applicationId}.fileprovider"
@@ -55,11 +53,13 @@
         <!-- FCM: default notification channel shown when app is in background/killed -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="homswag_general" />
+            android:value="homswag_general"
+        />
         <!-- FCM: default notification icon -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher" />
+            android:resource="@mipmap/ic_launcher"
+        />
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

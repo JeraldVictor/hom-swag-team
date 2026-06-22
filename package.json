@@ -15,6 +15,7 @@
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "type-check": "vue-tsc --noEmit",
+    "release:version": "sh ./scripts/update-release-version.sh",
     "precommit:verify": "sh ./scripts/precommit-verify.sh",
     "prepare": "simple-git-hooks"
   },

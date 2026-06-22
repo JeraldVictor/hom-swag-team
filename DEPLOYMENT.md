@@ -54,6 +54,24 @@ pnpm install
 
 ## 3. Build the web app (PROD)
 
+Before building a Play Store release, bump the app release version:
+
+```bash
+# Auto-bump Android versionName patch and increment versionCode
+pnpm release:version
+
+# Or set both values explicitly
+pnpm release:version 1.2.3 42
+```
+
+This updates:
+
+- `package.json` `version`
+- `android/app/build.gradle` `versionName`
+- `android/app/build.gradle` `versionCode`
+
+> **Play Store note:** `versionCode` must be higher than every APK/AAB previously uploaded.
+
 ```bash
 pnpm vite build --mode prod
 ```
@@ -160,19 +178,22 @@ Once built, share `android/app/build/outputs/apk/debug/app-debug.apk` via:
 # 1. Install deps
 pnpm install
 
-# 2. Build web assets for PROD
+# 2. Bump release version for Play Store
+pnpm release:version
+
+# 3. Build web assets for PROD
 pnpm vite build --mode prod
 
-# 3. Generate icons & splash screens (re-run whenever source images change)
+# 4. Generate icons & splash screens (re-run whenever source images change)
 pnpm exec capacitor-assets generate --android
 
-# 4. Sync to Android
+# 5. Sync to Android
 pnpm exec cap sync android
 
-# 5. Build debug APK
+# 6. Build debug APK
 cd android && ./gradlew assembleDebug && cd ..
 
-# 6. Find the APK
+# 7. Find the APK
 open android/app/build/outputs/apk/debug/
 ```
 
