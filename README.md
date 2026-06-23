@@ -45,6 +45,9 @@ pnpm exec cap sync android
 
 # 3. Generate the signed release bundle (.aab)
 cd android && ./gradlew bundleRelease && cd ..
+
+# 4. Open release location
+open android/app/build/outputs/bundle/release
 ```
 
 The output `.aab` file will be generated at:
