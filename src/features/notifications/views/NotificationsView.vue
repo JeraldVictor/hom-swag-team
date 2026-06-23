@@ -16,23 +16,39 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
-      <ion-toolbar>
-        <ion-segment v-model="filter" @ion-change="handleFilterChange">
-          <ion-segment-button value="all">
-            <ion-label>All</ion-label>
-          </ion-segment-button>
-          <ion-segment-button value="unread">
-            <ion-label>Unread</ion-label>
-            <ion-badge v-if="unreadCount > 0" color="danger">{{ unreadCount }}</ion-badge>
-          </ion-segment-button>
-        </ion-segment>
-      </ion-toolbar>
     </ion-header>
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh">
         <ion-refresher-content />
       </ion-refresher>
+
+      <div class="notif-filter" role="tablist" aria-label="Notification filter">
+        <button
+          type="button"
+          class="notif-filter__btn"
+          :class="{ 'notif-filter__btn--active': filter === 'all' }"
+          role="tab"
+          :aria-selected="filter === 'all'"
+          @click="setFilter('all')"
+        >
+          <span>All</span>
+          <span class="notif-filter__count">{{ notifications.length }}</span>
+        </button>
+        <button
+          type="button"
+          class="notif-filter__btn"
+          :class="{ 'notif-filter__btn--active': filter === 'unread' }"
+          role="tab"
+          :aria-selected="filter === 'unread'"
+          @click="setFilter('unread')"
+        >
+          <span>Unread</span>
+          <span class="notif-filter__count" :class="{ 'notif-filter__count--danger': unreadCount > 0 }">
+            {{ unreadCount }}
+          </span>
+        </button>
+      </div>
 
       <!-- Loading skeleton -->
       <template v-if="isLoading && notifications.length === 0">
@@ -148,7 +164,6 @@
 import { Icon } from '@iconify/vue'
 import {
   IonBackButton,
-  IonBadge,
   IonButton,
   IonButtons,
   IonContent,
@@ -164,8 +179,6 @@ import {
   IonPage,
   IonRefresher,
   IonRefresherContent,
-  IonSegment,
-  IonSegmentButton,
   IonTitle,
   IonToolbar,
 } from '@ionic/vue'
@@ -208,8 +221,8 @@ const groupedNotifications = computed(() => {
   return groups
 })
 
-function handleFilterChange(ev: CustomEvent) {
-  filter.value = ev.detail.value
+function setFilter(nextFilter: 'all' | 'unread'): void {
+  filter.value = nextFilter
 }
 
 async function fetchNotifications(): Promise<void> {
@@ -386,26 +399,65 @@ onMounted(() => {
   --color: var(--color-brand);
 }
 
-ion-segment {
-  --background: transparent;
-  padding: 0 8px 8px;
+.notif-filter {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--color-background, #fff);
+  border-bottom: 1px solid var(--color-border, #eee);
 }
 
-ion-segment-button {
-  --indicator-color: var(--color-brand);
-  --color-checked: var(--color-white, #fff);
-  --border-radius: 20px;
-  min-height: 36px;
-  font-weight: 600;
+.notif-filter__btn {
+  appearance: none;
+  border: 1px solid var(--color-border, #e6e2e5);
+  background: var(--color-white, #fff);
+  color: var(--color-text-secondary, #5f5660);
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
 }
 
-ion-badge {
-  margin-left: 6px;
-  --padding-start: 6px;
-  --padding-end: 6px;
-  --padding-top: 2px;
-  --padding-bottom: 2px;
-  font-size: 10px;
+.notif-filter__btn--active {
+  background: var(--color-brand, #6f164e);
+  border-color: var(--color-brand, #6f164e);
+  color: #fff;
+}
+
+.notif-filter__count {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.08);
+  color: currentColor;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.notif-filter__btn--active .notif-filter__count {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.notif-filter__count--danger {
+  background: var(--ion-color-danger, #eb445a);
+  color: #fff;
 }
 
 .notif-group-header {
