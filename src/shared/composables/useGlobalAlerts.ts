@@ -7,6 +7,7 @@ import { useAppStore } from '@/shared/stores/app'
 
 interface AlarmPluginInterface {
   playRingtone(): Promise<void>
+  playConnectionBeep(): Promise<void>
   stopRingtone(): Promise<void>
 }
 
@@ -71,6 +72,16 @@ export function useGlobalAlerts() {
     } else if (webAudio && !webAudio.paused) {
       webAudio.pause()
       webAudio.currentTime = 0
+    }
+  }
+
+  async function playConnectionBeep() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await AlarmPlugin.playConnectionBeep()
+      } catch (e) {
+        console.warn('[useGlobalAlerts] AlarmPlugin.playConnectionBeep failed:', e)
+      }
     }
   }
 
@@ -229,5 +240,6 @@ export function useGlobalAlerts() {
     viewAlert,
     handleNewNotification,
     triggerAudio,
+    playConnectionBeep,
   }
 }

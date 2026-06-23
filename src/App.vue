@@ -56,7 +56,7 @@ import { useNotificationStore } from '@/shared/stores/notification'
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
-const { handleNewNotification } = useGlobalAlerts()
+const { handleNewNotification, playConnectionBeep } = useGlobalAlerts()
 const backgroundRunner = useBackgroundRunner()
 const fcm = useFcm()
 
@@ -140,11 +140,25 @@ let apiLogoutListener: ((event: Event) => void) | null = null
 let backgroundRunnerListenerCleanup: (() => void) | null = null
 let fcmCleanup: (() => void | Promise<void>) | null = null
 let activeSessionToken: string | null = null
+let lastConnectionBeepAt = 0
+
+function maybePlayConnectionBeep() {
+  if (!Capacitor.isNativePlatform()) return
+  if (!authStore.isAuthenticated) return
+  if (!webSocketService.isConnected) return
+
+  const now = Date.now()
+  if (now - lastConnectionBeepAt < 30_000) return
+
+  lastConnectionBeepAt = now
+  void playConnectionBeep()
+}
 
 async function setupAppStateListener() {
   appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
     if (isActive) {
       void backgroundRunner.cancelPendingAlertSeries()
+      window.setTimeout(maybePlayConnectionBeep, 1200)
 
       if (authStore.isAuthenticated && !locationTracker.isTracking.value) {
         // App returned to foreground and user is authenticated — restart tracker

@@ -26,4 +26,15 @@
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:background">@android:color/transparent</item>
     </style>
+
+    <style name="AppTheme.AlertActivity" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowBackground">#6F164E</item>
+        <item name="android:colorAccent">#F9C846</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:navigationBarColor">#4A0F35</item>
+        <item name="android:statusBarColor">#6F164E</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>

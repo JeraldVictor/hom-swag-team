@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
+import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
@@ -34,6 +35,7 @@ class RingtoneActivity : Activity() {
         // tray does not keep a duplicate entry while the activity is showing.
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .cancel(CustomMessagingService.RINGTONE_NOTIFICATION_ID)
+        AlertForegroundService.stop(this)
 
         // Show over the lock screen and turn the screen on.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -54,26 +56,21 @@ class RingtoneActivity : Activity() {
 
         setContentView(R.layout.activity_ringtone)
 
-        val title = intent.getStringExtra("title") ?: "Incoming Alert"
-        val body  = intent.getStringExtra("body")  ?: "You have a new notification."
+        val type = intent.getStringExtra("type")?.lowercase() ?: ""
+        val title = intent.getStringExtra("title") ?: titleForType(type)
+        val body  = intent.getStringExtra("body")  ?: bodyForType(type)
 
+        findViewById<TextView>(R.id.alert_type).text = labelForType(type)
         findViewById<TextView>(R.id.title).text = title
         findViewById<TextView>(R.id.body).text  = body
+        setResourceLabel(type)
 
-        // "Accept / View Details" — open MainActivity which will route the user
-        // to the correct screen via the Capacitor deep-link extras.
+        // "Accept / View Details" — open MainActivity directly on the relevant screen.
         findViewById<Button>(R.id.accept_button).setOnClickListener {
             Log.d(TAG, "Accept tapped — launching MainActivity")
             stopAlarm()
 
-            // Build a homswag-partner:// deep-link URL so the Capacitor app's
-            // App.addListener('appUrlOpen') handler can navigate to the right screen.
-            val type    = intent.getStringExtra("type") ?: ""
-            val orderId = intent.getStringExtra("order_id") ?: ""
-            val tripId  = intent.getStringExtra("trip_id")  ?: ""
-            
-            // Use the "alert" path so App.vue triggers the GlobalAlertBox for consistency.
-            val deepLink = "homswag-partner://alert?type=$type&order_id=$orderId&trip_id=$tripId"
+            val deepLink = buildNavigateDeepLink()
 
             val mainIntent = Intent(this, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
@@ -152,6 +149,73 @@ class RingtoneActivity : Activity() {
 
         vibrator?.cancel()
         vibrator = null
+    }
+
+    private fun buildNavigateDeepLink(): String {
+        val orderId = intent.getStringExtra("order_id") ?: intent.getStringExtra("orderId")
+        if (!orderId.isNullOrBlank()) {
+            return "homswag-partner://navigate/orders/${Uri.encode(orderId)}"
+        }
+
+        val tripId = intent.getStringExtra("trip_id") ?: intent.getStringExtra("tripId")
+        if (!tripId.isNullOrBlank()) {
+            return "homswag-partner://navigate/trips/${Uri.encode(tripId)}"
+        }
+
+        return "homswag-partner://navigate/notifications"
+    }
+
+    private fun setResourceLabel(type: String) {
+        val resourceLabel = findViewById<TextView>(R.id.alert_resource)
+        val orderId = intent.getStringExtra("order_id") ?: intent.getStringExtra("orderId")
+        val tripId = intent.getStringExtra("trip_id") ?: intent.getStringExtra("tripId")
+        val orderNumber = intent.getStringExtra("order_number") ?: intent.getStringExtra("orderNumber")
+
+        val label = when {
+            !orderNumber.isNullOrBlank() -> "Order #$orderNumber"
+            !orderId.isNullOrBlank() -> "Order $orderId"
+            !tripId.isNullOrBlank() -> "Trip $tripId"
+            type.contains("trip") -> "Rider assignment"
+            type.contains("order") -> "Beautician assignment"
+            else -> null
+        }
+
+        if (label.isNullOrBlank()) {
+            resourceLabel.visibility = View.GONE
+        } else {
+            resourceLabel.text = label
+            resourceLabel.visibility = View.VISIBLE
+        }
+    }
+
+    private fun labelForType(type: String): String {
+        return when {
+            type.contains("trip_assigned") -> "RIDER ASSIGNMENT"
+            type.contains("order_assigned") -> "BEAUTICIAN ASSIGNMENT"
+            type.contains("trip") -> "TRIP UPDATE"
+            type.contains("order") -> "ORDER UPDATE"
+            else -> "IMPORTANT ALERT"
+        }
+    }
+
+    private fun titleForType(type: String): String {
+        return when {
+            type.contains("trip_assigned") -> "New Rider Assignment"
+            type.contains("order_assigned") -> "New Order Assignment"
+            type.contains("trip") -> "Trip Update"
+            type.contains("order") -> "Order Update"
+            else -> "Incoming Alert"
+        }
+    }
+
+    private fun bodyForType(type: String): String {
+        return when {
+            type.contains("trip_assigned") -> "A rider trip has been assigned. Open the app to review the details."
+            type.contains("order_assigned") -> "A beautician order has been assigned. Open the app to review the details."
+            type.contains("trip") -> "A trip assigned to you has been updated."
+            type.contains("order") -> "An order assigned to you has been updated."
+            else -> "You have a new important notification."
+        }
     }
 
     override fun onDestroy() {

@@ -32,7 +32,7 @@
             android:excludeFromRecents="true"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:theme="@style/AppTheme.AlertActivity"
             tools:node="merge" />
     </application>
 </manifest>

@@ -1,12 +1,15 @@
 package com.homswag.partner
 
 import android.app.NotificationChannel
+import android.app.KeyguardManager
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.RemoteMessage
@@ -20,6 +23,7 @@ class CustomMessagingService : MessagingService() {
          *  Must be cancelled by RingtoneActivity on launch so the tray entry is
          *  removed as soon as the full-screen UI appears. */
         const val RINGTONE_NOTIFICATION_ID = 1001
+        private const val FULL_SCREEN_CHANNEL_ID = "homswag_fullscreen_alerts_v2"
 
         /** All notification types that should trigger the native ringtone alarm
          *  UI instead of a standard Android notification. */
@@ -43,13 +47,13 @@ class CustomMessagingService : MessagingService() {
         val isRingtoneChannel = channelId != null && channelId == "homswag_ringtone"
 
         if (isRingtoneType || isRingtoneChannel) {
-            // Check if app is in foreground. If so, Socket.IO in App.vue handles the UI.
-            // Posting a notification here would cause a duplicate card in the drawer.
+            // Check if the main app activity is visible. If so, App.vue handles
+            // the alert with GlobalAlertBox and AlarmPlugin audio.
             if (isAppInForeground()) {
-                Log.d(TAG, "App is in foreground — skipping native notification (Socket.IO will handle it)")
+                Log.d(TAG, "MainActivity is visible — skipping native full-screen notification")
                 return
             }
-            Log.d(TAG, "High-priority match — triggering RingtoneActivity via FullScreenIntent")
+            Log.d(TAG, "High-priority match — launching RingtoneActivity with notification fallback")
             showRingtoneNotification(data)
         } else {
             Log.d(TAG, "Standard priority — delegating to Capacitor default handling")
@@ -58,20 +62,10 @@ class CustomMessagingService : MessagingService() {
     }
 
     private fun isAppInForeground(): Boolean {
-        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        val appProcesses = activityManager.runningAppProcesses ?: return false
-        val packageName = packageName
-        for (appProcess in appProcesses) {
-            if (appProcess.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
-                appProcess.processName == packageName) {
-                return true
-            }
-        }
-        return false
+        return MainActivity.isVisible
     }
 
     private fun showRingtoneNotification(data: Map<String, String>) {
-        val title = data["title"] ?: "Incoming Alert"
         val body  = data["body"]  ?: "You have a new important notification."
 
         // 1. FullScreenIntent (RingtoneActivity) — the automatic native popup/alarm.
@@ -86,12 +80,29 @@ class CustomMessagingService : MessagingService() {
             }
         }
 
-        // 2. ContentIntent (MainActivity) — when the user explicitly CLICKS the notification tray.
-        // We use a deep-link URL so App.vue can handle it and trigger GlobalAlertBox.
-        val type    = data["type"] ?: ""
-        val orderId = data["order_id"] ?: data["orderId"] ?: ""
-        val tripId  = data["trip_id"]  ?: data["tripId"] ?: ""
-        val deepLink = "homswag-partner://alert?type=$type&order_id=$orderId&trip_id=$tripId"
+        try {
+            AlertForegroundService.start(this, data)
+            Log.d(TAG, "Foreground alert service started")
+        } catch (e: Exception) {
+            Log.w(TAG, "Foreground alert service failed to start", e)
+        }
+
+        try {
+            startActivity(ringtoneIntent)
+            Log.d(TAG, "RingtoneActivity launched directly from FCM service")
+        } catch (e: Exception) {
+            Log.w(TAG, "Direct RingtoneActivity launch failed; relying on notification fallback", e)
+        }
+
+        if (!shouldPostFullScreenNotification()) {
+            Log.d(TAG, "Device is unlocked/interactive — foreground service notification is enough")
+            return
+        }
+
+        // 2. ContentIntent (MainActivity) — when the user explicitly clicks
+        // the notification tray, open the relevant detail screen. The ringtone
+        // activity already handled the alarm UI, so do not trigger GlobalAlertBox again.
+        val deepLink = buildNavigateDeepLink(data)
 
         val mainIntent = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
@@ -112,20 +123,25 @@ class CustomMessagingService : MessagingService() {
 
         // Ensure the channel exists (safe to call if already created).
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val soundUri = Uri.parse("android.resource://$packageName/${R.raw.alert}")
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
             val channel = NotificationChannel(
-                "homswag_ringtone",
+                FULL_SCREEN_CHANNEL_ID,
                 "High Priority Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Incoming trip and order alerts"
-                setSound(null, null)
-                enableVibration(false)
+                description = "Full-screen incoming trip and order alerts"
+                setSound(soundUri, audioAttributes)
+                enableVibration(true)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             }
             notificationManager.createNotificationChannel(channel)
         }
 
-        val notification = NotificationCompat.Builder(this, "homswag_ringtone")
+        val notification = NotificationCompat.Builder(this, FULL_SCREEN_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("HomSwag Alert")
             .setContentText(body)
@@ -140,5 +156,33 @@ class CustomMessagingService : MessagingService() {
 
         Log.d(TAG, "Posting FullScreenIntent notification (id=$RINGTONE_NOTIFICATION_ID)")
         notificationManager.notify(RINGTONE_NOTIFICATION_ID, notification)
+    }
+
+    private fun shouldPostFullScreenNotification(): Boolean {
+        val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+
+        val isLocked = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            keyguardManager.isDeviceLocked || keyguardManager.isKeyguardLocked
+        } else {
+            @Suppress("DEPRECATION")
+            keyguardManager.isKeyguardLocked
+        }
+
+        return isLocked || !powerManager.isInteractive
+    }
+
+    private fun buildNavigateDeepLink(data: Map<String, String>): String {
+        val orderId = data["order_id"] ?: data["orderId"]
+        if (!orderId.isNullOrBlank()) {
+            return "homswag-partner://navigate/orders/${Uri.encode(orderId)}"
+        }
+
+        val tripId = data["trip_id"] ?: data["tripId"]
+        if (!tripId.isNullOrBlank()) {
+            return "homswag-partner://navigate/trips/${Uri.encode(tripId)}"
+        }
+
+        return "homswag-partner://navigate/notifications"
     }
 }

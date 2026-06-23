@@ -1,20 +1,7 @@
-<?xml version='1.0' encoding='utf-8' ?>
+<?xml version='1.0' encoding='utf-8'?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
-        <activity
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
-            android:exported="true"
-            android:label="@string/title_activity_main"
-            android:launchMode="singleTask"
-            android:name=".MainActivity"
-            android:theme="@style/AppTheme.NoActionBarLaunch">
+    <application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:label="@string/app_name" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:theme="@style/AppTheme" android:usesCleartextTraffic="true">
+        <activity android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density" android:exported="true" android:label="@string/title_activity_main" android:launchMode="singleTask" android:name=".MainActivity" android:theme="@style/AppTheme.NoActionBarLaunch">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -26,55 +13,31 @@
                 <data android:scheme="homswag-partner" />
             </intent-filter>
         </activity>
-
-        <service android:name=".CustomMessagingService" android:exported="true" android:stopWithTask="false">
+        <service android:exported="true" android:name=".CustomMessagingService" android:stopWithTask="false">
             <intent-filter android:priority="1">
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
-        <activity
-            android:name=".RingtoneActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
-        />
-
-        <provider
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true"
-            android:name="androidx.core.content.FileProvider">
+        <service android:exported="false" android:foregroundServiceType="mediaPlayback" android:name=".AlertForegroundService" android:stopWithTask="true" />
+        <activity android:excludeFromRecents="true" android:exported="true" android:name=".RingtoneActivity" android:showOnLockScreen="true" android:theme="@style/AppTheme.AlertActivity" android:turnScreenOn="true" />
+        <provider android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true" android:name="androidx.core.content.FileProvider">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
-
-        <!-- FCM: default notification channel shown when app is in background/killed -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="homswag_general"
-        />
-        <!-- FCM: default notification icon -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher"
-        />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="homswag_general" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@mipmap/ic_launcher" />
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Camera & photo library for @capacitor/camera -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <!-- Push / local notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Exact alarms for scheduled local notifications from background runner -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <!-- Full-screen intents for incoming call style alerts -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

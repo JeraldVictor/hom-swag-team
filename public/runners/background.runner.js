@@ -29,6 +29,7 @@
 var ALERT_REPEAT_COUNT = 30;
 var ALERT_REPEAT_INTERVAL_MS = 2000;
 var ALERT_NOTIFICATION_ID_BASE = 1600000000;
+var MAX_ALERT_AGE_MS = 2 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -76,6 +77,16 @@ function notificationIdFor(notification, index) {
 
 function alertSeriesBaseId(notification, index) {
   return ALERT_NOTIFICATION_ID_BASE + (notificationIdFor(notification, index) % 1000000) * 100;
+}
+
+function isFreshAlert(notification) {
+  var rawCreatedAt = notification.created_at || notification.createdAt;
+  if (!rawCreatedAt) return false;
+
+  var createdAtMs = Date.parse(rawCreatedAt);
+  if (!Number.isFinite(createdAtMs)) return false;
+
+  return Date.now() - createdAtMs <= MAX_ALERT_AGE_MS;
 }
 
 function scheduleAlertSeries(notification, index, title, body) {
@@ -167,7 +178,18 @@ addEventListener('notificationCheck', function(resolve, reject) {
         var title     = notification.title || fallbackTitleForType(type);
         var body      = stripHtml(notification.body || notification.message || 'You have a new notification');
         if (channelId === 'homswag_ringtone') {
-          scheduleAlertSeries(notification, index, title, body);
+          if (isFreshAlert(notification)) {
+            scheduleAlertSeries(notification, index, title, body);
+          } else {
+            CapacitorNotifications.schedule([{
+              id: notificationIdFor(notification, index),
+              title: title,
+              body: body,
+              scheduleAt: new Date(Date.now() + (index + 1) * 1000),
+              channelId: 'homswag_general',
+              extra: notification.data || {},
+            }]);
+          }
           return;
         }
 
