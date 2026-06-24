@@ -2,7 +2,7 @@
  * useLogin composable
  *
  * Manages the two-step OTP login flow:
- *   Step 1 — phone number entry (10 or 14 digits) → POST /auth/otp/request
+ *   Step 1 — phone number entry (10 digits) → POST /auth/otp/request
  *   Step 2 — 6-digit OTP verification → POST /auth/otp/verify
  *
  * On successful verification:
@@ -12,7 +12,7 @@
  */
 
 import type { ComputedRef, Ref } from 'vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { requestOtp, verifyOtp } from '@/shared/api/auth.service'
 import { getProfile } from '@/shared/api/profile.service'
@@ -38,12 +38,18 @@ export interface UseLoginReturn {
   isPhoneValid: ComputedRef<boolean>
   isOtpValid: ComputedRef<boolean>
   maskedPhone: ComputedRef<string>
+  resendCooldown: Ref<number>
+  isResendDisabled: ComputedRef<boolean>
+  resendLimitReached: ComputedRef<boolean>
   // Actions
   submitPhone: () => Promise<void>
+  resendOtp: () => Promise<void>
   verifyOtpAndLogin: () => Promise<void>
   goBackToPhone: () => void
   onOtpChange: (value: string) => void
 }
+const MAX_RESEND_ATTEMPTS = 3
+const RESEND_COOLDOWN_SECONDS = 15
 
 // ---------------------------------------------------------------------------
 // Composable
@@ -62,13 +68,15 @@ export function useLogin(): UseLoginReturn {
   const isLoading = ref<boolean>(false)
   const phoneError = ref<string>('')
   const otpError = ref<string>('')
+  const resendAttempts = ref<number>(0)
+  const resendCooldown = ref<number>(0)
 
   // ---- Computed -------------------------------------------------------------
 
-  /** Accept exactly 10 or 14 digit strings (digits only). */
+  /** Accept exactly 10 digit strings (digits only). */
   const isPhoneValid = computed<boolean>(() => {
     const digits = phone.value.replace(/\D/g, '')
-    return digits.length === 10 || digits.length === 14
+    return digits.length === 10
   })
 
   /** OTP must be exactly 6 digits. */
@@ -85,6 +93,30 @@ export function useLogin(): UseLoginReturn {
     return `${masked}${visible}`
   })
 
+  const resendLimitReached = computed<boolean>(() => resendAttempts.value >= MAX_RESEND_ATTEMPTS)
+  const isResendDisabled = computed<boolean>(() => {
+    return isLoading.value || resendCooldown.value > 0 || resendLimitReached.value
+  })
+
+  const startResendCooldown = (): void => {
+    resendCooldown.value = RESEND_COOLDOWN_SECONDS
+  }
+
+  watch(
+    () => resendCooldown.value,
+    (value, _previousValue, onCleanup) => {
+      if (value <= 0) return
+
+      const timer = window.setInterval(() => {
+        resendCooldown.value = Math.max(resendCooldown.value - 1, 0)
+      }, 1000)
+
+      onCleanup(() => {
+        window.clearInterval(timer)
+      })
+    }
+  )
+
   // ---- Actions --------------------------------------------------------------
 
   /**
@@ -92,17 +124,37 @@ export function useLogin(): UseLoginReturn {
    * Calls POST /auth/otp/request and advances to the OTP step on success.
    */
   async function submitPhone(): Promise<void> {
+    await requestOtpCode(false)
+  }
+
+  async function resendOtp(): Promise<void> {
+    await requestOtpCode(true)
+  }
+
+  async function requestOtpCode(isResend: boolean): Promise<void> {
     phoneError.value = ''
 
     if (!isPhoneValid.value) {
-      phoneError.value = 'Enter a valid 10 or 14 digit phone number.'
+      phoneError.value = 'Enter a valid 10 digit phone number.'
+      return
+    }
+
+    if (isResend && resendLimitReached.value) {
+      phoneError.value = 'Too many OTP resend attempts. Please contact support.'
+      showError(phoneError.value)
       return
     }
 
     isLoading.value = true
     try {
       await requestOtp({ phone: phone.value })
+      if (isResend) {
+        resendAttempts.value = Math.min(resendAttempts.value + 1, MAX_RESEND_ATTEMPTS)
+      } else {
+        resendAttempts.value = 0
+      }
       step.value = 'otp'
+      startResendCooldown()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to send OTP. Please try again.'
       phoneError.value = message
@@ -162,6 +214,8 @@ export function useLogin(): UseLoginReturn {
     step.value = 'phone'
     otp.value = ''
     otpError.value = ''
+    resendAttempts.value = 0
+    resendCooldown.value = 0
   }
 
   /** Called by OtpInput when the composed value changes. */
@@ -180,7 +234,11 @@ export function useLogin(): UseLoginReturn {
     isPhoneValid,
     isOtpValid,
     maskedPhone,
+    resendCooldown,
+    isResendDisabled,
+    resendLimitReached,
     submitPhone,
+    resendOtp,
     verifyOtpAndLogin,
     goBackToPhone,
     onOtpChange,

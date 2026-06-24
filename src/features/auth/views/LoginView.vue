@@ -11,7 +11,11 @@ const {
   isPhoneValid,
   isOtpValid,
   maskedPhone,
+  resendCooldown,
+  isResendDisabled,
+  resendLimitReached,
   submitPhone,
+  resendOtp,
   verifyOtpAndLogin,
   goBackToPhone,
   onOtpChange,
@@ -20,7 +24,7 @@ const {
 function onPhoneInput(event: Event): void {
   const input = event.target as HTMLInputElement
   // Allow only digits
-  phone.value = input.value.replace(/\D/g, '').slice(0, 14)
+  phone.value = input.value.replace(/\D/g, '').slice(0, 10)
 }
 </script>
 
@@ -72,15 +76,15 @@ function onPhoneInput(event: Event): void {
                     class="login-field__input"
                     type="tel"
                     inputmode="numeric"
-                    placeholder="Enter 10 or 14 digit number"
+                    placeholder="Enter 10 digit number"
                     :value="phone"
-                    :maxlength="14"
+                    :maxlength="10"
                     autocomplete="tel"
                     @input="onPhoneInput"
                     @keydown.enter="submitPhone"
                   />
                   <span v-if="phone.length > 0" class="login-field__counter">
-                    {{ phone.length }}/{{ phone.length <= 10 ? 10 : 14 }}
+                    {{ phone.length }}/10
                   </span>
                 </div>
                 <Transition name="fade-down">
@@ -156,10 +160,29 @@ function onPhoneInput(event: Event): void {
 
               <div class="login-otp-footer">
                 <span class="login-otp-footer__text">Didn't receive the code?</span>
+                <button
+                  class="login-otp-footer__link"
+                  :class="{ 'login-otp-footer__link--disabled': isResendDisabled }"
+                  :disabled="isResendDisabled"
+                  @click="resendOtp"
+                >
+                  <template v-if="resendLimitReached">
+                    Resend OTP disabled
+                  </template>
+                  <template v-else-if="resendCooldown > 0">
+                    Resend OTP ({{ resendCooldown }}s)
+                  </template>
+                  <template v-else>
+                    Resend OTP
+                  </template>
+                </button>
                 <button class="login-otp-footer__link" @click="goBackToPhone">
                   Change number
                 </button>
               </div>
+              <p v-if="resendLimitReached" class="login-field__error login-field__error--center">
+                Too many OTP resend attempts. Please contact support.
+              </p>
             </div>
           </Transition>
 

@@ -436,7 +436,10 @@ const orderTotal = computed(() => Number(order.value?.total ?? 0))
 const remainingDue = computed(() => Math.max(0, orderTotal.value - prepaidAmount.value))
 const hasCodAmount = computed(() => Number(order.value?.payment?.cod_amount ?? 0) > 0)
 const hasUpiAmount = computed(
-  () => Number(order.value?.payment?.upi_amount ?? 0) > 0 || paymentMethod.value.includes('upi')
+  () =>
+    Number(order.value?.payment?.upi_amount ?? 0) > 0 ||
+    paymentMethod.value.includes('upi') ||
+    paymentMethod.value.includes('online')
 )
 const isPrepaidOrder = computed(() => remainingDue.value <= 0)
 const totalReceivedLabel = computed(() => `₹${prepaidAmount.value}`)
@@ -453,6 +456,9 @@ const completedOther = computed(() =>
   Math.max(0, prepaidAmount.value - completedCod.value - completedUpi.value)
 )
 const actualUpiAmount = computed(() => completedUpi.value)
+const paymentMethodRequiresProof = computed(
+  () => paymentMethod.value.includes('upi') || paymentMethod.value.includes('online')
+)
 const proofImages = computed(() => {
   if (!order.value) return []
 
@@ -500,7 +506,11 @@ async function removePaymentProof(index: number) {
   })
 }
 
-const requiresProof = computed(() => actualUpiAmount.value > 0 && proofImages.value.length === 0)
+const requiresProof = computed(
+  () =>
+    (actualUpiAmount.value > 0 || paymentMethodRequiresProof.value) &&
+    proofImages.value.length === 0
+)
 
 const paymentTypeLabel = computed(() => {
   if (isPrepaidOrder.value && prepaidAmount.value > 0) {
@@ -606,6 +616,9 @@ async function saveRecordedPayment() {
     showError(`Payment cannot be more than the pending amount of ₹${remainingDue.value}.`)
     return
   }
+  const isRecordPaymentMethodDigital =
+    recordPaymentMethod.value === 'upi' || recordPaymentMethod.value === 'online'
+  const shouldRequestProof = isRecordPaymentMethodDigital && proofImages.value.length === 0
 
   const previousPaid = Number(order.value.payment?.amount_paid ?? 0)
   const nextPaid = Number((previousPaid + amount).toFixed(2))
@@ -643,6 +656,9 @@ async function saveRecordedPayment() {
 
   showRecordPayment.value = false
   showSuccess('Payment recorded')
+  if (shouldRequestProof) {
+    showError('Payment recorded. Please upload payment proof for this UPI/online payment.')
+  }
 
   if (completeAfterRecordingPayment.value) {
     completeAfterRecordingPayment.value = false
@@ -650,8 +666,8 @@ async function saveRecordedPayment() {
       showError(`Payment recorded. ₹${remainingDue.value} is still pending.`)
       return
     }
-    if (recordPaymentMethod.value === 'upi' && proofImages.value.length === 0) {
-      showError('Payment recorded. Capture UPI payment proof before completing the order.')
+    if (shouldRequestProof) {
+      showError('Payment recorded. Capture UPI/online payment proof before completing the order.')
       return
     }
     await completePaidOrder()

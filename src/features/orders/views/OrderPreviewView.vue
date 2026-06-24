@@ -321,6 +321,21 @@
           >
             Verify & Update Order
           </AppButton>
+          <AppButton
+            variant="outline"
+            expand="block"
+            :loading="isResendingOtp"
+            :disabled="!canResendOrderOtp"
+            @click="handleResendOrderOtp"
+          >
+            {{ orderOtpResendButtonLabel }}
+          </AppButton>
+          <p
+            v-if="isOrderOtpLimitReached"
+            class="otp-help-text"
+          >
+            Maximum resend attempts reached. Please contact support.
+          </p>
           <AppButton 
             variant="clear" 
             expand="block" 
@@ -336,10 +351,11 @@
 </template>
 <script setup lang="ts">
 import { alertController, loadingController, toastController } from '@ionic/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ApiError } from '@/shared/lib/api'
 import {
-  generateServiceOtp,
+  generateOrderChangeOtp,
   getOrder,
   updateOrder,
   verifyServiceOtp,
@@ -391,8 +407,162 @@ const isLoading = ref(true)
 const isVerifying = ref(false)
 const showOtpModal = ref(false)
 const otpValue = ref('')
+const isResendingOtp = ref(false)
+const orderOtpResendCooldown = ref(0)
+const orderOtpResendAttempts = ref(0)
+const isOrderOtpLimitReached = ref(false)
 
 const newCartItems = ref<CartItem[]>([])
+
+let orderOtpCooldownTimer: ReturnType<typeof setInterval> | null = null
+
+const orderOtpResendButtonLabel = computed(() => {
+  if (orderOtpResendCooldown.value > 0) {
+    return `Resend in ${orderOtpResendCooldown.value}s`
+  }
+  if (isOrderOtpLimitReached.value) {
+    return 'Resend not available'
+  }
+  return 'Resend OTP'
+})
+
+const canResendOrderOtp = computed(() => {
+  return (
+    !isOrderOtpLimitReached.value && orderOtpResendCooldown.value === 0 && !isResendingOtp.value
+  )
+})
+
+function clearOrderOtpCooldown(): void {
+  if (orderOtpCooldownTimer) {
+    clearInterval(orderOtpCooldownTimer)
+    orderOtpCooldownTimer = null
+  }
+}
+
+function startOrderOtpCooldown(seconds = 15): void {
+  clearOrderOtpCooldown()
+  const parsedSeconds = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 15
+  if (parsedSeconds <= 0) return
+  orderOtpResendCooldown.value = parsedSeconds
+  orderOtpCooldownTimer = setInterval(() => {
+    if (orderOtpResendCooldown.value > 0) {
+      orderOtpResendCooldown.value -= 1
+      if (orderOtpResendCooldown.value <= 0) {
+        clearOrderOtpCooldown()
+      }
+    }
+  }, 1000)
+}
+
+function extractOtpCooldownSecondsFromMessage(message: string): number | null {
+  const match = message.match(/wait\s+(\d+)\s*s/i)
+  return match && Number.isFinite(Number.parseInt(match[1], 10))
+    ? Number.parseInt(match[1], 10)
+    : null
+}
+
+async function handleOrderOtpRateLimitError(error: unknown): Promise<boolean> {
+  if (!(error instanceof ApiError) || error.status !== 429) {
+    return false
+  }
+  const message = error.message || ''
+  const lower = message.toLowerCase()
+  const cooldownSeconds = extractOtpCooldownSecondsFromMessage(message)
+  if (cooldownSeconds !== null) {
+    startOrderOtpCooldown(cooldownSeconds)
+    const cooldownToast = await toastController.create({
+      message,
+      duration: 2000,
+      color: 'warning',
+      position: 'top',
+    })
+    await cooldownToast.present()
+    return true
+  }
+  if (lower.includes('maximum otp resend attempts reached') || lower.includes('contact support')) {
+    isOrderOtpLimitReached.value = true
+    const limitToast = await toastController.create({
+      message: 'Maximum resend attempts reached. Please contact support.',
+      duration: 3000,
+      color: 'warning',
+      position: 'top',
+    })
+    await limitToast.present()
+    return true
+  }
+  return false
+}
+
+async function generateOrderUpdateOtp(isResend = false): Promise<boolean> {
+  if (orderOtpResendCooldown.value > 0) {
+    const toast = await toastController.create({
+      message: `Please wait ${orderOtpResendCooldown.value}s before requesting a new OTP.`,
+      duration: 2000,
+      color: 'warning',
+      position: 'top',
+    })
+    await toast.present()
+    return false
+  }
+
+  if (isResend && isOrderOtpLimitReached.value) {
+    const toast = await toastController.create({
+      message: 'Maximum resend attempts reached. Please contact support.',
+      duration: 2000,
+      color: 'warning',
+      position: 'top',
+    })
+    await toast.present()
+    return false
+  }
+
+  isResendingOtp.value = true
+  const loader = await loadingController.create({
+    message: isResend ? 'Resending OTP...' : 'Generating OTP...',
+  })
+  await loader.present()
+
+  try {
+    await generateOrderChangeOtp(orderId)
+    if (isResend) {
+      orderOtpResendAttempts.value += 1
+      if (orderOtpResendAttempts.value >= 3) {
+        isOrderOtpLimitReached.value = true
+      }
+    } else {
+      orderOtpResendAttempts.value = 0
+      isOrderOtpLimitReached.value = false
+    }
+
+    startOrderOtpCooldown(15)
+    return true
+  } catch (err) {
+    if (await handleOrderOtpRateLimitError(err)) {
+      return false
+    }
+    if (err instanceof ApiError && err.message) {
+      const toast = await toastController.create({
+        message: err.message,
+        duration: 2000,
+        color: 'danger',
+        position: 'top',
+      })
+      await toast.present()
+      return false
+    }
+    const toast = await toastController.create({
+      message: 'Failed to generate OTP. Please try again.',
+      duration: 2000,
+      color: 'danger',
+      position: 'top',
+    })
+    await toast.present()
+    return false
+  } finally {
+    isResendingOtp.value = false
+    await loader.dismiss().catch(() => {})
+  }
+}
 
 function normalizeFreeItem(free: any) {
   return {
@@ -586,12 +756,11 @@ async function handleGenerateOtp() {
     return
   }
 
-  const loader = await loadingController.create({ message: 'Generating OTP...' })
-  await loader.present()
-
   try {
-    await generateServiceOtp(orderId)
-    showOtpModal.value = true
+    const generated = await generateOrderUpdateOtp()
+    if (generated) {
+      showOtpModal.value = true
+    }
   } catch (_err) {
     const toast = await toastController.create({
       message: 'Failed to generate OTP. Please try again.',
@@ -599,9 +768,11 @@ async function handleGenerateOtp() {
       color: 'danger',
     })
     await toast.present()
-  } finally {
-    await loader.dismiss()
   }
+}
+
+async function handleResendOrderOtp() {
+  await generateOrderUpdateOtp(true)
 }
 
 async function handleVerifyAndSubmit() {
@@ -699,6 +870,10 @@ async function handleVerifyAndSubmit() {
       position: 'top',
     })
     await toast.present()
+    clearOrderOtpCooldown()
+    orderOtpResendCooldown.value = 0
+    orderOtpResendAttempts.value = 0
+    isOrderOtpLimitReached.value = false
     router.replace(`/orders/${orderId}`)
   } catch (err) {
     console.error('Verification/Update failed', err)
@@ -714,6 +889,7 @@ async function handleVerifyAndSubmit() {
 }
 
 onMounted(fetchOrderData)
+onUnmounted(clearOrderOtpCooldown)
 </script>
 <style scoped>
 .preview-container {
@@ -1142,6 +1318,13 @@ onMounted(fetchOrderData)
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.otp-help-text {
+  margin: 0;
+  color: var(--color-warning);
+  text-align: center;
+  font-size: 12px;
 }
 
 .anim-fade-in {

@@ -81,6 +81,18 @@ export async function generateServiceOtp(
 }
 
 /**
+ * Generate an OTP when modifying a service order before confirming changes.
+ */
+export async function generateOrderChangeOtp(
+  id: string | number
+): Promise<{ otp: string; expires_at: string }> {
+  const response = await apiClient.post<{ data: { otp: string; expires_at: string } }>(
+    `/orders/${id}/generate_order_change_otp`
+  )
+  return response.data.data
+}
+
+/**
  * Verify the service OTP provided by the customer.
  * POST /orders/:id/otp/verify
  */

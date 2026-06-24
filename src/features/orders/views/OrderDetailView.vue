@@ -215,6 +215,21 @@
           >
             Verify & Start Service
           </AppButton>
+          <AppButton
+            variant="outline"
+            expand="block"
+            :loading="isGeneratingOtp"
+            :disabled="!canResendServiceOtp"
+            @click="handleResendServiceOtp"
+          >
+            {{ serviceOtpResendButtonLabel }}
+          </AppButton>
+          <p
+            v-if="isServiceOtpLimitReached"
+            class="otp-help-text"
+          >
+            Maximum resend attempts reached. Please contact support.
+          </p>
           <AppButton variant="ghost" expand="block" @click="showOtpInput = false">
             Cancel
           </AppButton>
@@ -403,6 +418,7 @@ const {
   order,
   isLoading,
   isUpdating,
+  isGeneratingOtp,
   isVerifyingOtp,
   error,
   nextActionLabel,
@@ -429,6 +445,9 @@ const showGallery = ref(false)
 const activeImageUrl = ref('')
 const showOtpInput = ref(false)
 const otpValue = ref('')
+const serviceOtpResendCooldown = ref(0)
+const serviceOtpResendAttempts = ref(0)
+const isServiceOtpLimitReached = ref(false)
 const showCancelModal = ref(false)
 const cancelReason = ref('')
 const showUpgradeModal = ref(false)
@@ -446,6 +465,118 @@ const paymentStatusOptions = [
 const showCompletedCustomer = ref(false)
 const { openNavigationMenu } = useNavigation()
 
+let serviceOtpCooldownTimer: ReturnType<typeof setInterval> | null = null
+
+const serviceOtpResendButtonLabel = computed(() => {
+  if (serviceOtpResendCooldown.value > 0) {
+    return `Resend in ${serviceOtpResendCooldown.value}s`
+  }
+  if (isServiceOtpLimitReached.value) {
+    return 'Resend not available'
+  }
+  return 'Resend OTP'
+})
+
+const canResendServiceOtp = computed(() => {
+  return (
+    !isServiceOtpLimitReached.value &&
+    serviceOtpResendCooldown.value === 0 &&
+    !isGeneratingOtp.value
+  )
+})
+
+function clearServiceOtpCooldown(): void {
+  if (serviceOtpCooldownTimer) {
+    clearInterval(serviceOtpCooldownTimer)
+    serviceOtpCooldownTimer = null
+  }
+}
+
+function startServiceOtpCooldown(seconds = 15): void {
+  clearServiceOtpCooldown()
+  const parsedSeconds = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 15
+  if (parsedSeconds <= 0) return
+
+  serviceOtpResendCooldown.value = parsedSeconds
+  serviceOtpCooldownTimer = setInterval(() => {
+    if (serviceOtpResendCooldown.value > 0) {
+      serviceOtpResendCooldown.value -= 1
+      if (serviceOtpResendCooldown.value <= 0) {
+        clearServiceOtpCooldown()
+      }
+    }
+  }, 1000)
+}
+
+function extractOtpCooldownSecondsFromMessage(message: string): number | null {
+  const match = message.match(/wait\s+(\d+)\s*s/i)
+  return match && Number.isFinite(Number.parseInt(match[1], 10))
+    ? Number.parseInt(match[1], 10)
+    : null
+}
+
+function handleServiceOtpRateLimitError(message: string): boolean {
+  const lower = message.toLowerCase()
+  const cooldownSeconds = extractOtpCooldownSecondsFromMessage(message)
+  if (cooldownSeconds !== null) {
+    startServiceOtpCooldown(cooldownSeconds)
+    showError(message)
+    return true
+  }
+  if (lower.includes('maximum otp resend attempts reached') || lower.includes('contact support')) {
+    isServiceOtpLimitReached.value = true
+    showError('Maximum resend attempts reached. Please contact support.')
+    return true
+  }
+  return false
+}
+
+function resetServiceOtpState(): void {
+  clearServiceOtpCooldown()
+  serviceOtpResendCooldown.value = 0
+  serviceOtpResendAttempts.value = 0
+  isServiceOtpLimitReached.value = false
+}
+
+async function handleSendServiceStartOtp(isResend = false): Promise<boolean> {
+  if (isResend) {
+    if (isServiceOtpLimitReached.value) {
+      showError('Maximum resend attempts reached. Please contact support.')
+      return false
+    }
+  } else {
+    isServiceOtpLimitReached.value = false
+    clearServiceOtpCooldown()
+  }
+
+  if (serviceOtpResendCooldown.value > 0) {
+    showError(`Please wait ${serviceOtpResendCooldown.value}s before requesting a new OTP.`)
+    return false
+  }
+  if (!order.value) return false
+
+  const otp = await generateOtp()
+  if (!otp) {
+    if (error.value && handleServiceOtpRateLimitError(error.value)) {
+      return false
+    }
+    showError(error.value || 'Failed to generate service OTP. Please try again.')
+    return false
+  }
+
+  if (isResend) {
+    serviceOtpResendAttempts.value += 1
+    if (serviceOtpResendAttempts.value >= 3) {
+      isServiceOtpLimitReached.value = true
+    }
+  } else {
+    serviceOtpResendAttempts.value = 0
+  }
+
+  startServiceOtpCooldown(15)
+  return true
+}
+
 const hasPaymentMethod = computed(() => {
   const method = order.value?.payment?.method?.toLowerCase() || ''
   return method
@@ -457,7 +588,15 @@ const hasCodAmount = computed(() => {
 
 const hasUpiAmount = computed(() => {
   const method = hasPaymentMethod.value
-  return Number(order.value?.payment?.upi_amount ?? 0) > 0 || method.includes('upi')
+  return (
+    Number(order.value?.payment?.upi_amount ?? 0) > 0 ||
+    method.includes('upi') ||
+    method.includes('online')
+  )
+})
+const hasOnlinePayment = computed(() => {
+  const method = hasPaymentMethod.value
+  return method.includes('upi') || method.includes('online')
 })
 
 const isPrepaidOrder = computed(() => {
@@ -793,16 +932,15 @@ async function handleMainAction() {
       await promptSetupPhotoUpload()
     } else {
       if (!order.value?.verification?.otp_sent_at) {
-        const otp = await generateOtp()
-        if (otp) {
-          const toast = await toastController.create({
-            message: 'Service OTP generated. Ask the customer for the code.',
-            duration: 2500,
-            color: 'success',
-            position: 'top',
-          })
-          await toast.present()
-        }
+        const generated = await handleSendServiceStartOtp()
+        if (!generated) return
+        const toast = await toastController.create({
+          message: 'Service OTP generated. Ask the customer for the code.',
+          duration: 2500,
+          color: 'success',
+          position: 'top',
+        })
+        await toast.present()
       }
       showOtpInput.value = true
     }
@@ -843,6 +981,15 @@ async function handleUploadSelfie() {
 async function handleSavePaymentStatus() {
   if (!ensureTodayEditable()) return
   if (!order.value) return
+  if (
+    ['paid', 'partial'].includes(paymentStatus.value) &&
+    hasOnlinePayment.value &&
+    proofImages.value.length === 0
+  ) {
+    showError('Capture payment proof before marking UPI/online payment as paid.')
+    return
+  }
+
   if (
     !paymentStatus.value ||
     !['paid', 'partial', 'unpaid', 'conflict'].includes(paymentStatus.value)
@@ -894,6 +1041,7 @@ async function handleVerifyOtp() {
   if (!error.value) {
     showOtpInput.value = false
     otpValue.value = ''
+    resetServiceOtpState()
     const toast = await toastController.create({
       message: 'Service started successfully!',
       duration: 2000,
@@ -902,6 +1050,10 @@ async function handleVerifyOtp() {
     })
     await toast.present()
   }
+}
+
+async function handleResendServiceOtp() {
+  await handleSendServiceStartOtp(true)
 }
 
 function handleEditOrder() {
@@ -1084,6 +1236,7 @@ onIonViewWillEnter(() => {
 })
 
 onUnmounted(() => {
+  clearServiceOtpCooldown()
   window.removeEventListener('homswag:order-updated', handleOrderUpdated)
 })
 </script>
@@ -1221,6 +1374,12 @@ onUnmounted(() => {
 .otp-header p { margin: 0; font-size: 13px; color: var(--color-text-muted); line-height: 1.5; }
 .otp-input-section { display: flex; justify-content: center; }
 .otp-footer { display: flex; flex-direction: column; gap: 10px; }
+.otp-help-text {
+  margin: 0;
+  color: var(--color-warning);
+  text-align: center;
+  font-size: 12px;
+}
 
 /* ── Cancel Modal ────────────────────────────────────────────────────────── */
 .cancel-modal { --border-radius: 28px 28px 0 0; }
