@@ -142,8 +142,8 @@ export function usePermissions(): UsePermissionsReturn {
   async function requestCamera(): Promise<PermissionState> {
     if (!isNative()) return 'granted'
     try {
-      // Explicitly request both camera and photos (READ_MEDIA_IMAGES on Android 13+)
-      const result = await Camera.requestPermissions({ permissions: ['camera', 'photos'] })
+      // Request only camera permission (no photos/gallery access needed)
+      const result = await Camera.requestPermissions({ permissions: ['camera'] })
       const state = result.camera as PermissionState
       statuses.value = { ...statuses.value, camera: state }
       return state

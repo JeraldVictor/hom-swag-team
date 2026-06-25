@@ -23,6 +23,26 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // Convert flatDir repositories to warning-free Ivy repositories at project configuration time
+    afterEvaluate { project ->
+        def flatRepos = project.repositories.findAll { it instanceof FlatDirectoryArtifactRepository }
+        flatRepos.each { repo ->
+            def dirs = repo.dirs
+            project.repositories.remove(repo)
+            dirs.each { dir ->
+                project.repositories.ivy {
+                    url = dir.toURI()
+                    patternLayout {
+                        artifact '[artifact].[ext]'
+                    }
+                    metadataSources {
+                        artifact()
+                    }
+                }
+            }
+        }
+    }
 }
 
 task clean(type: Delete) {

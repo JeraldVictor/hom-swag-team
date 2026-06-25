@@ -63,7 +63,15 @@ class AlertForegroundService : Service() {
         }
 
         createChannel()
-        startForeground(NOTIFICATION_ID, buildNotification(intent))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(intent),
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification(intent))
+        }
         startAlarm()
         return START_NOT_STICKY
     }
@@ -175,7 +183,13 @@ class AlertForegroundService : Service() {
             }
         }
 
-        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? android.os.VibratorManager
+            vibratorManager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
         vibrator?.let {
             val pattern = longArrayOf(0L, 1000L, 1000L)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

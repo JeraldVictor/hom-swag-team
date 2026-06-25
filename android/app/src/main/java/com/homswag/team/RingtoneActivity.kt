@@ -81,7 +81,12 @@ class RingtoneActivity : Activity() {
                 intent.extras?.let { putExtras(it) }
             }
             startActivity(mainIntent)
-            overridePendingTransition(0, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                overrideActivityTransition(android.app.Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+            } else {
+                @Suppress("DEPRECATION")
+                overridePendingTransition(0, 0)
+            }
             finish()
         }
 
@@ -128,7 +133,13 @@ class RingtoneActivity : Activity() {
         }
 
         // --- Vibration (repeating 1 s on / 1 s off) ---
-        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? android.os.VibratorManager
+            vibratorManager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
         vibrator?.let {
             val pattern = longArrayOf(0L, 1000L, 1000L)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
