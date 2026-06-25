@@ -90,6 +90,13 @@ let isRefreshing = false
 let logoutInProgress = false
 const pendingQueue: Array<{ resolve: QueueResolver; reject: QueueRejecter }> = []
 
+const PUBLIC_AUTH_PATHS = ['/auth/otp/request', '/auth/otp/verify']
+
+function isPublicAuthPath(url: string | undefined): boolean {
+  if (!url) return false
+  return PUBLIC_AUTH_PATHS.some(path => url.includes(path))
+}
+
 function enqueueRequest(): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     pendingQueue.push({ resolve, reject })
@@ -97,12 +104,16 @@ function enqueueRequest(): Promise<string> {
 }
 
 function drainQueue(newToken: string): void {
-  pendingQueue.forEach(({ resolve }) => resolve(newToken))
+  pendingQueue.forEach(({ resolve }) => {
+    resolve(newToken)
+  })
   pendingQueue.length = 0
 }
 
 function rejectQueue(error: unknown): void {
-  pendingQueue.forEach(({ reject }) => reject(error))
+  pendingQueue.forEach(({ reject }) => {
+    reject(error)
+  })
   pendingQueue.length = 0
 }
 
@@ -171,7 +182,9 @@ const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestCo
     Object.entries(params).forEach(([key, value]) => {
       if (value === undefined || value === null) return
       if (Array.isArray(value)) {
-        value.forEach(item => qs.append(key, String(item)))
+        value.forEach(item => {
+          qs.append(key, String(item))
+        })
       } else {
         qs.append(key, String(value))
       }
@@ -254,7 +267,7 @@ if (!ENV.DEV && (!prodUrl || !prodUrl.startsWith('http'))) {
 }
 const baseURL = ENV.DEV
   ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api`
-  : prodUrl!
+  : prodUrl
 
 const apiClient: AxiosInstance = axios.create({
   baseURL,
@@ -296,7 +309,6 @@ if (import.meta.env.DEV) {
   apiClient.interceptors.response.use(
     response => {
       const method = (response.config.method ?? 'GET').toUpperCase()
-      const url = `${response.config.baseURL ?? ''}${response.config.url ?? ''}`
       const ms =
         Date.now() -
         (((response.config as unknown as Record<string, unknown>).__t as number) ?? Date.now())
@@ -327,8 +339,8 @@ if (import.meta.env.DEV) {
 
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> => {
-    // Skip auth header injection for the refresh endpoint itself to avoid loops
-    if (config.url?.includes('/auth/refresh')) {
+    // Skip auth header injection for public auth endpoints and refresh itself.
+    if (isPublicAuthPath(config.url) || config.url?.includes('/auth/refresh')) {
       return config
     }
 
@@ -349,7 +361,8 @@ apiClient.interceptors.request.use(
             drainQueue(newToken)
             config.headers.set('Authorization', `Bearer ${newToken}`)
           } catch (err) {
-            // State reset, queue rejection, and logout are handled by the response interceptor
+            isRefreshing = false
+            rejectQueue(err)
             throw err
           }
         } else {
@@ -384,6 +397,18 @@ apiClient.interceptors.response.use(
   async error => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
     const requestUrl = String(originalRequest.url ?? '')
+
+    if (isPublicAuthPath(requestUrl)) {
+      if (error.response) {
+        const data = error.response.data as Record<string, unknown> | null
+        const message =
+          (data && typeof data.message === 'string' ? data.message : null) ??
+          error.message ??
+          'Authentication request failed'
+        return Promise.reject(new ApiError(error.response.status as number, message, data))
+      }
+      return Promise.reject(new ApiError(0, error.message ?? 'Network error'))
+    }
 
     // If the refresh request itself fails, handle it here.
     if (requestUrl.includes('/auth/refresh')) {
@@ -429,7 +454,8 @@ apiClient.interceptors.response.use(
         }
         return apiClient(originalRequest)
       } catch (err) {
-        // State reset, queue rejection, and logout are handled by the response interceptor
+        isRefreshing = false
+        rejectQueue(err)
         return Promise.reject(err)
       }
     }

@@ -59,12 +59,12 @@ vi.mock('@capacitor/preferences', () => ({
 }))
 
 // ---------------------------------------------------------------------------
-// Mock @/stores/auth (lazy import inside the 401 handler)
+// Mock @/shared/stores/auth (lazy import inside the 401 handler)
 // ---------------------------------------------------------------------------
 
 const mockLogout = vi.fn().mockResolvedValue(undefined)
 
-vi.mock('@/stores/auth', () => ({
+vi.mock('@/shared/stores/auth', () => ({
   useAuthStore: () => ({ logout: mockLogout }),
 }))
 
@@ -121,8 +121,8 @@ vi.mock('axios', () => ({
 // Import module under test AFTER mocks are set up
 // ---------------------------------------------------------------------------
 
-import { ApiError } from '@/lib/api'
-import { STORAGE_KEYS } from '@/lib/storage'
+import { ApiError } from '@/shared/lib/api'
+import { STORAGE_KEYS } from '@/shared/lib/storage'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -224,6 +224,16 @@ describe('Request interceptor — header injection', () => {
 
     expect(config.headers.set).not.toHaveBeenCalled()
   })
+
+  it('skips token injection and refresh for /auth/otp/verify endpoint', async () => {
+    mockPrefsStore[STORAGE_KEYS.accessToken] = EXPIRED_TOKEN
+
+    const config = { url: '/auth/otp/verify', headers: { set: vi.fn() } }
+    await runRequestInterceptors(config as unknown as Record<string, unknown>)
+
+    expect(mockAxiosInstance.post).not.toHaveBeenCalled()
+    expect(config.headers.set).not.toHaveBeenCalled()
+  })
 })
 
 describe('Request interceptor — proactive token refresh', () => {
@@ -231,7 +241,7 @@ describe('Request interceptor — proactive token refresh', () => {
     clearPrefsStore()
     vi.clearAllMocks()
     mockAxiosInstance.post.mockResolvedValue({
-      data: { access_token: NEW_ACCESS_TOKEN, refresh_token: NEW_REFRESH_TOKEN },
+      data: { data: { accessToken: NEW_ACCESS_TOKEN, refreshToken: NEW_REFRESH_TOKEN } },
     })
   })
 
@@ -365,7 +375,7 @@ describe('Response interceptor — 401 retry', () => {
     // Refresh succeeds but the retry call (apiClient(config)) will fail since
     // the mock instance isn't callable — we just verify the refresh was attempted.
     mockAxiosInstance.post.mockResolvedValueOnce({
-      data: { access_token: NEW_ACCESS_TOKEN, refresh_token: NEW_REFRESH_TOKEN },
+      data: { data: { accessToken: NEW_ACCESS_TOKEN, refreshToken: NEW_REFRESH_TOKEN } },
     })
 
     const error = {
@@ -428,7 +438,7 @@ describe('Request queue draining', () => {
 
     mockAxiosInstance.post.mockReturnValueOnce(
       refreshPromise.then(() => ({
-        data: { access_token: NEW_ACCESS_TOKEN, refresh_token: NEW_REFRESH_TOKEN },
+        data: { data: { accessToken: NEW_ACCESS_TOKEN, refreshToken: NEW_REFRESH_TOKEN } },
       })),
     )
 
