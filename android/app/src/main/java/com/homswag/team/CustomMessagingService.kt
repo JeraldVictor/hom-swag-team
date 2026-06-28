@@ -1,12 +1,11 @@
 package com.homswag.partner
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.RingtoneManager
 import android.net.Uri
-import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.RemoteMessage
@@ -16,7 +15,9 @@ class CustomMessagingService : MessagingService() {
 
     companion object {
         private const val TAG = "CustomMessagingService"
-        private const val DEFAULT_CHANNEL_ID = "homswag_general"
+        private const val DEFAULT_CHANNEL_ID = NotificationChannels.GENERAL
+        private const val ORDERS_CHANNEL_ID = NotificationChannels.ORDERS
+        private const val TRIPS_CHANNEL_ID = NotificationChannels.TRIPS
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -48,7 +49,7 @@ class CustomMessagingService : MessagingService() {
             ?: data["message"]
             ?: "You have a new notification."
 
-        ensureChannel(channelId)
+        NotificationChannels.ensure(this)
 
         val contentIntent = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
@@ -73,6 +74,8 @@ class CustomMessagingService : MessagingService() {
             .setContentText(stripHtml(body))
             .setStyle(NotificationCompat.BigTextStyle().bigText(stripHtml(body)))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_VIBRATE)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setContentIntent(pendingIntent)
@@ -84,33 +87,9 @@ class CustomMessagingService : MessagingService() {
         notificationManager.notify(notificationId(data), notification)
     }
 
-    private fun ensureChannel(channelId: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        val channelName = when (channelId) {
-            "homswag_orders" -> "Orders"
-            "homswag_trips" -> "Trips"
-            else -> "General"
-        }
-
-        val channel = NotificationChannel(
-            channelId,
-            channelName,
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = "HomSwag notification-bar updates"
-            lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
-        }
-
-        notificationManager.createNotificationChannel(channel)
-    }
-
     private fun channelIdForType(type: String): String {
-        if (type.contains("order") || type.contains("invoice")) return "homswag_orders"
-        if (type.contains("trip")) return "homswag_trips"
+        if (type.contains("order") || type.contains("invoice")) return ORDERS_CHANNEL_ID
+        if (type.contains("trip")) return TRIPS_CHANNEL_ID
         return DEFAULT_CHANNEL_ID
     }
 

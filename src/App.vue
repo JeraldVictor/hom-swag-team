@@ -238,9 +238,10 @@ onMounted(async () => {
 
     // 3. Local notification fallback for foreground/background transition
     if (Capacitor.isNativePlatform()) {
-      let channelId = 'homswag_general'
-      if (type.includes('order') || type.includes('invoice')) channelId = 'homswag_orders'
-      else if (type.includes('trip')) channelId = 'homswag_trips'
+      let channelId = 'homswag_general_default_v4'
+      if (type.includes('order') || type.includes('invoice'))
+        channelId = 'homswag_orders_default_v4'
+      else if (type.includes('trip')) channelId = 'homswag_trips_default_v4'
 
       const rawBody = data.body || data.message || 'You have a new notification'
       const plainBody = rawBody

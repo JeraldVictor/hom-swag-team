@@ -16,12 +16,12 @@
  *   lastSeenNotifIds    — JSON array of notification IDs already shown
  *
  * Notification types handled:
- *   order_assigned       → homswag_orders channel ("New Order Assigned")
- *   order_status_changed → homswag_orders channel ("Order Update")
- *   invoice_sent         → homswag_orders channel ("Invoice Sent")
- *   trip_assigned        → homswag_trips channel ("New Trip Assigned")
- *   trip_status_changed  → homswag_trips  channel ("Trip Update")
- *   <other>              → homswag_general channel
+ *   order_assigned       → homswag_orders_default_v4 channel ("New Order Assigned")
+ *   order_status_changed → homswag_orders_default_v4 channel ("Order Update")
+ *   invoice_sent         → homswag_orders_default_v4 channel ("Invoice Sent")
+ *   trip_assigned        → homswag_trips_default_v4 channel ("New Trip Assigned")
+ *   trip_status_changed  → homswag_trips_default_v4 channel ("Trip Update")
+ *   <other>              → homswag_general_default_v4 channel
  */
 
 // ---------------------------------------------------------------------------
@@ -44,11 +44,11 @@ function stripHtml(str) {
 }
 
 function channelIdForType(type) {
-  if (!type) return 'homswag_general';
+  if (!type) return 'homswag_general_default_v4';
   var t = type.toLowerCase();
-  if (t.indexOf('order') !== -1 || t.indexOf('invoice') !== -1) return 'homswag_orders';
-  if (t.indexOf('trip') !== -1) return 'homswag_trips';
-  return 'homswag_general';
+  if (t.indexOf('order') !== -1 || t.indexOf('invoice') !== -1) return 'homswag_orders_default_v4';
+  if (t.indexOf('trip') !== -1) return 'homswag_trips_default_v4';
+  return 'homswag_general_default_v4';
 }
 
 function fallbackTitleForType(type) {

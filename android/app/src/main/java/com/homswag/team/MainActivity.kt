@@ -15,6 +15,7 @@ class MainActivity : BridgeActivity() {
         if (shouldSkipSplash(intent)) {
             setTheme(R.style.AppTheme_NoActionBarNoSplash)
         }
+        NotificationChannels.ensureAll(this)
         super.onCreate(savedInstanceState)
     }
 

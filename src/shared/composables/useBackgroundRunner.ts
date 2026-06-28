@@ -69,34 +69,20 @@ export function useBackgroundRunner() {
         LocalNotifications.deleteChannel({ id: 'homswag_ringtone' }),
         LocalNotifications.deleteChannel({ id: 'homswag_fullscreen_alerts_v2' }),
         LocalNotifications.deleteChannel({ id: 'homswag_alarm_service_v1' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_orders' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_trips' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_general' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_orders_default_v2' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_trips_default_v2' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_general_default_v2' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_orders_default_v3' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_trips_default_v3' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_general_default_v3' }),
       ])
 
-      await Promise.all([
-        LocalNotifications.createChannel({
-          id: 'homswag_orders',
-          name: 'Orders',
-          description: 'New order and order update notifications',
-          importance: 3,
-          vibration: true,
-          visibility: 0,
-        }),
-        LocalNotifications.createChannel({
-          id: 'homswag_trips',
-          name: 'Trips',
-          description: 'New trip and trip update notifications',
-          importance: 3,
-          vibration: true,
-          visibility: 0,
-        }),
-        LocalNotifications.createChannel({
-          id: 'homswag_general',
-          name: 'General',
-          description: 'General HomSwag notifications',
-          importance: 3,
-          vibration: true,
-          visibility: 0,
-        }),
-      ])
+      // The v4 channels are created natively in MainActivity/CustomMessagingService
+      // with RingtoneManager.TYPE_NOTIFICATION. Capacitor's createChannel omits
+      // sound when `sound` is not set, which makes Android 8+ channels silent.
     } catch (err) {
       console.warn('[BackgroundRunner] setupNotificationChannels failed:', err)
     }

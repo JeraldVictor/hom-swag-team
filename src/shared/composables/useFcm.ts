@@ -43,11 +43,11 @@ function stripHtml(str: string): string {
 
 /** Map notification type string to the pre-created Android channel id. */
 function channelIdForType(type?: string): string {
-  if (!type) return 'homswag_general'
+  if (!type) return 'homswag_general_default_v4'
   const t = type.toLowerCase()
-  if (t.includes('order') || t.includes('invoice')) return 'homswag_orders'
-  if (t.includes('trip')) return 'homswag_trips'
-  return 'homswag_general'
+  if (t.includes('order') || t.includes('invoice')) return 'homswag_orders_default_v4'
+  if (t.includes('trip')) return 'homswag_trips_default_v4'
+  return 'homswag_general_default_v4'
 }
 
 // ---------------------------------------------------------------------------
