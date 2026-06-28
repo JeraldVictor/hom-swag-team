@@ -11,7 +11,7 @@
       </div>
     </div>
 
-    <!-- Permission splash — network confirmed but permissions not yet granted -->
+    <!-- Permission splash — network confirmed but required permissions not yet granted -->
     <PermissionSplashView
       v-else-if="bootPhase === 'needs-permissions'"
       @granted="handlePermissionsGranted"
@@ -19,9 +19,6 @@
 
     <!-- Normal app — only rendered when fully ready -->
     <ion-router-outlet v-else />
-
-    <!-- Global high-priority alert overlay (e.g. new trips/orders) -->
-    <GlobalAlertBox />
   </ion-app>
 </template>
 
@@ -37,10 +34,8 @@ import { onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import NoInternetView from '@/features/home/views/NoInternetView.vue'
 import PermissionSplashView from '@/features/home/views/PermissionSplashView.vue'
-import GlobalAlertBox from '@/shared/components/ui/GlobalAlertBox.vue'
 import { useBackgroundRunner } from '@/shared/composables/useBackgroundRunner'
 import { useFcm } from '@/shared/composables/useFcm'
-import { useGlobalAlerts } from '@/shared/composables/useGlobalAlerts'
 import { locationTracker } from '@/shared/composables/useLocationTracker'
 import { getIsOnline, useNetwork } from '@/shared/composables/useNetwork'
 import { usePermissions } from '@/shared/composables/usePermissions'
@@ -56,7 +51,6 @@ import { useNotificationStore } from '@/shared/stores/notification'
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
-const { handleNewNotification, playConnectionBeep } = useGlobalAlerts()
 const backgroundRunner = useBackgroundRunner()
 const fcm = useFcm()
 
@@ -83,7 +77,7 @@ async function boot() {
     return
   }
 
-  // 2. Check permissions (no prompt yet — just read current state)
+  // 2. Check required permissions (no prompt yet — just read current state)
   await checkAll()
 
   if (!allGranted.value) {
@@ -105,8 +99,7 @@ async function finishBoot() {
   // where to poll. Token sync is handled inside authStore.restoreSession().
   void backgroundRunner.syncApiUrl(ENV.VITE_BFF_API_URL)
 
-  // Create Android notification channels so the runner's local notifications
-  // use the device default tone + vibration (orders, trips, general).
+  // Create Android notification channels for ordinary notification-bar alerts.
   void backgroundRunner.setupNotificationChannels()
 
   if (restored) {
@@ -140,26 +133,10 @@ let apiLogoutListener: ((event: Event) => void) | null = null
 let backgroundRunnerListenerCleanup: (() => void) | null = null
 let fcmCleanup: (() => void | Promise<void>) | null = null
 let activeSessionToken: string | null = null
-let lastConnectionBeepAt = 0
-
-function maybePlayConnectionBeep() {
-  if (!Capacitor.isNativePlatform()) return
-  if (!authStore.isAuthenticated) return
-  if (!webSocketService.isConnected) return
-
-  const now = Date.now()
-  if (now - lastConnectionBeepAt < 30_000) return
-
-  lastConnectionBeepAt = now
-  void playConnectionBeep()
-}
 
 async function setupAppStateListener() {
   appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
     if (isActive) {
-      void backgroundRunner.cancelPendingAlertSeries()
-      window.setTimeout(maybePlayConnectionBeep, 1200)
-
       if (authStore.isAuthenticated && !locationTracker.isTracking.value) {
         // App returned to foreground and user is authenticated — restart tracker
         // if it was stopped (e.g. by the OS killing the background process)
@@ -176,27 +153,23 @@ async function setupAppStateListener() {
 onMounted(async () => {
   void import('@aejkatappaja/phantom-ui')
 
-  // Handle deep-links from RingtoneActivity or Push Notifications (homswag-partner://...)
-  // This fires when the user taps "View Details" on the native alarm UI or clicks
-  // a high-priority push notification, bringing the app to the foreground.
+  // Handle deep-links from push/local notifications (homswag-partner://...)
   void App.addListener('appUrlOpen', (event: { url: string }) => {
     const url = event.url
     console.log('[App] appUrlOpen:', url)
-    void backgroundRunner.cancelPendingAlertSeries()
     try {
       if (url.startsWith('homswag-partner://alert')) {
-        // homswag-partner://alert?type=order_assigned&order_id=123
         const urlObj = new URL(url.replace('homswag-partner://', 'http://'))
         const params = Object.fromEntries(
           Array.from(urlObj.searchParams as unknown as Iterable<readonly [string, string]>)
         )
-
-        // Ensure both cases are present for downstream consumers
-        if (params.order_id && !params.orderId) params.orderId = params.order_id
-        if (params.trip_id && !params.tripId) params.tripId = params.trip_id
-
-        console.log('[App] Alert deep-link detected:', params)
-        handleNewNotification(params)
+        if (params.order_id || params.orderId) {
+          void router.push(`/orders/${params.order_id || params.orderId}`)
+        } else if (params.trip_id || params.tripId) {
+          void router.push(`/trips/${params.trip_id || params.tripId}`)
+        } else {
+          void router.push('/notifications')
+        }
         return
       }
 
@@ -260,26 +233,10 @@ onMounted(async () => {
     const rawType = data.type || data.data?.type || ''
     const type = String(rawType).toLowerCase()
 
-    // 2. Check if it's a high-priority alert (Ringtone/Order/Trip assigned or updated)
-    const isHighPriority =
-      type.includes('ringtone_alert') ||
-      type.includes('order_assigned') ||
-      type.includes('order_status_changed') ||
-      type.includes('trip_assigned') ||
-      type.includes('trip_status_changed')
-
-    if (isHighPriority) {
-      console.log('[App] Triggering high-priority Global Alert UI for type:', type)
-      handleNewNotification(data)
-      // Return early: the overlay handles sound and UI.
-      // Crucially, we skip the standard toast and local notification.
-      return
-    }
-
-    // 3. Normal notification - show toast
+    // 2. Normal notification - show toast
     showToast(data.title || 'New notification', 'primary')
 
-    // 4. Local notification fallback for foreground/background transition
+    // 3. Local notification fallback for foreground/background transition
     if (Capacitor.isNativePlatform()) {
       let channelId = 'homswag_general'
       if (type.includes('order') || type.includes('invoice')) channelId = 'homswag_orders'
@@ -321,22 +278,6 @@ onMounted(async () => {
       console.log('[App] Background runner notification tapped, id:', notificationId)
       // The event from background runner may include `notification` or `extras` directly
       const data = event?.notification?.extra || event?.extra || event?.data || {}
-      void backgroundRunner.cancelAlertSeries(data?.alert_series_base_id, data?.alert_series_count)
-      const rawType = data?.type || ''
-      const type = String(rawType).toLowerCase()
-
-      const isHighPriority =
-        type.includes('ringtone_alert') ||
-        type.includes('order_assigned') ||
-        type.includes('order_status_changed') ||
-        type.includes('trip_assigned') ||
-        type.includes('trip_status_changed')
-
-      if (isHighPriority) {
-        console.log('[App] High-priority background tap detected, triggering Global Alert UI')
-        handleNewNotification(data)
-        return
-      }
 
       if (data?.order_id || data?.orderId) {
         const id = data.order_id || data.orderId
@@ -354,7 +295,6 @@ onMounted(async () => {
   if (Capacitor.isNativePlatform()) {
     void LocalNotifications.addListener('localNotificationActionPerformed', event => {
       const data = event.notification.extra
-      void backgroundRunner.cancelAlertSeries(data?.alert_series_base_id, data?.alert_series_count)
       if (data?.order_id || data?.orderId) {
         const id = data.order_id || data.orderId
         void router.push(`/orders/${id}`)

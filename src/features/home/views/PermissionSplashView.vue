@@ -13,7 +13,7 @@
     <!-- Intro copy -->
     <div class="perm-splash__intro">
       <p class="perm-splash__subtitle">
-        To give you the best experience, HomSwag needs a few permissions before you get started.
+        To give you the best experience, HomSwag needs these permissions before you get started.
       </p>
     </div>
 
@@ -139,19 +139,13 @@ const permissions = [
     icon: 'lucide:camera',
     description: 'Used to capture photos for orders and profile.',
   },
-  {
-    key: 'notifications' as const,
-    label: 'Notifications',
-    icon: 'lucide:bell',
-    description: 'Keeps you updated on new orders, trips, and alerts.',
-  },
 ]
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-type PermKey = 'location' | 'camera' | 'notifications'
+type PermKey = 'location' | 'camera'
 
 function statusClass(key: PermKey): 'granted' | 'denied' | 'loading' | 'idle' {
   if (activeKey.value === key && isLoading.value) return 'loading'

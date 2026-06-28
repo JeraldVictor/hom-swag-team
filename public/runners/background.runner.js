@@ -8,9 +8,7 @@
  *
  * Triggered by the OS ~every 15 minutes while the app is backgrounded.
  * Polls BFF /notifications for new unread items and schedules local
- * notifications using the pre-created Android notification channels. High
- * priority assignment alerts are scheduled on the ringtone channel in a
- * repeating series so a closed app keeps beeping until it is opened/tapped.
+ * notifications using the pre-created Android notification channels.
  *
  * CapacitorKV keys used:
  *   backgroundAuthToken — Bearer token written by the app at login/restore
@@ -18,18 +16,13 @@
  *   lastSeenNotifIds    — JSON array of notification IDs already shown
  *
  * Notification types handled:
- *   order_assigned       → homswag_ringtone channel ("New Order Assigned")
+ *   order_assigned       → homswag_orders channel ("New Order Assigned")
  *   order_status_changed → homswag_orders channel ("Order Update")
  *   invoice_sent         → homswag_orders channel ("Invoice Sent")
- *   trip_assigned        → homswag_ringtone channel ("New Trip Assigned")
+ *   trip_assigned        → homswag_trips channel ("New Trip Assigned")
  *   trip_status_changed  → homswag_trips  channel ("Trip Update")
  *   <other>              → homswag_general channel
  */
-
-var ALERT_REPEAT_COUNT = 30;
-var ALERT_REPEAT_INTERVAL_MS = 2000;
-var ALERT_NOTIFICATION_ID_BASE = 1600000000;
-var MAX_ALERT_AGE_MS = 2 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,8 +46,6 @@ function stripHtml(str) {
 function channelIdForType(type) {
   if (!type) return 'homswag_general';
   var t = type.toLowerCase();
-  if (t.indexOf('ringtone_alert') !== -1) return 'homswag_ringtone';
-  if (t.indexOf('order_assigned') !== -1 || t.indexOf('trip_assigned') !== -1) return 'homswag_ringtone';
   if (t.indexOf('order') !== -1 || t.indexOf('invoice') !== -1) return 'homswag_orders';
   if (t.indexOf('trip') !== -1) return 'homswag_trips';
   return 'homswag_general';
@@ -73,39 +64,6 @@ function fallbackTitleForType(type) {
 
 function notificationIdFor(notification, index) {
   return Math.abs(parseInt(String(notification.id), 10) || (Date.now() + index)) % 2147483647;
-}
-
-function alertSeriesBaseId(notification, index) {
-  return ALERT_NOTIFICATION_ID_BASE + (notificationIdFor(notification, index) % 1000000) * 100;
-}
-
-function isFreshAlert(notification) {
-  var rawCreatedAt = notification.created_at || notification.createdAt;
-  if (!rawCreatedAt) return false;
-
-  var createdAtMs = Date.parse(rawCreatedAt);
-  if (!Number.isFinite(createdAtMs)) return false;
-
-  return Date.now() - createdAtMs <= MAX_ALERT_AGE_MS;
-}
-
-function scheduleAlertSeries(notification, index, title, body) {
-  var baseId = alertSeriesBaseId(notification, index);
-  var extra = notification.data || {};
-  extra.type = notification.type || extra.type;
-  extra.alert_series_base_id = baseId;
-  extra.alert_series_count = ALERT_REPEAT_COUNT;
-
-  for (var i = 0; i < ALERT_REPEAT_COUNT; i += 1) {
-    CapacitorNotifications.schedule([{
-      id: baseId + i,
-      title: title,
-      body: body,
-      scheduleAt: new Date(Date.now() + 1000 + i * ALERT_REPEAT_INTERVAL_MS),
-      channelId: 'homswag_ringtone',
-      extra: extra,
-    }]);
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -177,21 +135,6 @@ addEventListener('notificationCheck', function(resolve, reject) {
 
         var title     = notification.title || fallbackTitleForType(type);
         var body      = stripHtml(notification.body || notification.message || 'You have a new notification');
-        if (channelId === 'homswag_ringtone') {
-          if (isFreshAlert(notification)) {
-            scheduleAlertSeries(notification, index, title, body);
-          } else {
-            CapacitorNotifications.schedule([{
-              id: notificationIdFor(notification, index),
-              title: title,
-              body: body,
-              scheduleAt: new Date(Date.now() + (index + 1) * 1000),
-              channelId: 'homswag_general',
-              extra: notification.data || {},
-            }]);
-          }
-          return;
-        }
 
         // Stagger by 1 s so each notification has a distinct schedule time
         var scheduleAt = new Date(Date.now() + (index + 1) * 1000);

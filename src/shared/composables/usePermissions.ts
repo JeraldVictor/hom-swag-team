@@ -4,7 +4,6 @@
  * Manages the app's required runtime permissions:
  *   - Location (via @capacitor/geolocation)
  *   - Camera (via @capacitor/camera)
- *   - Notifications (via @capacitor/local-notifications)
  *
  * Exposes a reactive status object and helpers to check / request each
  * permission. The `requestAll` helper walks through all permissions in
@@ -17,10 +16,8 @@
 import { Camera } from '@capacitor/camera'
 import { Capacitor } from '@capacitor/core'
 import { Geolocation } from '@capacitor/geolocation'
-import { LocalNotifications } from '@capacitor/local-notifications'
 import type { Ref } from 'vue'
 import { computed, readonly, ref } from 'vue'
-import { useBackgroundRunner } from '@/shared/composables/useBackgroundRunner'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,7 +34,6 @@ export type PermissionState =
 export interface PermissionStatuses {
   location: PermissionState
   camera: PermissionState
-  notifications: PermissionState
 }
 
 export interface UsePermissionsReturn {
@@ -55,8 +51,6 @@ export interface UsePermissionsReturn {
   requestLocation(): Promise<PermissionState>
   /** Request only the camera permission. */
   requestCamera(): Promise<PermissionState>
-  /** Request only the notifications permission. */
-  requestNotifications(): Promise<PermissionState>
 }
 
 // ---------------------------------------------------------------------------
@@ -76,18 +70,13 @@ export function usePermissions(): UsePermissionsReturn {
   const statuses = ref<PermissionStatuses>({
     location: 'unknown',
     camera: 'unknown',
-    notifications: 'unknown',
   })
 
   const isLoading = ref(false)
 
   const allGranted = computed<boolean>(() => {
-    const { location, camera, notifications } = statuses.value
-    return (
-      location === 'granted' &&
-      (camera === 'granted' || camera === 'limited') &&
-      notifications === 'granted'
-    )
+    const { location, camera } = statuses.value
+    return location === 'granted' && (camera === 'granted' || camera === 'limited')
   })
 
   // -------------------------------------------------------------------------
@@ -100,22 +89,18 @@ export function usePermissions(): UsePermissionsReturn {
       if (!isNative()) {
         // On web/PWA, permissions behave differently — treat as granted so the
         // splash screen doesn't block the web experience.
-        statuses.value = { location: 'granted', camera: 'granted', notifications: 'granted' }
+        statuses.value = { location: 'granted', camera: 'granted' }
         return
       }
 
-      const [locationResult, cameraResult, notifResult] = await Promise.all([
+      const [locationResult, cameraResult] = await Promise.all([
         Geolocation.checkPermissions().catch(() => ({ location: 'unknown' as PermissionState })),
         Camera.checkPermissions().catch(() => ({ camera: 'unknown' as PermissionState })),
-        LocalNotifications.checkPermissions().catch(() => ({
-          display: 'unknown' as PermissionState,
-        })),
       ])
 
       statuses.value = {
         location: (locationResult as { location: PermissionState }).location ?? 'unknown',
         camera: (cameraResult as { camera: PermissionState }).camera ?? 'unknown',
-        notifications: (notifResult as { display: PermissionState }).display ?? 'unknown',
       }
     } finally {
       isLoading.value = false
@@ -161,38 +146,15 @@ export function usePermissions(): UsePermissionsReturn {
     }
   }
 
-  async function requestNotifications(): Promise<PermissionState> {
-    if (!isNative()) return 'granted'
-    try {
-      const result = await LocalNotifications.requestPermissions()
-      const state = result.display as PermissionState
-      statuses.value = { ...statuses.value, notifications: state }
-      return state
-    } catch {
-      statuses.value = { ...statuses.value, notifications: 'denied' }
-      return 'denied'
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // Request all
-  // -------------------------------------------------------------------------
-
   /**
    * Request each permission in sequence. Stops early if the user denies a
-   * required permission (location). Camera and notifications are requested
-   * regardless of each other's outcome.
+   * required permission (location). Camera is requested after location.
    */
   async function requestAll(): Promise<void> {
     isLoading.value = true
     try {
       await requestLocation()
       await requestCamera()
-      await requestNotifications()
-      // Request background runner notification permissions (needed for
-      // local notifications scheduled from the background runner on Android 13+).
-      const { requestPermissions: requestRunnerPermissions } = useBackgroundRunner()
-      await requestRunnerPermissions()
       // Re-read from the OS after all dialogs have closed — some Android versions
       // return stale state from requestPermissions() before the system fully registers the grant.
       await checkAll()
@@ -209,6 +171,5 @@ export function usePermissions(): UsePermissionsReturn {
     requestAll,
     requestLocation,
     requestCamera,
-    requestNotifications,
   }
 }

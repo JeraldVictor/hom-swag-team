@@ -7,7 +7,6 @@
  * Responsibilities:
  * - Sync the auth token and BFF API URL into CapacitorKV so the background
  *   runner can make authenticated requests without the webview.
- * - Request / check notification permissions required by the runner.
  * - Set up a listener for notification tap actions dispatched by the runner.
  * - Expose a `dispatchCheck` helper to manually trigger a notification poll
  *   (useful for dev/debug, or to force an immediate check after login).
@@ -24,9 +23,6 @@ import { Preferences } from '@capacitor/preferences'
 
 /** Must match the `label` in capacitor.config.ts BackgroundRunner plugin config. */
 const RUNNER_LABEL = 'com.homswag.partner.background.notifications'
-const ALERT_REPEAT_COUNT = 30
-const ALERT_NOTIFICATION_ID_BASE = 1600000000
-const ALERT_NOTIFICATION_ID_LIMIT = 1700000000
 
 /** CapacitorKV keys written here and read by the runner script. */
 const KV_AUTH_TOKEN = 'backgroundAuthToken'
@@ -61,8 +57,7 @@ export function useBackgroundRunner() {
 
   /**
    * Create Android notification channels for the three notification categories.
-   * Channels use IMPORTANCE_DEFAULT (4) so notifications make sound + vibration
-   * but do NOT appear as heads-up banners on screen.
+   * Channels use normal notification-bar behavior only.
    *
    * This is a no-op on iOS (iOS does not use channels) and on non-native platforms.
    * Safe to call multiple times — the OS ignores duplicate channel creation.
@@ -70,86 +65,40 @@ export function useBackgroundRunner() {
   async function setupNotificationChannels(): Promise<void> {
     if (!isNative()) return
     try {
+      await Promise.allSettled([
+        LocalNotifications.deleteChannel({ id: 'homswag_ringtone' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_fullscreen_alerts_v2' }),
+        LocalNotifications.deleteChannel({ id: 'homswag_alarm_service_v1' }),
+      ])
+
       await Promise.all([
-        LocalNotifications.createChannel({
-          id: 'homswag_ringtone',
-          name: 'Alerts',
-          description: 'High priority alerts with continuous ringtone',
-          importance: 5, // IMPORTANCE_HIGH: sound + heads-up banner
-          vibration: true,
-          visibility: 1,
-          sound: 'alert.wav',
-        }),
         LocalNotifications.createChannel({
           id: 'homswag_orders',
           name: 'Orders',
           description: 'New order and order update notifications',
-          importance: 4, // IMPORTANCE_DEFAULT: sound + vibration, no heads-up banner
+          importance: 3,
           vibration: true,
-          visibility: 1, // VISIBILITY_PUBLIC
+          visibility: 0,
         }),
         LocalNotifications.createChannel({
           id: 'homswag_trips',
           name: 'Trips',
           description: 'New trip and trip update notifications',
-          importance: 4, // IMPORTANCE_DEFAULT: sound + vibration, no heads-up banner
+          importance: 3,
           vibration: true,
-          visibility: 1,
+          visibility: 0,
         }),
         LocalNotifications.createChannel({
           id: 'homswag_general',
           name: 'General',
           description: 'General HomSwag notifications',
-          importance: 4, // IMPORTANCE_DEFAULT: sound + vibration, no heads-up banner
+          importance: 3,
           vibration: true,
-          visibility: 1,
+          visibility: 0,
         }),
       ])
     } catch (err) {
       console.warn('[BackgroundRunner] setupNotificationChannels failed:', err)
-    }
-  }
-
-  async function cancelAlertSeries(
-    baseId?: number | string,
-    count = ALERT_REPEAT_COUNT
-  ): Promise<void> {
-    if (!isNative() || baseId === undefined || baseId === null) return
-
-    const numericBaseId = Number(baseId)
-    const numericCount = Number(count)
-    if (!Number.isFinite(numericBaseId)) return
-    if (!Number.isFinite(numericCount) || numericCount <= 0) return
-
-    try {
-      await LocalNotifications.cancel({
-        notifications: Array.from({ length: numericCount }, (_, index) => ({
-          id: numericBaseId + index,
-        })),
-      })
-    } catch (err) {
-      console.warn('[BackgroundRunner] cancelAlertSeries failed:', err)
-    }
-  }
-
-  async function cancelPendingAlertSeries(): Promise<void> {
-    if (!isNative()) return
-
-    try {
-      const pending = await LocalNotifications.getPending()
-      const alertNotifications = pending.notifications
-        .filter(
-          notification =>
-            notification.id >= ALERT_NOTIFICATION_ID_BASE &&
-            notification.id < ALERT_NOTIFICATION_ID_LIMIT
-        )
-        .map(notification => ({ id: notification.id }))
-
-      if (alertNotifications.length === 0) return
-
-      await LocalNotifications.cancel({ notifications: alertNotifications })
-    } catch (err) {
-      console.warn('[BackgroundRunner] cancelPendingAlertSeries failed:', err)
     }
   }
 
@@ -169,32 +118,6 @@ export function useBackgroundRunner() {
     if (!isNative()) return
     await Preferences.remove({ key: KV_AUTH_TOKEN })
     await Preferences.remove({ key: KV_LAST_SEEN_IDS })
-  }
-
-  /**
-   * Request notification permissions required by the background runner.
-   * On Android 13+ this is needed to fire local notifications from the runner.
-   */
-  async function requestPermissions(): Promise<void> {
-    if (!isNative()) return
-    try {
-      await BackgroundRunner.requestPermissions({ apis: ['notifications'] })
-    } catch (err) {
-      console.warn('[BackgroundRunner] requestPermissions failed:', err)
-    }
-  }
-
-  /**
-   * Check the current notification permission state granted to the runner.
-   */
-  async function checkPermissions() {
-    if (!isNative()) return null
-    try {
-      return await BackgroundRunner.checkPermissions()
-    } catch (err) {
-      console.warn('[BackgroundRunner] checkPermissions failed:', err)
-      return null
-    }
   }
 
   /**
@@ -245,10 +168,6 @@ export function useBackgroundRunner() {
     syncApiUrl,
     clearAuthToken,
     setupNotificationChannels,
-    cancelAlertSeries,
-    cancelPendingAlertSeries,
-    requestPermissions,
-    checkPermissions,
     setupNotificationListener,
     dispatchCheck,
   }

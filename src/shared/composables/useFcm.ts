@@ -21,7 +21,6 @@ import { useRouter } from 'vue-router'
 import apiClient from '@/shared/lib/api'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import webSocketService from '@/shared/lib/websocket.service'
-import { useGlobalAlerts } from './useGlobalAlerts'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -57,7 +56,6 @@ function channelIdForType(type?: string): string {
 
 export function useFcm() {
   const router = useRouter()
-  const { handleNewNotification } = useGlobalAlerts()
 
   /**
    * Request permission and return the FCM registration token.
@@ -139,19 +137,6 @@ export function useFcm() {
         const { title, body, data } = event.notification
         const type = String((data as Record<string, string> | undefined)?.type || '').toLowerCase()
 
-        const isHighPriority =
-          type.includes('ringtone_alert') ||
-          type.includes('order_assigned') ||
-          type.includes('order_status_changed') ||
-          type.includes('trip_assigned') ||
-          type.includes('trip_status_changed')
-
-        if (isHighPriority) {
-          console.log('[FCM] High-priority foreground message, triggering Global Alert UI')
-          handleNewNotification(data)
-          return
-        }
-
         const channelId = channelIdForType(type)
         const plainBody = body ? stripHtml(body) : 'You have a new notification'
         const notifId = Math.abs(Date.now()) % 2147483647
@@ -178,20 +163,6 @@ export function useFcm() {
     // 3. Notification tap (app open / backgrounded → foreground)
     const tapHandle = await FirebaseMessaging.addListener('notificationActionPerformed', event => {
       const data = event.notification.data as any
-      const type = (data?.type || '').toLowerCase()
-
-      const isHighPriority =
-        type.includes('ringtone_alert') ||
-        type.includes('order_assigned') ||
-        type.includes('order_status_changed') ||
-        type.includes('trip_assigned') ||
-        type.includes('trip_status_changed')
-
-      if (isHighPriority) {
-        console.log('[FCM] High-priority tap detected, triggering Global Alert UI')
-        handleNewNotification(data)
-        return
-      }
 
       if (data?.order_id || data?.orderId) {
         void router.push(`/orders/${data.order_id || data.orderId}`)

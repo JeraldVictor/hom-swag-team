@@ -15,8 +15,6 @@ class MainActivity : BridgeActivity() {
         if (shouldSkipSplash(intent)) {
             setTheme(R.style.AppTheme_NoActionBarNoSplash)
         }
-        stopAlertServiceIfRequested(intent)
-        registerPlugin(AlarmPlugin::class.java)
         super.onCreate(savedInstanceState)
     }
 
@@ -33,7 +31,6 @@ class MainActivity : BridgeActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         this.intent = intent
-        stopAlertServiceIfRequested(intent)
     }
 
     private fun shouldSkipSplash(intent: Intent?): Boolean {
@@ -44,9 +41,4 @@ class MainActivity : BridgeActivity() {
             (data.host == "navigate" || data.path?.startsWith("/navigate") == true)
     }
 
-    private fun stopAlertServiceIfRequested(intent: Intent?) {
-        if (intent?.getBooleanExtra(AlertForegroundService.EXTRA_STOP_ALERT_SERVICE, false) == true) {
-            AlertForegroundService.stop(this)
-        }
-    }
 }

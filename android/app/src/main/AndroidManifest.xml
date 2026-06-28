@@ -31,20 +31,6 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-        <service
-            android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:name=".AlertForegroundService"
-            android:stopWithTask="true"
-        />
-        <activity
-            android:excludeFromRecents="true"
-            android:exported="true"
-            android:name=".RingtoneActivity"
-            android:showOnLockScreen="true"
-            android:theme="@style/AppTheme.AlertActivity"
-            android:turnScreenOn="true"
-        />
         <provider
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
@@ -66,12 +52,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
