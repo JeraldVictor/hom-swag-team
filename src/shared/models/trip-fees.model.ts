@@ -10,6 +10,8 @@ export interface TripFeeEntry {
   date: string
   distance_km?: number
   fare: number
+  /** Rider per-trip commission */
+  commission: number
   /** Platform fee or deduction */
   deduction?: number
   /** Net payout after deductions */
@@ -25,6 +27,7 @@ export interface TripFeesReport {
   to_date: string
   total_trips: number
   total_fare: number
+  total_commission: number
   total_deductions: number
   total_net: number
   entries: TripFeeEntry[]

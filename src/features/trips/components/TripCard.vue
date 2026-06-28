@@ -64,10 +64,10 @@
         <div class="order-card__icon-container">
           <Icon icon="lucide:map" class="order-card__icon" aria-hidden="true" />
         </div>
-        <span class="order-card__items" v-if="trip?.auto_distance_km">{{ trip?.auto_distance_km }} km</span>
+        <span class="order-card__items" v-if="trip?.auto_distance_km != null">{{ trip?.auto_distance_km }} km</span>
         <span class="order-card__items" v-else>Distance N/A</span>
 
-        <span v-if="trip?.fare" class="order-card__total" style="margin-left: auto; font-weight: 800; color: var(--color-brand);">
+        <span v-if="trip?.fare != null" class="order-card__total" style="margin-left: auto; font-weight: 800; color: var(--color-brand);">
           ₹{{ trip?.fare }}
         </span>
       </div>

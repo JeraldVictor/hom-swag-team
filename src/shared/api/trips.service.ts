@@ -76,6 +76,8 @@ function normalizeTrip(raw: RawTrip): Trip {
     orderDetails?.booking_info?.selected_start_time ||
     raw.order_time
   const scheduledStartTime = parseIstStartTime(orderDate, orderTime)
+  const calculatedFare = raw.fare_calculation?.calculated_fare
+  const calculatedDistance = raw.fare_calculation?.trip_distance_km
 
   return {
     id: raw._id,
@@ -88,12 +90,13 @@ function normalizeTrip(raw: RawTrip): Trip {
     order_number: orderNumber,
     order_date: orderDate,
     order_time: orderTime,
-    fare: raw.fare,
+    fare: raw.fare ?? calculatedFare,
+    fare_calculation: raw.fare_calculation,
     notes: raw.notes,
     created_at: raw.created_at,
     updated_at: raw.updated_at,
     is_two_way: raw.is_two_way,
-    auto_distance_km: raw.auto_distance_km,
+    auto_distance_km: calculatedDistance ?? raw.auto_distance_km,
     beautician_name: raw.beautician?.name ?? undefined,
     beautician_phone: raw.beautician?.phone ?? undefined,
   }
@@ -124,7 +127,7 @@ export async function getTrips(
 
   // Handle new paginated format vs old format
   let rawData: RawTrip[] = []
-  let pagination
+  let pagination: unknown
 
   if (response.data?.data && !Array.isArray(response.data.data) && response.data.data.data) {
     // Nested format from backend: { data: { data: [...], pagination: {...} } }

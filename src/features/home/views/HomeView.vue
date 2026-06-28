@@ -67,12 +67,15 @@
           <div class="earnings-grid anim-grid" :class="{ 'earnings-grid--rider': isRider }">
             <div class="earnings-main press-feedback" @click="goTo('/leaderboard')">
               <div class="earnings-main__top">
-                <span class="earnings-main__label">Today's Revenue</span>
+                <span class="earnings-main__label">
+                  {{ isRider ? 'Today Trip Pay' : "Today's Revenue" }}
+                </span>
                 <Icon icon="lucide:trending-up" class="earnings-main__icon" />
               </div>
               <div class="earnings-main__amount">{{ formatAmount(dashboard?.today_earnings) }}</div>
               <div class="earnings-main__target">
-                Commission: {{ formatAmount(dashboard?.today_commission) }}
+                {{ isRider ? 'Petrol' : 'Commission' }}:
+                {{ formatAmount(isRider ? dashboard?.today_petrol_commission : dashboard?.today_commission) }}
               </div>
             </div>
             <div class="earnings-sub press-feedback" @click="goTo('/leaderboard')" v-if="!isRider">
@@ -109,7 +112,11 @@
                   {{ isRider ? `${dashboard.month_completed_count} trips` : formatAmountShort(dashboard.month_earnings) }}
                 </span>
                 <span class="target-card__goal">
-                  {{ isRider ? `Commission: ${formatAmountShort(dashboard.month_commission)}` : `Goal: ${formatAmountShort(dashboard.monthly_target)}` }}
+                  {{
+                    isRider
+                      ? `Petrol: ${formatAmountShort(dashboard.month_petrol_commission)}`
+                      : `Goal: ${formatAmountShort(dashboard.monthly_target)}`
+                  }}
                 </span>
               </div>
             </div>

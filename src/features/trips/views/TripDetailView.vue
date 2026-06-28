@@ -63,7 +63,7 @@
               <div class="stat-box">
                 <Icon icon="lucide:ruler" class="stat-icon" />
                 <div class="stat-text">
-                  <span class="stat-value">{{ trip.auto_distance_km ? `${trip.auto_distance_km} km` : '—' }}</span>
+                  <span class="stat-value">{{ trip.auto_distance_km != null ? `${trip.auto_distance_km} km` : '—' }}</span>
                   <span class="stat-label">Distance</span>
                 </div>
               </div>
@@ -78,7 +78,7 @@
               <div class="stat-box">
                 <Icon icon="lucide:indian-rupee" class="stat-icon text-green" />
                 <div class="stat-text">
-                  <span class="stat-value">{{ trip.fare ? trip.fare.toFixed(2) : '—' }}</span>
+                  <span class="stat-value">{{ trip.fare != null ? trip.fare.toFixed(2) : '—' }}</span>
                   <span class="stat-label">Fare</span>
                 </div>
               </div>
@@ -364,7 +364,8 @@ async function handleAdvance(): Promise<void> {
   const isTwoWayCompleting = trip.value?.kanban_state === 'dropped_and_waiting'
 
   if (isOneWayCompleting || isTwoWayCompleting) {
-    const calculatedKm = trip.value?.auto_distance_km ? `${trip.value.auto_distance_km} km` : '—'
+    const calculatedKm =
+      trip.value?.auto_distance_km != null ? `${trip.value.auto_distance_km} km` : '—'
     const alert = await alertController.create({
       header: 'Complete Trip',
       message: `Are you sure you want to complete this trip? (Distance: ${calculatedKm})`,

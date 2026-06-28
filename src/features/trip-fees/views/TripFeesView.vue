@@ -61,14 +61,14 @@
             </div>
             <div class="summary-divider" />
             <div class="summary-item">
-              <p class="summary-item__label">Deductions</p>
+              <p class="summary-item__label">Trip Commission</p>
               <p class="summary-item__value summary-item__value--deduction">
-                -₹{{ report.total_deductions.toLocaleString('en-IN') }}
+                ₹{{ report.total_commission.toLocaleString('en-IN') }}
               </p>
             </div>
           </div>
           <div class="summary-net">
-            <span class="summary-net__label">Net Payout</span>
+            <span class="summary-net__label">Petrol Payable</span>
             <span class="summary-net__amount">₹{{ report.total_net.toLocaleString('en-IN') }}</span>
           </div>
         </div>
@@ -99,20 +99,18 @@
                 <span class="entry-amount__label">Fare</span>
                 <span class="entry-amount__value">₹{{ entry.fare.toLocaleString('en-IN') }}</span>
               </div>
-              <div v-if="entry.deduction" class="entry-amount">
-                <span class="entry-amount__label">Deduction</span>
-                <span class="entry-amount__value entry-amount__value--deduction">
-                  -₹{{ entry.deduction.toLocaleString('en-IN') }}
-                </span>
+              <div class="entry-amount">
+                <span class="entry-amount__label">Commission</span>
+                <span class="entry-amount__value">₹{{ entry.commission.toLocaleString('en-IN') }}</span>
               </div>
               <div class="entry-amount entry-amount--net">
-                <span class="entry-amount__label">Net</span>
+                <span class="entry-amount__label">Petrol</span>
                 <span class="entry-amount__value entry-amount__value--net">
                   ₹{{ entry.net_amount.toLocaleString('en-IN') }}
                 </span>
               </div>
             </div>
-            <p v-if="entry.distance_km" class="entry-card__distance">
+            <p v-if="entry.distance_km != null" class="entry-card__distance">
               <Icon icon="lucide:route" aria-hidden="true" />
               {{ entry.distance_km.toFixed(1) }} km
             </p>

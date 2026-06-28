@@ -78,6 +78,13 @@ export interface RawTrip {
   zone_id?: string
   auto_distance_km?: number
   fare?: number
+  fare_calculation?: {
+    trip_distance_km?: number
+    petrol_cost_per_liter?: number
+    standard_mileage_per_liter?: number
+    calculated_fare?: number
+    calculated_at?: string
+  }
   notes?: string
   beautician?: {
     name?: string | null
@@ -110,6 +117,7 @@ export interface Trip {
   notes?: string
   is_two_way?: boolean
   auto_distance_km?: number
+  fare_calculation?: RawTrip['fare_calculation']
   is_external_booking?: boolean
   external_booking_details?: {
     provider: string
