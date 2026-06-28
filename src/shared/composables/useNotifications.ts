@@ -48,6 +48,7 @@ async function scheduleNotification(options: ScheduleNotificationOptions): Promi
         id: options.id,
         title: options.title,
         body: options.body,
+        channelId: 'homswag_general_default_v5',
         schedule: {
           at: options.scheduleAt,
         },

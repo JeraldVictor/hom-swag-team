@@ -14,9 +14,7 @@
 
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { useBackgroundRunner } from '@/shared/composables/useBackgroundRunner'
 import { locationTracker } from '@/shared/composables/useLocationTracker'
-import { ENV } from '@/shared/lib/env'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { AuthResponse } from '@/shared/models/auth.model'
 import type { UserProfile, UserType } from '@/shared/models/user.model'
@@ -66,11 +64,6 @@ export const useAuthStore = defineStore('auth', () => {
         ...storedProfile,
         user_type: storedProfile.user_type ?? (storedUserType as UserType) ?? 'beautician',
       }
-      // Sync auth token into CapacitorKV so the background runner can make
-      // authenticated requests while the webview is not running.
-      const { syncAuthToken, syncApiUrl } = useBackgroundRunner()
-      void syncAuthToken(storedAccessToken)
-      void syncApiUrl(ENV.VITE_BFF_API_URL)
       return true
     }
 
@@ -118,12 +111,6 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = newAccessToken
     refreshToken.value = newRefreshToken
     user.value = userProfile
-
-    // Sync token to CapacitorKV for background runner access
-    const { clearAuthToken, syncAuthToken, syncApiUrl } = useBackgroundRunner()
-    await clearAuthToken()
-    void syncAuthToken(newAccessToken)
-    void syncApiUrl(ENV.VITE_BFF_API_URL)
   }
 
   /**
@@ -161,11 +148,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     await Storage_Service.clearAuth()
-
-    // Remove auth token from CapacitorKV so the background runner stops
-    // making authenticated requests after the user logs out.
-    const { clearAuthToken } = useBackgroundRunner()
-    void clearAuthToken()
 
     accessToken.value = null
     refreshToken.value = null

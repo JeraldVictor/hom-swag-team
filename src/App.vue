@@ -34,14 +34,13 @@ import { onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import NoInternetView from '@/features/home/views/NoInternetView.vue'
 import PermissionSplashView from '@/features/home/views/PermissionSplashView.vue'
-import { useBackgroundRunner } from '@/shared/composables/useBackgroundRunner'
 import { useFcm } from '@/shared/composables/useFcm'
 import { locationTracker } from '@/shared/composables/useLocationTracker'
 import { getIsOnline, useNetwork } from '@/shared/composables/useNetwork'
+import { useNotificationChannels } from '@/shared/composables/useNotificationChannels'
 import { usePermissions } from '@/shared/composables/usePermissions'
 import { useToast } from '@/shared/composables/useToast'
 import logo from '@/shared/images/HomSwagLogo.png'
-import { ENV } from '@/shared/lib/env'
 import { webSocketService } from '@/shared/lib/websocket.service'
 import type { RawNotification } from '@/shared/models/notification.model'
 import { useAppStore } from '@/shared/stores/app'
@@ -51,7 +50,7 @@ import { useNotificationStore } from '@/shared/stores/notification'
 const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
-const backgroundRunner = useBackgroundRunner()
+const notificationChannels = useNotificationChannels()
 const fcm = useFcm()
 
 // Network state — reactive, shared singleton
@@ -95,12 +94,8 @@ async function finishBoot() {
   appStore.setPermissionsGranted(true)
   appStore.setBootPhase('ready')
 
-  // Sync the BFF API URL into CapacitorKV so the background runner knows
-  // where to poll. Token sync is handled inside authStore.restoreSession().
-  void backgroundRunner.syncApiUrl(ENV.VITE_BFF_API_URL)
-
   // Create Android notification channels for ordinary notification-bar alerts.
-  void backgroundRunner.setupNotificationChannels()
+  void notificationChannels.setupNotificationChannels()
 
   if (restored) {
     if (router.currentRoute.value.path === '/login') {
@@ -130,7 +125,6 @@ async function handlePermissionsGranted() {
 
 let appStateListener: PluginListenerHandle | null = null
 let apiLogoutListener: ((event: Event) => void) | null = null
-let backgroundRunnerListenerCleanup: (() => void) | null = null
 let fcmCleanup: (() => void | Promise<void>) | null = null
 let activeSessionToken: string | null = null
 
@@ -238,10 +232,10 @@ onMounted(async () => {
 
     // 3. Local notification fallback for foreground/background transition
     if (Capacitor.isNativePlatform()) {
-      let channelId = 'homswag_general_default_v4'
+      let channelId = 'homswag_general_default_v5'
       if (type.includes('order') || type.includes('invoice'))
-        channelId = 'homswag_orders_default_v4'
-      else if (type.includes('trip')) channelId = 'homswag_trips_default_v4'
+        channelId = 'homswag_orders_default_v5'
+      else if (type.includes('trip')) channelId = 'homswag_trips_default_v5'
 
       const rawBody = data.body || data.message || 'You have a new notification'
       const plainBody = rawBody
@@ -273,25 +267,6 @@ onMounted(async () => {
     window.dispatchEvent(new CustomEvent('homswag:order-updated', { detail: data }))
   })
 
-  // Listen for taps on notifications scheduled by the background runner
-  backgroundRunnerListenerCleanup = await backgroundRunner.setupNotificationListener(
-    (notificationId, event) => {
-      console.log('[App] Background runner notification tapped, id:', notificationId)
-      // The event from background runner may include `notification` or `extras` directly
-      const data = event?.notification?.extra || event?.extra || event?.data || {}
-
-      if (data?.order_id || data?.orderId) {
-        const id = data.order_id || data.orderId
-        void router.push(`/orders/${id}`)
-      } else if (data?.trip_id || data?.tripId) {
-        const id = data.trip_id || data.tripId
-        void router.push(`/trips/${id}`)
-      } else {
-        void router.push('/notifications')
-      }
-    }
-  )
-
   // Listen for taps on local notifications scheduled by the Socket.IO handler
   if (Capacitor.isNativePlatform()) {
     void LocalNotifications.addListener('localNotificationActionPerformed', event => {
@@ -317,7 +292,6 @@ onUnmounted(() => {
   if (apiLogoutListener) {
     window.removeEventListener('homswag:logout', apiLogoutListener)
   }
-  backgroundRunnerListenerCleanup?.()
   void fcmCleanup?.()
 })
 

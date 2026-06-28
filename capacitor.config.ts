@@ -1,4 +1,3 @@
-/// <reference types="@capacitor/background-runner" />
 /// <reference types="@capacitor-firebase/messaging" />
 import type { CapacitorConfig } from '@capacitor/cli'
 
@@ -12,16 +11,6 @@ const config: CapacitorConfig = {
     // from a Capacitor Android app (origin: http://localhost).
     CapacitorHttp: {
       enabled: true,
-    },
-    // Background Runner — polls /notifications when the app is backgrounded
-    // and fires a local notification for any new unread items.
-    BackgroundRunner: {
-      label: 'com.homswag.partner.background.notifications',
-      src: 'runners/background.runner.js',
-      event: 'notificationCheck',
-      repeat: true,
-      interval: 15,
-      autoStart: true,
     },
   },
 }

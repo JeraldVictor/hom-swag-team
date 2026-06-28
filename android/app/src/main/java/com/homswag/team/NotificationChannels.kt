@@ -9,9 +9,9 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 
 object NotificationChannels {
-    const val ORDERS = "homswag_orders_default_v4"
-    const val TRIPS = "homswag_trips_default_v4"
-    const val GENERAL = "homswag_general_default_v4"
+    const val ORDERS = "homswag_orders_default_v5"
+    const val TRIPS = "homswag_trips_default_v5"
+    const val GENERAL = "homswag_general_default_v5"
 
     private val obsoleteChannels = listOf(
         "homswag_ringtone",
@@ -26,6 +26,9 @@ object NotificationChannels {
         "homswag_orders_default_v3",
         "homswag_trips_default_v3",
         "homswag_general_default_v3",
+        "homswag_orders_default_v4",
+        "homswag_trips_default_v4",
+        "homswag_general_default_v4",
     )
 
     fun ensureAll(context: Context) {
@@ -67,7 +70,6 @@ object NotificationChannels {
         ).apply {
             description = descriptionText
             setSound(soundUri, audioAttributes)
-            enableVibration(true)
             lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
         }
 

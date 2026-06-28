@@ -26,9 +26,6 @@ importers:
       '@capacitor/app':
         specifier: 8.1.0
         version: 8.1.0(@capacitor/core@8.3.1)
-      '@capacitor/background-runner':
-        specifier: ^3.0.0
-        version: 3.0.0(@capacitor/core@8.3.1)
       '@capacitor/camera':
         specifier: ^8.2.0
         version: 8.2.0(@capacitor/core@8.3.1)
@@ -38,9 +35,6 @@ importers:
       '@capacitor/geolocation':
         specifier: ^8.2.0
         version: 8.2.0(@capacitor/core@8.3.1)
-      '@capacitor/haptics':
-        specifier: 8.0.2
-        version: 8.0.2(@capacitor/core@8.3.1)
       '@capacitor/keyboard':
         specifier: 8.0.3
         version: 8.0.3(@capacitor/core@8.3.1)
@@ -736,11 +730,6 @@ packages:
     engines: {node: '>=10.3.0'}
     hasBin: true
 
-  '@capacitor/background-runner@3.0.0':
-    resolution: {integrity: sha512-BSUypHc9P7p8A8O7a686ifzUWq6W03n384C+WVpUrXHvwZdtpvm7gJO3NIXACb9mvYuKv+bh4CYv7YfB4rBIcg==}
-    peerDependencies:
-      '@capacitor/core': '>=8.0.0'
-
   '@capacitor/camera@8.2.0':
     resolution: {integrity: sha512-hYfrT6xpL936qoEkIpJzSnb0fQCaTkOux1cXzGBfH8QLOGqr6gSLiWZlZz/fqMPmMKJMNRBqlTQkj5fuMhVZog==}
     peerDependencies:
@@ -761,11 +750,6 @@ packages:
 
   '@capacitor/geolocation@8.2.0':
     resolution: {integrity: sha512-N29QcoIPmme0xSxRkm7+3hjoHp6mBAOarxecvtCCZKyOBeKiJsFUq981cezg2XWBa6fhCXJMCCjQPngKK/dIag==}
-    peerDependencies:
-      '@capacitor/core': '>=8.0.0'
-
-  '@capacitor/haptics@8.0.2':
-    resolution: {integrity: sha512-c2hZzRR5Fk1tbTvhG1jhh2XBAf3EhnIerMIb2sl7Mt41Gxx1fhBJFDa0/BI1IbY4loVepyyuqNC9820/GZuoWQ==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -5103,10 +5087,6 @@ snapshots:
       - supports-color
       - typescript
 
-  '@capacitor/background-runner@3.0.0(@capacitor/core@8.3.1)':
-    dependencies:
-      '@capacitor/core': 8.3.1
-
   '@capacitor/camera@8.2.0(@capacitor/core@8.3.1)':
     dependencies:
       '@capacitor/core': 8.3.1
@@ -5163,10 +5143,6 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.3.1
       '@capacitor/synapse': 1.0.4
-
-  '@capacitor/haptics@8.0.2(@capacitor/core@8.3.1)':
-    dependencies:
-      '@capacitor/core': 8.3.1
 
   '@capacitor/keyboard@8.0.3(@capacitor/core@8.3.1)':
     dependencies:

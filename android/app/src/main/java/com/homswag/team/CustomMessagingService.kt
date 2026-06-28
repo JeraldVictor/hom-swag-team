@@ -74,7 +74,7 @@ class CustomMessagingService : MessagingService() {
             .setContentText(stripHtml(body))
             .setStyle(NotificationCompat.BigTextStyle().bigText(stripHtml(body)))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_VIBRATE)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND)
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
