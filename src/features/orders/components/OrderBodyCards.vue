@@ -20,11 +20,12 @@
             <span>Trip #</span>
             <strong>{{ assignedTrip.trip_number }}</strong>
           </div>
-          <div class="trip-info-row" v-if="assignedTrip.is_external_booking || !assignedTrip.rider?.name">
+          <div
+            class="trip-info-row"
+            v-if="assignedTrip.is_self_drive || assignedTrip.is_external_booking || !assignedTrip.rider?.name"
+          >
             <span>Type</span>
-            <strong>
-              {{ assignedTrip.is_external_booking ? (assignedTrip.external_booking_details?.provider || 'External Ride') : 'Self Booking' }}
-            </strong>
+            <strong>{{ tripTypeLabel(assignedTrip) }}</strong>
           </div>
           <div class="trip-info-row" v-if="assignedTrip.rider?.name">
             <span>Rider</span>
@@ -329,6 +330,13 @@ function tripStatusIcon(trip: OrderTrip) {
   if (s === 'done' || s.includes('complete')) return 'lucide:check-circle-2'
   if (s.includes('cancel')) return 'lucide:x-circle'
   return 'lucide:circle'
+}
+
+function tripTypeLabel(trip: OrderTrip) {
+  if (trip.is_self_drive) return 'Self-drive'
+  if (trip.is_external_booking) return trip.external_booking_details?.provider || 'External Ride'
+  if (!trip.rider?.name) return 'No rider assigned'
+  return ''
 }
 
 const prepaidAmount = computed(() => {

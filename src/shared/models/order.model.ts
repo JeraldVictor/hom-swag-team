@@ -183,6 +183,7 @@ export interface OrderTrip {
   pickup_location?: OrderTripLocation
   drop_location?: OrderTripLocation
   rider?: OrderTripRider
+  is_self_drive?: boolean
   is_external_booking?: boolean
   external_booking_details?: {
     provider?: string
