@@ -48,23 +48,17 @@
               <div class="new">₹{{ membershipCharge }}</div>
             </div>
 
-            <div class="comparison-row" v-if="otherCharges > 0">
+            <div class="comparison-row" v-if="displayOtherCharges !== 0">
               <div class="label">Other Charges</div>
-              <div class="old">₹{{ otherCharges }}</div>
-              <div class="new">₹{{ otherCharges }}</div>
+              <div class="old">{{ formatCurrency(displayOtherCharges) }}</div>
+              <div class="new">{{ formatCurrency(displayOtherCharges) }}</div>
             </div>
             <div class="comparison-row" v-if="roundingAdjustment !== 0">
               <div class="label">Rounding</div>
               <div class="old">₹{{ roundingAdjustment }}</div>
               <div class="new">₹{{ roundingAdjustment }}</div>
             </div>
-            
-            <div class="comparison-row discount" v-if="discountTotal > 0">
-              <div class="label">Discounts</div>
-              <div class="old">-₹{{ discountTotal }}</div>
-              <div class="new">-₹{{ discountTotal }}</div>
-            </div>
-            
+
             <div class="comparison-row total">
               <div class="label">Grand Total</div>
               <div class="old">₹{{ oldTotal }}</div>
@@ -681,6 +675,7 @@ const newSubtotal = computed(() => {
 })
 
 const otherCharges = computed(() => surgeAmount.value + convenienceFees.value + hygieneFees.value)
+const displayOtherCharges = computed(() => otherCharges.value - discountTotal.value)
 
 const preservedCharges = computed(
   () => deliveryFee.value + otherCharges.value + roundingAdjustment.value
@@ -720,6 +715,11 @@ const canConfirmOrder = computed(() => {
   if (minimumOrderValue.value > 0 && newSubtotal.value < minimumOrderValue.value) return false
   return true
 })
+
+function formatCurrency(amount: number): string {
+  const prefix = amount < 0 ? '-₹' : '₹'
+  return `${prefix}${Math.abs(amount)}`
+}
 
 async function fetchOrderData() {
   try {
