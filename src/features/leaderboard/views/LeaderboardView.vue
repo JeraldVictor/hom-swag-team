@@ -104,7 +104,7 @@
           <!-- 2nd place -->
           <div v-if="top3[1]" class="podium-slot podium-slot--second">
             <div class="podium-avatar podium-avatar--second">
-              <img v-if="top3[1].photo_url" :src="top3[1].photo_url" :alt="top3[1].name" class="podium-avatar__img" />
+              <img v-if="top3[1].photo_url" :src="leaderboardPhotoUrl(top3[1])" :alt="top3[1].name" class="podium-avatar__img" />
               <span v-else class="podium-avatar__initials">{{ initials(top3[1].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[1].name.split(' ')[0] }}</p>
@@ -117,7 +117,7 @@
           <div v-if="top3[0]" class="podium-slot podium-slot--first">
             <div class="podium-crown" aria-hidden="true">👑</div>
             <div class="podium-avatar podium-avatar--first">
-              <img v-if="top3[0].photo_url" :src="top3[0].photo_url" :alt="top3[0].name" class="podium-avatar__img" />
+              <img v-if="top3[0].photo_url" :src="leaderboardPhotoUrl(top3[0])" :alt="top3[0].name" class="podium-avatar__img" />
               <span v-else class="podium-avatar__initials">{{ initials(top3[0].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[0].name.split(' ')[0] }}</p>
@@ -129,7 +129,7 @@
           <!-- 3rd place -->
           <div v-if="top3[2]" class="podium-slot podium-slot--third">
             <div class="podium-avatar podium-avatar--third">
-              <img v-if="top3[2].photo_url" :src="top3[2].photo_url" :alt="top3[2].name" class="podium-avatar__img" />
+              <img v-if="top3[2].photo_url" :src="leaderboardPhotoUrl(top3[2])" :alt="top3[2].name" class="podium-avatar__img" />
               <span v-else class="podium-avatar__initials">{{ initials(top3[2].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[2].name.split(' ')[0] }}</p>
@@ -159,7 +159,7 @@
                 <td class="year-table__cell-name">
                   <div class="name-wrapper">
                     <div class="entry-avatar-small">
-                      <img v-if="entry.photo_url" :src="entry.photo_url" :alt="entry.name" class="entry-avatar__img" />
+                      <img v-if="entry.photo_url" :src="leaderboardPhotoUrl(entry)" :alt="entry.name" class="entry-avatar__img" />
                       <span v-else class="entry-avatar__initials-small">{{ initials(entry.name) }}</span>
                     </div>
                     <span class="name-text">{{ entry.name }}</span>
@@ -190,7 +190,7 @@
               <span class="entry-rank">{{ entry.rank }}</span>
               <div class="entry-avatar">
                 <Icon v-if="entry.user_id === 'masked'" icon="lucide:user-x" class="masked-icon" />
-                <img v-else-if="entry.photo_url" :src="entry.photo_url" :alt="entry.name" class="entry-avatar__img" />
+                <img v-else-if="entry.photo_url" :src="leaderboardPhotoUrl(entry)" :alt="entry.name" class="entry-avatar__img" />
                 <span v-else class="entry-avatar__initials">{{ initials(entry.name) }}</span>
               </div>
               <div class="entry-info">
@@ -213,7 +213,13 @@
           <div class="entry-card entry-card--self">
             <span class="entry-rank">{{ data.self_entry.rank }}</span>
             <div class="entry-avatar">
-              <span class="entry-avatar__initials">{{ initials(data.self_entry.name) }}</span>
+              <img
+                v-if="data.self_entry.photo_url"
+                :src="leaderboardPhotoUrl(data.self_entry)"
+                :alt="data.self_entry.name"
+                class="entry-avatar__img"
+              />
+              <span v-else class="entry-avatar__initials">{{ initials(data.self_entry.name) }}</span>
             </div>
             <div class="entry-info">
               <p class="entry-name">{{ data.self_entry.name }} <span class="entry-you">(You)</span></p>
@@ -229,6 +235,7 @@
 import { onIonViewWillEnter } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
 import { getLeaderboard } from '@/shared/api'
+import { mediaUrl } from '@/shared/lib/media'
 import type { LeaderboardData, LeaderboardEntry, LeaderboardPeriod } from '@/shared/models'
 
 const data = ref<LeaderboardData | null>(null)
@@ -276,6 +283,10 @@ function initials(name: string): string {
     .slice(0, 2)
     .map(n => n[0]?.toUpperCase() ?? '')
     .join('')
+}
+
+function leaderboardPhotoUrl(entry: LeaderboardEntry): string {
+  return mediaUrl(entry.photo_url)
 }
 
 function formatAmount(amount: number): string {

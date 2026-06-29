@@ -162,6 +162,7 @@ const primaryItems = computed<NavItem[]>(() => {
 
   if (isBeautician.value) {
     items.push({ label: 'Orders', icon: 'lucide:briefcase', route: '/orders' })
+    items.push({ label: 'Target Details', icon: 'lucide:target', route: '/target-details' })
     items.push({ label: 'Complaints', icon: 'lucide:message-circle-warning', route: '/complaints' })
     items.push({
       label: 'External Bookings',

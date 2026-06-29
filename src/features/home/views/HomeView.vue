@@ -92,7 +92,7 @@
           <div
             v-if="dashboard && (dashboard.monthly_target || isRider)"
             class="target-card anim-card press-feedback"
-            @click="goTo('/target-details')"
+            @click="goTo(isRider ? '/trip-fees' : '/target-details')"
           >
             <div class="target-card__header">
               <div class="target-card__title-group">
@@ -258,6 +258,12 @@
                 <Icon icon="lucide:calendar" aria-hidden="true" />
               </div>
               <span>Leave</span>
+            </button>
+            <button v-if="isBeautician" class="quick-action" @click="goTo('/target-details')">
+              <div class="quick-action__icon-wrap quick-action__icon-wrap--info">
+                <Icon icon="lucide:target" aria-hidden="true" />
+              </div>
+              <span>Target</span>
             </button>
             <button class="quick-action" @click="goTo('/notifications')">
               <div class="quick-action__icon-wrap quick-action__icon-wrap--success">
