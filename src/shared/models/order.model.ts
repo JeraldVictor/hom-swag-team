@@ -68,6 +68,11 @@ export interface OrderInstructionPreset {
   beautician_visible?: boolean
 }
 
+export interface OrderDisplayImage {
+  url: string
+  alt_text?: string
+}
+
 export interface UpdateOrderPayload {
   products?: Array<{
     order_product_id?: string
@@ -77,18 +82,25 @@ export interface UpdateOrderPayload {
     price: number
     total: number
     duration?: number
+    banner?: OrderDisplayImage
+    image?: OrderDisplayImage
     beautician_added?: boolean
     selected_options?: {
       order_product_option_id?: string
       product_option_id: string
       title: string
       price?: number
+      duration?: number
+      banner?: OrderDisplayImage
+      image?: OrderDisplayImage
       beautician_added?: boolean
     }[]
     selected_package_items?: string[]
     selected_package_services?: {
       product_id: string
       title: string
+      banner?: OrderDisplayImage
+      image?: OrderDisplayImage
       beautician_added?: boolean
     }[]
     selected_free_items?: {
@@ -271,12 +283,17 @@ export interface OrderProduct {
   total: number
   duration?: number
   type?: 'service' | 'package'
+  banner?: OrderDisplayImage
+  image?: OrderDisplayImage
   beautician_added?: boolean
   selected_options?: {
     order_product_option_id?: string
     product_option_id: string
     title: string
     price: number
+    duration?: number
+    banner?: OrderDisplayImage
+    image?: OrderDisplayImage
     beautician_added?: boolean
   }[]
   selected_free_items?: {
@@ -288,11 +305,19 @@ export interface OrderProduct {
   selected_package_items?: {
     product_id: string
     title: string
+    price?: number
+    duration?: number
+    banner?: OrderDisplayImage
+    image?: OrderDisplayImage
     beautician_added?: boolean
   }[]
   selected_package_services?: {
     product_id: string
     title: string
+    price?: number
+    duration?: number
+    banner?: OrderDisplayImage
+    image?: OrderDisplayImage
     beautician_added?: boolean
   }[]
   upgrade_info?: {

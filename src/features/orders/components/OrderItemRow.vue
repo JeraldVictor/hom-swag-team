@@ -1,24 +1,49 @@
 <template>
-  <div class="item-row">
-    <!-- Main row: title + price -->
-    <div class="item-main-row">
-      <div class="item-title-col">
-        <span class="item-title">{{ item.title }}</span>
-        <div class="item-badges" v-if="item.total === 0 || item.type === 'package' || item.beautician_added">
-          <span v-if="item.total === 0" class="ibadge ibadge-free">Free</span>
-          <span v-if="item.type === 'package'" class="ibadge ibadge-pkg">Package</span>
-          <span v-if="item.beautician_added" class="ibadge ibadge-beautician">
-            <Icon icon="lucide:user-check" class="badge-icon" /> Beautician added
+  <div class="service-lines">
+    <div
+      v-for="line in serviceLines"
+      :key="line.id"
+      class="service-line"
+      :class="{ 'service-line-muted': line.kind === 'free' }"
+    >
+      <div class="service-line-marker">
+        <img
+          v-if="line.imageUrl"
+          :src="line.imageUrl"
+          :alt="line.title"
+          class="service-line-image"
+          loading="lazy"
+        />
+        <Icon v-else :icon="line.icon" />
+      </div>
+
+      <div class="service-line-body">
+        <div class="service-line-main">
+          <div class="service-line-copy">
+            <span class="service-line-title">{{ line.title }}</span>
+            <span v-if="line.parentTitle" class="service-line-parent">{{ line.parentTitle }}</span>
+            <span v-else-if="line.meta" class="service-line-parent">{{ line.meta }}</span>
+          </div>
+          <div v-if="line.amount !== undefined" class="service-line-price">
+            <span v-if="line.priceMeta" class="service-line-price-meta">{{ line.priceMeta }}</span>
+            <strong>₹{{ line.amount }}</strong>
+          </div>
+        </div>
+
+        <div v-if="line.badges.length" class="item-badges">
+          <span
+            v-for="badge in line.badges"
+            :key="badge.label"
+            class="ibadge"
+            :class="badge.className"
+          >
+            <Icon v-if="badge.icon" :icon="badge.icon" class="badge-icon" />
+            {{ badge.label }}
           </span>
         </div>
-      </div>
-      <div class="item-actions-col">
-        <div class="item-price-col">
-          <span class="item-qty-price">{{ item.quantity }}×₹{{ item.price }}</span>
-          <span class="item-total">₹{{ item.total }}</span>
-        </div>
+
         <button
-          v-if="canUpgrade && !item.upgrade_info"
+          v-if="line.canUpgrade"
           class="item-upgrade-btn"
           @click="emit('upgrade', item)"
         >
@@ -27,117 +52,325 @@
         </button>
       </div>
     </div>
-
-    <!-- Meta chips: duration + type -->
-    <div v-if="item.duration || item.type" class="item-meta-row">
-      <span v-if="item.duration" class="meta-chip">
-        <Icon icon="lucide:clock" class="chip-icon" />{{ item.duration }}m
-      </span>
-      <span v-if="item.type" class="meta-chip">
-        <Icon icon="lucide:layers" class="chip-icon" />{{ item.type === 'package' ? 'Package' : 'Service' }}
-      </span>
-    </div>
-    <!-- Package included services (Bullet points) -->
-    <div v-if="packageServices.length" class="item-subs-bullets">
-      <ul class="bullet-list">
-        <li v-for="s in packageServices" :key="s.product_id || s._id">
-          {{ s.title || s.name }}
-        </li>
-      </ul>
-    </div>
-
-    <!-- Add-ons / options -->
-    <div v-if="selectedOptions.length" class="item-addons">
-      <div
-        v-for="opt in selectedOptions"
-        :key="opt.product_option_id || opt.id || opt._id"
-        class="addon-row"
-      >
-        <span class="addon-name">
-          + {{ opt.title }}
-          <span v-if="opt.beautician_added" class="addon-beautician">
-            <Icon icon="lucide:user-check" class="badge-icon" /> Beautician added
-          </span>
-        </span>
-        <span class="addon-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
-      </div>
-    </div>
-
-    <!-- Free perks -->
-    <div v-if="freeItems.length" class="item-subs">
-      <span v-for="f in freeItems" :key="f.free_product_id || f.product_id || f._id" class="sub-tag sub-tag-gift">
-        <Icon icon="lucide:gift" class="sub-icon" />{{ f.title }}
-        <Icon
-          v-if="f.beautician_added"
-          icon="lucide:user-check"
-          class="sub-badge-icon"
-        />
-      </span>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { mediaUrl } from '@/shared/lib/media'
 import type { OrderProduct } from '@/shared/models'
+import { getPackageServices } from '../utils/order-item-normalizers'
 
 const props = defineProps<{ item: OrderProduct; canUpgrade?: boolean }>()
 const emit = defineEmits<{ upgrade: [item: OrderProduct] }>()
 
-const packageServices = computed(
+const packageServices = computed(() => getPackageServices(props.item))
+
+interface ServiceLineBadge {
+  label: string
+  className: string
+  icon?: string
+}
+
+interface ServiceLine {
+  id: string
+  title: string
+  kind: 'service' | 'option' | 'package-service' | 'free'
+  icon: string
+  imageUrl?: string
+  amount?: number
+  priceMeta?: string
+  parentTitle?: string
+  meta?: string
+  canUpgrade: boolean
+  badges: ServiceLineBadge[]
+}
+
+interface DisplayImage {
+  url: string
+  alt_text?: string
+}
+
+interface OptionDisplayItem {
+  product_option_id?: string
+  id?: string
+  _id?: string
+  title?: string
+  name?: string
+  price?: number
+  min_price?: number
+  base_price?: number
+  duration?: number
+  duration_minutes?: number
+  banner?: DisplayImage
+  image?: DisplayImage
+  beautician_added?: boolean
+}
+
+interface FreeDisplayItem {
+  order_free_item_id?: string
+  free_product_id?: string
+  product_id?: string
+  _id?: string
+  title?: string
+  name?: string
+  banner?: DisplayImage
+  image?: DisplayImage
+  beautician_added?: boolean
+}
+
+const selectedOptions = computed<OptionDisplayItem[]>(
   () =>
-    props.item.selected_package_services ||
-    props.item.selected_package_items ||
-    (props.item as any).services ||
-    (props.item as any).package_services ||
+    props.item.selected_options || (props.item as { options?: OptionDisplayItem[] }).options || []
+)
+
+const freeItems = computed<FreeDisplayItem[]>(
+  () =>
+    props.item.selected_free_items ||
+    (props.item as { free_products?: FreeDisplayItem[] }).free_products ||
     []
 )
 
-const selectedOptions = computed(
-  () => props.item.selected_options || (props.item as any).options || []
-)
+const serviceLines = computed<ServiceLine[]>(() => {
+  const lines: ServiceLine[] = []
+  const isPackage = props.item.type === 'package' || packageServices.value.length > 0
+  const showPackageServicesAsPrimary = isPackage && packageServices.value.length > 0
+  const showOptionsAsPrimary = selectedOptions.value.length > 0
 
-const freeItems = computed(
-  () => props.item.selected_free_items || (props.item as any).free_products || []
-)
+  if (!showPackageServicesAsPrimary && !showOptionsAsPrimary) {
+    lines.push({
+      id: `product-${props.item.order_product_id || props.item.product_id}`,
+      title: props.item.title,
+      kind: 'service',
+      icon: 'lucide:sparkle',
+      imageUrl: getImageUrl(props.item),
+      amount: props.item.total,
+      priceMeta: `${props.item.quantity}×₹${props.item.price}`,
+      meta: [
+        props.item.duration ? `${props.item.duration}m` : '',
+        isPackage ? 'Package' : 'Service',
+      ]
+        .filter(Boolean)
+        .join(' • '),
+      canUpgrade: Boolean(props.canUpgrade && !props.item.upgrade_info),
+      badges: getLineBadges({
+        isFree: props.item.total === 0,
+        isPackage,
+        beauticianAdded: props.item.beautician_added,
+      }),
+    })
+  }
+
+  for (const option of selectedOptions.value) {
+    const amount = option.price ?? option.min_price ?? option.base_price ?? 0
+    lines.push({
+      id: `option-${option.product_option_id || option.id || option._id || option.title}`,
+      title: option.title || option.name || 'Option',
+      kind: 'option',
+      icon: 'lucide:plus',
+      imageUrl: getImageUrl(option),
+      amount,
+      parentTitle: formatParentContext(
+        props.item.title,
+        option.duration ?? option.duration_minutes
+      ),
+      canUpgrade: false,
+      badges: getLineBadges({ beauticianAdded: option.beautician_added }),
+    })
+  }
+
+  for (const service of packageServices.value) {
+    lines.push({
+      id: `package-service-${service.product_id}`,
+      title: service.title,
+      kind: 'package-service',
+      icon: 'lucide:check',
+      imageUrl: getImageUrl(service),
+      parentTitle: props.item.title,
+      canUpgrade: false,
+      badges: getLineBadges({
+        isPackageService: true,
+        beauticianAdded: service.beautician_added,
+      }),
+    })
+  }
+
+  for (const freeItem of freeItems.value) {
+    lines.push({
+      id: `free-${freeItem.order_free_item_id || freeItem.free_product_id || freeItem.product_id || freeItem._id || freeItem.title}`,
+      title: freeItem.title || freeItem.name || 'Free item',
+      kind: 'free',
+      icon: 'lucide:gift',
+      imageUrl: getImageUrl(freeItem),
+      amount: 0,
+      parentTitle: props.item.title,
+      canUpgrade: false,
+      badges: getLineBadges({
+        isFree: true,
+        beauticianAdded: freeItem.beautician_added,
+      }),
+    })
+  }
+
+  return lines
+})
+
+function formatParentContext(parentTitle: string, duration?: number) {
+  return [parentTitle, duration ? `${duration}m` : ''].filter(Boolean).join(' · ')
+}
+
+function getImageUrl(value: {
+  banner?: DisplayImage
+  image?: DisplayImage
+  image_url?: string
+  images?: { url: string }[]
+}) {
+  return mediaUrl(
+    value.banner?.url || value.image?.url || value.image_url || value.images?.[0]?.url
+  )
+}
+
+function getLineBadges({
+  isFree = false,
+  isPackage = false,
+  isPackageService = false,
+  beauticianAdded = false,
+}: {
+  isFree?: boolean
+  isPackage?: boolean
+  isPackageService?: boolean
+  beauticianAdded?: boolean
+}): ServiceLineBadge[] {
+  const badges: ServiceLineBadge[] = []
+  if (isFree) badges.push({ label: 'Free', className: 'ibadge-free' })
+  if (isPackage) badges.push({ label: 'Package', className: 'ibadge-pkg' })
+  if (isPackageService) badges.push({ label: 'Package item', className: 'ibadge-pkg' })
+  if (beauticianAdded) {
+    badges.push({
+      label: 'Beautician added',
+      className: 'ibadge-beautician',
+      icon: 'lucide:user-check',
+    })
+  }
+  return badges
+}
 </script>
 
 <style scoped>
-.item-row {
+.service-lines {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  background: var(--color-background);
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.item-main-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
   gap: 8px;
 }
 
-.item-title-col {
-  flex: 1;
+.service-line {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.service-line:nth-child(odd) {
+  background: rgba(248, 250, 252, 0.98);
+}
+
+.service-line:nth-child(even) {
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.18);
+}
+
+.service-line-muted {
+  background: rgba(99, 102, 241, 0.04);
+  border-color: rgba(99, 102, 241, 0.14);
+}
+
+.service-line-marker {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--color-brand);
+  background: rgba(99, 102, 241, 0.1);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.service-line-marker svg {
+  width: 15px;
+  height: 15px;
+}
+
+.service-line-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.service-line-body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 7px;
   min-width: 0;
 }
 
-.item-title {
+.service-line-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.service-line-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.service-line-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
-  line-height: 1.3;
+  line-height: 1.35;
+}
+
+.service-line-parent {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+}
+
+.service-line-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+  color: var(--color-text);
+}
+
+.service-line-price-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.service-line-price strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-brand);
 }
 
 .item-badges {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
 .ibadge {
@@ -161,24 +394,10 @@ const freeItems = computed(
   color: var(--color-brand);
 }
 
-.item-price-col {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-  flex-shrink: 0;
-}
-
-.item-actions-col {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
 .item-upgrade-btn {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 3px;
   padding: 3px 9px;
   border-radius: 999px;
@@ -201,67 +420,6 @@ const freeItems = computed(
   width: 11px;
   height: 11px;
   flex-shrink: 0;
-}
-
-.item-qty-price {
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.item-total {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-brand);
-}
-
-/* Meta chips */
-.item-meta-row {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.meta-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 2px 7px;
-}
-
-.chip-icon {
-  font-size: 10px;
-}
-
-/* Package Services Bullets */
-.item-subs-bullets {
-  margin-top: 4px;
-  padding-left: 14px;
-}
-
-.bullet-list {
-  margin: 0;
-  padding: 0;
-  list-style-type: disc;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.bullet-list li {
-  margin-bottom: 2px;
-}
-
-/* Sub-tags (free items) */
-.item-subs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
 }
 
 .ibadge-beautician {
@@ -296,52 +454,4 @@ const freeItems = computed(
   width: 12px;
   height: 12px;
 }
-
-.sub-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 2px 8px;
-}
-
-.sub-tag-gift {
-  color: var(--color-brand);
-  border-color: rgba(99, 102, 241, 0.2);
-  background: rgba(99, 102, 241, 0.05);
-}
-
-.sub-icon {
-  font-size: 10px;
-}
-
-/* Add-ons */
-.item-addons {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding-top: 5px;
-  border-top: 1px dashed var(--color-border);
-  margin-top: 4px;
-}
-
-.addon-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-}
-
-.addon-name {
-  color: var(--color-text-muted);
-}
-
-.addon-price {
-  font-weight: 600;
-  color: var(--color-text);
-}
 </style>
-

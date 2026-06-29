@@ -24,11 +24,14 @@ interface CartItem {
     product_option_id: string
     title: string
     price: number
+    duration?: number
     beautician_added?: boolean
   }>
   selected_package_items?: ReadonlyArray<{
     product_id: string
     title: string
+    price?: number
+    duration?: number
     beautician_added?: boolean
   }>
   selected_free_items?: ReadonlyArray<{
@@ -137,6 +140,7 @@ async function fetchOrderData() {
             product_option_id: o.product_option_id,
             title: o.title,
             price: o.price ?? 0,
+            duration: o.duration ?? 0,
             beautician_added: o.beautician_added ?? false,
           })),
           selected_package_items:
@@ -144,6 +148,8 @@ async function fetchOrderData() {
             p.selected_package_services?.map(s => ({
               product_id: String(s.product_id),
               title: s.title,
+              price: s.price ?? 0,
+              duration: s.duration ?? 0,
               beautician_added: s.beautician_added ?? false,
             })),
           selected_free_items: p.selected_free_items?.map(f => ({
@@ -231,7 +237,7 @@ function handleAddClick(product: Product) {
 function onSelectionConfirm(data: {
   product: Product
   selectedOptions: ProductOption[]
-  selectedPackageItems: { product_id: string; title: string }[]
+  selectedPackageItems: { product_id: string; title: string; price?: number; duration?: number }[]
   selectedFreeItems: { product_id: string; title: string }[]
 }) {
   const pid = String(data.product._id || data.product.id)
@@ -253,6 +259,7 @@ function onSelectionConfirm(data: {
     product_option_id: String(o._id || o.id || o.product_option_id),
     title: o.title,
     price: o.price ?? 0,
+    duration: o.duration_minutes ?? 0,
     beautician_added: originalItem
       ? !originalOptionIds.has(String(o._id || o.id || o.product_option_id))
       : true,

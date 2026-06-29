@@ -409,6 +409,7 @@ import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/mod
 import OrderBodyCards from '../components/OrderBodyCards.vue'
 import OrderHeroCard from '../components/OrderHeroCard.vue'
 import { useOrderDetail } from '../composables/useOrderDetail'
+import { getPackageServices } from '../utils/order-item-normalizers'
 
 const route = useRoute()
 const router = useRouter()
@@ -1072,9 +1073,7 @@ function openGallery(url: string) {
 }
 
 function getSelectedServiceItems(item: Readonly<OrderProduct>) {
-  return (
-    item.selected_package_items || (item as any).services || (item as any).package_services || []
-  )
+  return getPackageServices(item)
 }
 
 function getSelectedOptions(item: Readonly<OrderProduct>) {

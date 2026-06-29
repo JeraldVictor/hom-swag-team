@@ -15,7 +15,12 @@ const emit = defineEmits<{
     data: {
       product: Product
       selectedOptions: ProductOption[]
-      selectedPackageItems: { product_id: string; title: string }[]
+      selectedPackageItems: {
+        product_id: string
+        title: string
+        price?: number
+        duration?: number
+      }[]
       selectedFreeItems: { product_id: string; title: string }[]
     }
   ): void
@@ -172,6 +177,8 @@ function handleConfirm() {
     .map(p => ({
       product_id: String(p._id || p.id),
       title: p.name || p.title || '',
+      price: p.min_price ?? p.price ?? p.base_price ?? 0,
+      duration: p.duration_minutes ?? 0,
     }))
 
   emit('confirm', {

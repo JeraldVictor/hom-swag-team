@@ -120,20 +120,28 @@
                 </div>
               </div>
 
-              <div v-if="(item.selected_package_items || item.selected_package_services)?.length" class="mic-sub-section">
+              <div v-if="getPackageServices(item).length" class="mic-sub-section">
                 <div class="mic-sub-header">Included Services</div>
                 <div class="mic-sub-list">
                   <div
-                    v-for="service in item.selected_package_items || item.selected_package_services"
+                    v-for="service in getPackageServices(item)"
                     :key="service.product_id"
-                    class="mic-sub-item"
+                    class="mic-sub-item mic-item-row"
                   >
-                    <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                    <span>{{ service.title }}</span>
-                    <span v-if="service.beautician_added" class="mic-added-tag">
-                      <Icon icon="lucide:user-check" class="mic-badge-icon" />
-                      Beautician added
-                    </span>
+                    <div class="mic-item-info">
+                      <span class="mic-item-title">
+                        <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
+                        {{ service.title }}
+                      </span>
+                      <span v-if="service.duration" class="mic-item-meta">
+                        {{ service.duration }} min
+                      </span>
+                      <span v-if="service.beautician_added" class="mic-added-tag mic-added-tag-inline">
+                        <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                        Beautician added
+                      </span>
+                    </div>
+                    <span class="mic-item-price">₹{{ service.price ?? 0 }}</span>
                   </div>
                 </div>
               </div>
@@ -234,16 +242,28 @@
                   </div>
                 </div>
               </div>
-              <div v-if="item.selected_package_items?.length" class="mic-sub-section">
+              <div v-if="getPackageServices(item).length" class="mic-sub-section">
                 <div class="mic-sub-header">Included Services</div>
                 <div class="mic-sub-list">
-                  <div v-for="service in item.selected_package_items" :key="service.product_id" class="mic-sub-item">
-                    <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                    <span>{{ service.title }}</span>
-                    <span v-if="service.beautician_added" class="mic-added-tag">
-                      <Icon icon="lucide:user-check" class="mic-badge-icon" />
-                      Beautician added
-                    </span>
+                  <div
+                    v-for="service in getPackageServices(item)"
+                    :key="service.product_id"
+                    class="mic-sub-item mic-item-row"
+                  >
+                    <div class="mic-item-info">
+                      <span class="mic-item-title">
+                        <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
+                        {{ service.title }}
+                      </span>
+                      <span v-if="service.duration" class="mic-item-meta">
+                        {{ service.duration }} min
+                      </span>
+                      <span v-if="service.beautician_added" class="mic-added-tag mic-added-tag-inline">
+                        <Icon icon="lucide:user-check" class="mic-badge-icon" />
+                        Beautician added
+                      </span>
+                    </div>
+                    <span class="mic-item-price">₹{{ service.price ?? 0 }}</span>
                   </div>
                 </div>
               </div>
@@ -363,6 +383,7 @@ import {
 import { getProduct } from '@/shared/api/products.service'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { Order } from '@/shared/models'
+import { getPackageServices } from '../utils/order-item-normalizers'
 
 interface CartItem {
   order_product_id?: string
@@ -388,6 +409,8 @@ interface CartItem {
   selected_package_items?: {
     product_id: string
     title: string
+    price?: number
+    duration?: number
     beautician_added?: boolean
   }[]
   selected_free_items?: {
@@ -596,20 +619,46 @@ function isCustomCategoryProductId(productId: string): boolean {
 async function hydrateCartItems(items: CartItem[]): Promise<CartItem[]> {
   return Promise.all(
     items.map(async item => {
-      if (!isCustomCategoryProductId(item.product_id) || item.base_product_id) {
-        return item
+      let hydratedItem = item
+
+      if (isCustomCategoryProductId(item.product_id) && !item.base_product_id) {
+        try {
+          const product = await getProduct(item.product_id)
+          hydratedItem = {
+            ...hydratedItem,
+            base_product_id: product.product_id || String(product._id || product.id),
+          }
+        } catch (err) {
+          console.error('Failed to hydrate custom category product', item.product_id, err)
+        }
       }
 
-      try {
-        const product = await getProduct(item.product_id)
-        return {
-          ...item,
-          base_product_id: product.product_id || String(product._id || product.id),
+      if (hydratedItem.selected_package_items?.some(pkg => pkg.price == null)) {
+        const packageItems = await Promise.all(
+          hydratedItem.selected_package_items.map(async pkg => {
+            if (pkg.price != null) return pkg
+
+            try {
+              const product = await getProduct(pkg.product_id)
+              return {
+                ...pkg,
+                price: product.min_price ?? product.price ?? product.base_price ?? 0,
+                duration: pkg.duration ?? product.duration_minutes ?? 0,
+              }
+            } catch (err) {
+              console.error('Failed to hydrate package service price', pkg.product_id, err)
+              return pkg
+            }
+          })
+        )
+
+        hydratedItem = {
+          ...hydratedItem,
+          selected_package_items: packageItems,
         }
-      } catch (err) {
-        console.error('Failed to hydrate custom category product', item.product_id, err)
-        return item
       }
+
+      return hydratedItem
     })
   )
 }
@@ -815,6 +864,7 @@ async function handleVerifyAndSubmit() {
           item.quantity,
         selected_options: item.selected_options?.map(opt => ({
           ...opt,
+          duration: opt.duration ?? 0,
           beautician_added:
             opt.beautician_added ??
             (originalItem && originalOptionIds.has(opt.product_option_id) ? false : true),
@@ -822,6 +872,8 @@ async function handleVerifyAndSubmit() {
         selected_package_services: item.selected_package_items?.map(pkg => ({
           product_id: pkg.product_id,
           title: pkg.title,
+          price: pkg.price ?? 0,
+          duration: pkg.duration ?? 0,
           beautician_added:
             pkg.beautician_added ??
             (originalItem && originalPackageIds.has(pkg.product_id) ? false : true),
