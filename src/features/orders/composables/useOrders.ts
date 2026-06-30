@@ -58,7 +58,7 @@ export function useOrders() {
     if (dateFilter.value === 'today') dateParam = todayStr
     else if (dateFilter.value === 'tomorrow') dateParam = tomorrowStr
 
-    const statusParam = undefined
+    const statusParam = TAB_STATUS_MAP[statusFilter.value].join(',')
     console.log('Fetching orders with filters:', { status: statusParam, date: dateParam, page })
 
     try {
