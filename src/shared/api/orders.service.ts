@@ -21,13 +21,21 @@ import type { PaginatedResponse } from '@/shared/models/pagination.model'
 export async function getOrders(
   page?: number,
   limit?: number,
-  status?: string,
-  date?: string
+  statusOrX?: string,
+  dateOrShow?: string
 ): Promise<PaginatedResponse<Order>> {
-  const safeStatus = status && status !== 'undefined' ? status : undefined
-  const safeDate = date && date !== 'undefined' ? date : undefined
+  const safeStatusOrX = statusOrX && statusOrX !== 'undefined' ? statusOrX : undefined
+  const safeDateOrShow = dateOrShow && dateOrShow !== 'undefined' ? dateOrShow : undefined
+  const isSimpleOrderQuery =
+    safeStatusOrX != null &&
+    ['today', 'tomorrow', 'past'].includes(safeStatusOrX) &&
+    safeDateOrShow != null &&
+    ['confirmed', 'ongoing', 'completed', 'cancelled'].includes(safeDateOrShow)
+
   const response = await apiClient.get<{ data: PaginatedResponse<Order> | Order[] }>('/orders', {
-    params: { page, limit, status: safeStatus, date: safeDate },
+    params: isSimpleOrderQuery
+      ? { page, limit, x: safeStatusOrX, show: safeDateOrShow }
+      : { page, limit, status: safeStatusOrX, date: safeDateOrShow },
   })
   const raw = response.data.data
   // Handle both paginated envelope and plain array

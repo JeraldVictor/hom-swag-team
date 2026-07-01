@@ -103,7 +103,7 @@
         <!-- Infinite Scroll -->
         <ion-infinite-scroll 
           @ionInfinite="loadData" 
-          :disabled="currentPage >= totalPages"
+          :disabled="!hasMore"
         >
           <ion-infinite-scroll-content loading-spinner="bubbles" loading-text="Loading more orders..." />
         </ion-infinite-scroll>
@@ -131,8 +131,7 @@ const {
   loadMore,
   statusFilter,
   dateFilter,
-  currentPage,
-  totalPages,
+  hasMore,
   statusCounts,
 } = useOrders()
 const { openDrawer } = useDrawer()

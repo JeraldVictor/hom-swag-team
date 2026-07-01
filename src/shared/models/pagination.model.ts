@@ -19,4 +19,6 @@ export interface PaginatedResponse<T> {
   hasNextPage?: boolean
   /** Whether there is a previous page */
   hasPrevPage?: boolean
+  /** Optional server-side counts for filter tabs */
+  statusCounts?: Record<string, number>
 }

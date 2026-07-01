@@ -6,7 +6,6 @@
 
 import { computed, readonly, ref, watch } from 'vue'
 import { getOrders } from '@/shared/api'
-import { formatISTDateShort } from '@/shared/lib/datetime'
 import type { Order } from '@/shared/models'
 
 export type OrderDateFilter = 'today' | 'tomorrow' | 'past'
@@ -25,17 +24,23 @@ const STATUS_PRIORITY: Record<string, number> = {
   cancelled_and_refunded: 9,
 }
 
-const TAB_STATUS_MAP: Record<OrderTab, string[]> = {
-  Confirmed: ['confirmed', 'reached_customer_place'],
-  Ongoing: ['started', 'ongoing', 'on going'],
-  Completed: ['completed'],
-  Cancelled: ['cancelled', 'cancel_requested', 'cancelled_and_refunded', 'arrived_and_cancelled'],
+const SHOW_BY_TAB: Record<OrderTab, string> = {
+  Confirmed: 'confirmed',
+  Ongoing: 'ongoing',
+  Completed: 'completed',
+  Cancelled: 'cancelled',
 }
 
 export function useOrders() {
   const orders = ref<Order[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const statusCounts = ref<Record<OrderTab, number>>({
+    Confirmed: 0,
+    Ongoing: 0,
+    Completed: 0,
+    Cancelled: 0,
+  })
 
   const statusFilter = ref<OrderTab>('Confirmed')
   const dateFilter = ref<OrderDateFilter>('today')
@@ -43,26 +48,19 @@ export function useOrders() {
   const currentPage = ref(1)
   const totalPages = ref(1)
   const totalItems = ref(0)
+  const hasMore = ref(false)
   const limit = 20
 
   async function fetchOrders(page = 1): Promise<void> {
     isLoading.value = true
     error.value = null
 
-    const nowISO = new Date().toISOString()
-    const todayStr = formatISTDateShort(nowISO)
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    const tomorrowStr = formatISTDateShort(tomorrow.toISOString())
-
-    let dateParam: string | undefined
-    if (dateFilter.value === 'today') dateParam = todayStr
-    else if (dateFilter.value === 'tomorrow') dateParam = tomorrowStr
-
-    const statusParam = TAB_STATUS_MAP[statusFilter.value].join(',')
-    console.log('Fetching orders with filters:', { status: statusParam, date: dateParam, page })
+    const x = dateFilter.value
+    const show = SHOW_BY_TAB[statusFilter.value]
+    console.log('Fetching orders with filters:', { x, show, page })
 
     try {
-      const res = await getOrders(page, limit, statusParam, dateParam)
+      const res = await getOrders(page, limit, x, show)
 
       if (page === 1) {
         orders.value = Array.isArray(res) ? res : (res.data ?? [])
@@ -75,30 +73,41 @@ export function useOrders() {
         currentPage.value = res.page ?? 1
         totalPages.value = res.pages ?? 1
         totalItems.value = res.total ?? orders.value.length
+        hasMore.value = Boolean(res.hasNextPage ?? currentPage.value < totalPages.value)
+        statusCounts.value = {
+          Confirmed: res.statusCounts?.confirmed ?? 0,
+          Ongoing: res.statusCounts?.ongoing ?? 0,
+          Completed: res.statusCounts?.completed ?? 0,
+          Cancelled: res.statusCounts?.cancelled ?? 0,
+        }
+      } else {
+        currentPage.value = 1
+        totalPages.value = 1
+        totalItems.value = orders.value.length
+        hasMore.value = false
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load orders'
-      if (page === 1) orders.value = []
+      if (page === 1) {
+        orders.value = []
+        currentPage.value = 1
+        totalPages.value = 1
+        totalItems.value = 0
+        hasMore.value = false
+        statusCounts.value = {
+          Confirmed: 0,
+          Ongoing: 0,
+          Completed: 0,
+          Cancelled: 0,
+        }
+      }
     } finally {
       isLoading.value = false
     }
   }
 
   const filteredOrders = computed(() => {
-    const list = [...orders.value] // Copy for sorting
-
-    // 1. Filtering
-    const filtered = list.filter(o => {
-      const s = o.status?.toLowerCase() || ''
-
-      const allowedStatuses = TAB_STATUS_MAP[statusFilter.value]
-      if (!allowedStatuses.includes(s)) return false
-
-      return true
-    })
-
-    // 2. Sorting
-    return filtered.sort((a, b) => {
+    return [...orders.value].sort((a, b) => {
       const sA = a.status?.toLowerCase() || ''
       const sB = b.status?.toLowerCase() || ''
 
@@ -119,41 +128,25 @@ export function useOrders() {
   })
 
   async function loadMore(): Promise<void> {
-    if (currentPage.value < totalPages.value && !isLoading.value) {
+    if (hasMore.value && !isLoading.value) {
       await fetchOrders(currentPage.value + 1)
     }
   }
 
   async function refresh(): Promise<void> {
     currentPage.value = 1
+    hasMore.value = false
     await fetchOrders(1)
   }
 
-  watch([statusFilter, dateFilter], () => {
+  watch([statusFilter, dateFilter], ([, currentDate], [, previousDate]) => {
+    if (currentDate === 'past' && previousDate !== 'past' && statusFilter.value === 'Confirmed') {
+      statusFilter.value = 'Completed'
+      void refresh()
+      return
+    }
+
     refresh()
-  })
-
-  const statusCounts = computed(() => {
-    const counts: Record<OrderTab, number> = {
-      Confirmed: 0,
-      Ongoing: 0,
-      Completed: 0,
-      Cancelled: 0,
-    }
-
-    for (const order of orders.value) {
-      const s = order.status?.toLowerCase() || ''
-
-      // Map status to tab for counting
-      for (const [tab, statuses] of Object.entries(TAB_STATUS_MAP)) {
-        if (statuses.includes(s)) {
-          counts[tab as OrderTab] += 1
-          break
-        }
-      }
-    }
-
-    return counts
   })
 
   return {
@@ -166,9 +159,10 @@ export function useOrders() {
     currentPage,
     totalPages,
     totalItems,
+    hasMore: readonly(hasMore),
     fetchOrders,
     loadMore,
     refresh,
-    statusCounts,
+    statusCounts: readonly(statusCounts),
   }
 }
