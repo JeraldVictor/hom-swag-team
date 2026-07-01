@@ -10,7 +10,7 @@
       <div class="hero-details">
         <div class="hero-detail-item">
           <Icon icon="lucide:map-pin" class="detail-icon" />
-          <span>{{ address }}</span>
+          <span class="hero-address">{{ address }}</span>
         </div>
         <div class="hero-detail-item" v-if="(status === ORDER_STATUS.CONFIRMED || status === ORDER_STATUS.STARTED || status === ORDER_STATUS.ONGOING || status === ORDER_STATUS.REACHED_CUSTOMER_PLACE) && beautician_start_time">
           <Icon icon="lucide:clock" class="detail-icon" />
@@ -202,6 +202,10 @@ defineEmits<{
   color: rgba(255, 255, 255, 0.85);
   font-weight: 500;
   line-height: 1.4;
+}
+
+.hero-address {
+  white-space: pre-line;
 }
 
 .detail-icon {
