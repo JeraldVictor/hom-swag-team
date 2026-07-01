@@ -87,32 +87,10 @@ export function useOrders() {
   const filteredOrders = computed(() => {
     const list = [...orders.value] // Copy for sorting
 
-    const nowISO = new Date().toISOString()
-    const todayStr = formatISTDateShort(nowISO)
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    const tomorrowStr = formatISTDateShort(tomorrow.toISOString())
-
     // 1. Filtering
     const filtered = list.filter(o => {
-      // Use booking_info.date if available, fallback to service_date or created_at
-      const dateToFormat = o.booking_info?.date || o.service_date || o.created_at
-      if (!dateToFormat) return false
-      const sDateStr = formatISTDateShort(dateToFormat)
-
-      const isToday = sDateStr === todayStr
-      const isTomorrow = sDateStr === tomorrowStr
-      const isPast = sDateStr < todayStr
       const s = o.status?.toLowerCase() || ''
 
-      const isActive =
-        s === 'ongoing' || s === 'started' || s === 'on going' || s === 'reached_customer_place'
-
-      // Filter by date tab
-      if (dateFilter.value === 'today' && !isToday && !isActive) return false
-      if (dateFilter.value === 'tomorrow' && !isTomorrow) return false
-      if (dateFilter.value === 'past' && !isPast) return false
-
-      // Status filter (Tab based)
       const allowedStatuses = TAB_STATUS_MAP[statusFilter.value]
       if (!allowedStatuses.includes(s)) return false
 
@@ -163,27 +141,8 @@ export function useOrders() {
       Cancelled: 0,
     }
 
-    const nowISO = new Date().toISOString()
-    const todayStr = formatISTDateShort(nowISO)
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    const tomorrowStr = formatISTDateShort(tomorrow.toISOString())
-
     for (const order of orders.value) {
-      const dateToFormat = order.booking_info?.date || order.service_date || order.created_at
-      if (!dateToFormat) continue
-
-      const sDateStr = formatISTDateShort(dateToFormat)
-      const isToday = sDateStr === todayStr
-      const isTomorrow = sDateStr === tomorrowStr
-      const isPast = sDateStr < todayStr
       const s = order.status?.toLowerCase() || ''
-
-      const isActive =
-        s === 'ongoing' || s === 'started' || s === 'on going' || s === 'reached_customer_place'
-
-      if (dateFilter.value === 'today' && !isToday && !isActive) continue
-      if (dateFilter.value === 'tomorrow' && !isTomorrow) continue
-      if (dateFilter.value === 'past' && !isPast) continue
 
       // Map status to tab for counting
       for (const [tab, statuses] of Object.entries(TAB_STATUS_MAP)) {

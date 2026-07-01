@@ -31,7 +31,7 @@
           <div class="drawer-avatar">
             <img
               v-if="user?.photo?.url"
-              :src="user.photo.url"
+              :src="avatarSrc"
               :alt="user.name"
               class="drawer-avatar__img"
             />
@@ -121,6 +121,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables/useDrawer'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUserTypeStore } from '@/shared/stores/userType'
+import { mediaUrl } from '@/shared/lib/media'
 
 const router = useRouter()
 const route = useRoute()
@@ -141,6 +142,8 @@ const initials = computed(() => {
     .map(n => n[0]?.toUpperCase() ?? '')
     .join('')
 })
+
+const avatarSrc = computed(() => mediaUrl(user.value?.photo?.url ?? ''))
 
 const roleLabel = computed(() => {
   if (isBeautician.value) return 'Beautician'

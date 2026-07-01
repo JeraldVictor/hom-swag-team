@@ -37,7 +37,7 @@
           </div>
         </div>
         <div class="home-hero__avatar" aria-hidden="true">
-          <img v-if="user?.photo?.url" :src="user.photo.url" :alt="user.name" class="home-hero__avatar-img" />
+          <img v-if="user?.photo?.url" :src="avatarSrc" :alt="user.name" class="home-hero__avatar-img" />
           <span v-else class="home-hero__avatar-initials">{{ initials }}</span>
         </div>
       </div>
@@ -307,6 +307,7 @@ import { getComplaints, getDashboard, getOrders, getTrips } from '@/shared/api'
 import { useDrawer } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDateShort } from '@/shared/lib/datetime'
+import { mediaUrl } from '@/shared/lib/media'
 import type { DashboardData, Order, Trip } from '@/shared/models'
 import { useAuthStore, useUserTypeStore } from '@/shared/stores'
 
@@ -343,6 +344,8 @@ const initials = computed(() => {
     .map(n => n[0]?.toUpperCase() ?? '')
     .join('')
 })
+
+const avatarSrc = computed(() => mediaUrl(user.value?.photo?.url ?? ''))
 
 const greeting = computed(() => {
   const h = new Date().getHours()

@@ -22,6 +22,7 @@ import type {
 import axios from 'axios'
 import { ENV } from '@/shared/lib/env'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
+import { useAuthStore } from '../stores'
 
 // ---------------------------------------------------------------------------
 // ApiError
@@ -127,15 +128,42 @@ async function performRefresh(instance: AxiosInstance): Promise<string> {
     throw new ApiError(401, 'No refresh token available')
   }
 
-  // The BFF wraps the token pair in a `data` envelope: { success, message, data: { accessToken, refreshToken } }
-  const response = await instance.post<{ data: { accessToken: string; refreshToken: string } }>(
-    '/auth/refresh',
-    { refresh_token: storedRefreshToken }
-  )
+  // The BFF wraps the token pair in a `data` envelope:
+  // { success, message, data: { accessToken, refreshToken } }
+  const response = await instance.post<{
+    success?: boolean
+    message?: string
+    data?: {
+      accessToken: string
+      refreshToken: string
+    }
+  }>('/auth/refresh', { refresh_token: storedRefreshToken })
+
+  if (response.data?.success === false || !response.data?.data) {
+    throw new ApiError(
+      401,
+      typeof response.data?.message === 'string'
+        ? response.data.message
+        : 'Failed to refresh session'
+    )
+  }
 
   const { accessToken, refreshToken } = response.data.data
+
+  if (!accessToken || !refreshToken) {
+    throw new ApiError(401, 'Invalid refresh response')
+  }
+
   await Storage_Service.setString(STORAGE_KEYS.accessToken, accessToken)
   await Storage_Service.setString(STORAGE_KEYS.refreshToken, refreshToken)
+
+  try {
+    const authStore = useAuthStore()
+    authStore.accessToken = accessToken
+    authStore.refreshToken = refreshToken
+  } catch {
+    // ignore cases where auth store isn't available yet
+  }
 
   return accessToken
 }
@@ -147,7 +175,6 @@ async function logoutAndRedirect(): Promise<void> {
   logoutInProgress = true
 
   try {
-    const { useAuthStore } = await import('@/shared/stores/auth')
     const authStore = useAuthStore()
     await authStore.logout()
   } catch {
@@ -363,6 +390,11 @@ apiClient.interceptors.request.use(
           } catch (err) {
             isRefreshing = false
             rejectQueue(err)
+            const apiErr = err instanceof Error ? err : new Error('Token refresh failed')
+            const apiStatus = apiErr instanceof ApiError ? apiErr.status : 0
+            if (apiStatus === 401 || apiStatus === 400 || apiStatus === 403) {
+              await logoutAndRedirect()
+            }
             throw err
           }
         } else {
@@ -386,6 +418,14 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   response => {
+    const requestUrl = String(response.config?.url ?? '')
+
+    // Allow refresh endpoint to return `{ success: false }` to be handled by callers
+    // so we can force logout on broken refresh flows.
+    if (requestUrl.includes('/auth/refresh')) {
+      return response
+    }
+
     // Treat `success: false` in the response body as an error
     const data = response.data as Record<string, unknown> | null
     if (data && typeof data === 'object' && data.success === false) {
