@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatCompactAddress } from '@/shared/lib/address'
 import { formatISTDate, formatTime12 } from '@/shared/lib/datetime'
 import type { Order } from '@/shared/models'
 
@@ -68,7 +69,7 @@ const customerName = computed(
 const address = computed(() => {
   const a = props.order.delivery_address ?? props.order.address
   if (!a) return null
-  return [a.street ?? a.line1, a.city].filter(Boolean).join(', ')
+  return formatCompactAddress(a)
 })
 
 const formattedDate = computed(() => {

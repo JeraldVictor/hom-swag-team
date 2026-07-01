@@ -48,6 +48,7 @@
           :phone="order.customer?.phone"
           :duration="order?.booking_info?.timing || ''"
           :is-customer-hidden="isCustomerHidden"
+          :show-address-summary="isBookingDateTomorrow"
           :show-actions="!isCompleted && !isCustomerHidden"
           :total="order.total ?? 0"
           :date="formattedDate"
@@ -403,9 +404,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { ORDER_STATUS } from '@/shared/constants'
+import { formatAddressText } from '@/shared/lib/address'
 import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
-import type { Order, OrderAddress, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
+import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import OrderBodyCards from '../components/OrderBodyCards.vue'
 import OrderHeroCard from '../components/OrderHeroCard.vue'
 import { useOrderDetail } from '../composables/useOrderDetail'
@@ -600,139 +602,6 @@ const hasOnlinePayment = computed(() => {
   return method.includes('upi') || method.includes('online')
 })
 
-function asAddressText(value: unknown): string {
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    return trimmed
-  }
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(value)
-  }
-  return ''
-}
-
-function asAddressNumber(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
-function formatAddressFromValue(value: OrderAddress | unknown): string {
-  const address = (value as OrderAddress | null) || null
-  if (!address) return 'No address provided'
-  if (typeof address !== 'object') {
-    const rawText = asAddressText(address)
-    return rawText || 'No address provided'
-  }
-
-  const source = address as Record<string, unknown>
-  const lines: string[] = []
-  const lineSet = new Set<string>()
-
-  const pushLine = (line: string) => {
-    const normalized = line.trim()
-    if (!normalized) return
-    const key = normalized.toLowerCase()
-    if (lineSet.has(key)) return
-    lineSet.add(key)
-    lines.push(normalized)
-  }
-
-  const addLabeled = (label: string, rawValue: unknown) => {
-    const value = asAddressText(rawValue)
-    if (!value) return
-    pushLine(label ? `${label}: ${value}` : value)
-  }
-
-  const pickFirst = (...keys: string[]) => {
-    for (const key of keys) {
-      const value = asAddressText(source[key])
-      if (value) return value
-    }
-    return ''
-  }
-
-  addLabeled('', pickFirst('line1', 'street'))
-  addLabeled('', pickFirst('line2'))
-  addLabeled(
-    'Building',
-    pickFirst('building_name', 'building', 'building_no', 'building_number', 'buildingNumber')
-  )
-  addLabeled('Flat', pickFirst('flat_no', 'flat_number', 'flat'))
-  addLabeled('Area', pickFirst('area'))
-  addLabeled('Lane 1', pickFirst('lane_1', 'lane1', 'lane_one'))
-  addLabeled('Lane 2', pickFirst('lane_2', 'lane2', 'lane_two'))
-  addLabeled('Landmark', pickFirst('landmark'))
-  addLabeled('City', pickFirst('city'))
-  addLabeled('District', pickFirst('district'))
-  addLabeled('State', pickFirst('state'))
-  addLabeled('Pincode', pickFirst('pincode', 'pin', 'zip'))
-
-  const lat = asAddressNumber(source.latitude)
-  const lng = asAddressNumber(source.longitude)
-  if (lat !== null && lng !== null) {
-    addLabeled('GPS', `${lat.toFixed(6)}, ${lng.toFixed(6)}`)
-  } else {
-    addLabeled('GPS', pickFirst('gps'))
-  }
-
-  const excludedKeys = new Set([
-    'line1',
-    'street',
-    'line2',
-    'building',
-    'building_name',
-    'building_no',
-    'building_number',
-    'buildingNumber',
-    'flat_no',
-    'flat_number',
-    'flat',
-    'area',
-    'lane_1',
-    'lane1',
-    'lane_one',
-    'lane_2',
-    'lane2',
-    'lane_two',
-    'landmark',
-    'city',
-    'district',
-    'state',
-    'pincode',
-    'pin',
-    'zip',
-    'latitude',
-    'longitude',
-    'gps',
-    '_id',
-    'id',
-    '__v',
-    'type',
-    'created_at',
-    'updated_at',
-    'createdAt',
-    'updatedAt',
-  ])
-
-  Object.entries(source).forEach(([key, raw]) => {
-    if (excludedKeys.has(key)) return
-    const value = asAddressText(raw)
-    if (!value) return
-    const label = key
-      .split('_')
-      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ')
-    addLabeled(label, value)
-  })
-
-  if (!lines.length) return 'No address provided'
-  return lines.join('\n')
-}
-
 const isPrepaidOrder = computed(() => {
   return !hasCodAmount.value && !hasUpiAmount.value
 })
@@ -782,12 +651,22 @@ const totalServiceDuration = computed(() => {
 
 const fullAddress = computed(() => {
   const addr = order.value?.delivery_address || order.value?.address
-  return formatAddressFromValue(addr)
+  return formatAddressText(addr)
 })
 
 const scheduleDate = computed(
   () => order.value?.booking_info?.date ?? order.value?.service_date ?? ''
 )
+const tomorrowIST = computed(() => {
+  const [year, month, day] = getTodayIST().split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  date.setUTCDate(date.getUTCDate() + 1)
+  return date.toISOString().slice(0, 10)
+})
+const isBookingDateTomorrow = computed(() => {
+  if (!scheduleDate.value) return false
+  return formatISTDateShort(scheduleDate.value) === tomorrowIST.value
+})
 const orderChangeAllowed = computed(() => isBookingDateToday.value && !isCompleted.value)
 const orderDateRestrictionMessage = computed(() => {
   if (!scheduleDate.value) return ''

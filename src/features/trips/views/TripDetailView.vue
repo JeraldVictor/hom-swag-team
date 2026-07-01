@@ -63,7 +63,7 @@
               <div class="stat-box">
                 <Icon icon="lucide:ruler" class="stat-icon" />
                 <div class="stat-text">
-                  <span class="stat-value">{{ trip.auto_distance_km != null ? `${trip.auto_distance_km} km` : '—' }}</span>
+                  <span class="stat-value">{{ formattedTotalDistance }}</span>
                   <span class="stat-label">Distance</span>
                 </div>
               </div>
@@ -78,8 +78,8 @@
               <div class="stat-box">
                 <Icon icon="lucide:indian-rupee" class="stat-icon text-green" />
                 <div class="stat-text">
-                  <span class="stat-value">{{ trip.fare != null ? trip.fare.toFixed(2) : '—' }}</span>
-                  <span class="stat-label">Fare</span>
+                  <span class="stat-value">{{ formattedRiderFare }}</span>
+                  <span class="stat-label">{{ trip.is_commission_applicable ? 'Commission' : 'Fare' }}</span>
                 </div>
               </div>
             </div>
@@ -114,8 +114,8 @@
                 </div>
                 <div class="route-content">
                   <p class="r-label">Pickup</p>
-                  <p class="r-address">{{ trip.pickup_location.address ?? formatCoords(trip.pickup_location) }}</p>
-                  <p class="r-coords">{{ formatCoords(trip.pickup_location) }}</p>
+                  <p class="r-address">{{ formatLocationAddress(trip.pickup_location) }}</p>
+                  <p class="r-coords">Lat, Lng: {{ formatCoords(trip.pickup_location) }}</p>
                 </div>
                 <button
                   type="button"
@@ -135,8 +135,8 @@
                 </div>
                 <div class="route-content">
                   <p class="r-label">Drop</p>
-                  <p class="r-address">{{ trip.drop_location.address ?? formatCoords(trip.drop_location) }}</p>
-                  <p class="r-coords">{{ formatCoords(trip.drop_location) }}</p>
+                  <p class="r-address">{{ formatLocationAddress(trip.drop_location) }}</p>
+                  <p class="r-coords">Lat, Lng: {{ formatCoords(trip.drop_location) }}</p>
                 </div>
                 <button
                   type="button"
@@ -294,6 +294,23 @@ const statusVariant = computed(() => {
 
 const formattedTime = computed(() => (trip.value ? formatISTTime(trip.value.start_time) : ''))
 
+const formattedRiderFare = computed(() => {
+  if (!trip.value?.fare && trip.value?.fare !== 0) return '—'
+  return `₹${trip.value.fare.toFixed(2)}`
+})
+
+const totalDistanceKm = computed(() => {
+  const autoKm = trip.value?.auto_distance_km
+  if (autoKm == null) return null
+  const multiplier = trip.value?.is_two_way ? 2 : 1
+  return autoKm * multiplier + (trip.value?.extra_km ?? 0)
+})
+
+const formattedTotalDistance = computed(() => {
+  if (totalDistanceKm.value == null) return '—'
+  return `${Number(totalDistanceKm.value.toFixed(2))} km`
+})
+
 const nextActionLabel = computed(() => {
   if (!trip.value) return null
   const state = trip.value.kanban_state
@@ -365,7 +382,7 @@ async function handleAdvance(): Promise<void> {
 
   if (isOneWayCompleting || isTwoWayCompleting) {
     const calculatedKm =
-      trip.value?.auto_distance_km != null ? `${trip.value.auto_distance_km} km` : '—'
+      totalDistanceKm.value != null ? `${Number(totalDistanceKm.value.toFixed(2))} km` : '—'
     const alert = await alertController.create({
       header: 'Complete Trip',
       message: `Are you sure you want to complete this trip? (Distance: ${calculatedKm})`,
@@ -443,6 +460,10 @@ function formatCoords(coords?: Coordinates | null): string {
     return 'Not available'
   }
   return `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`
+}
+
+function formatLocationAddress(coords?: (Coordinates & { address?: string }) | null): string {
+  return coords?.address?.trim() || 'Address not available'
 }
 </script>
 

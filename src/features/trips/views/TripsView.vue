@@ -171,8 +171,9 @@ function normalizeStatusQuery(value: string): TripKanbanState | null {
 }
 
 onMounted(() => {
-  if (route.query.date && typeof route.query.date === 'string') {
-    const dateValue = route.query.date.toLowerCase()
+  const dateQuery = route.query.x ?? route.query.date
+  if (dateQuery && typeof dateQuery === 'string') {
+    const dateValue = dateQuery.toLowerCase()
     if (dateValue === 'today' || dateValue === 'tomorrow' || dateValue === 'past') {
       dateFilter.value = dateValue as 'today' | 'tomorrow' | 'past'
     }
@@ -231,35 +232,35 @@ ion-toolbar {
 
 /* ── Filters Container ─────────────────────────────────────────────────── */
 .filters-container {
-  background: var(--color-surface);
-  padding: 12px 16px 16px;
+  background: rgba(249, 250, 251, 0.85);
+  padding: var(--spacing-3) var(--spacing-4);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.85); /* Light mode fallback */
-}
-
-@media (prefers-color-scheme: dark) {
-  .filters-container {
-    background: rgba(30, 30, 30, 0.85);
-  }
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
 }
 
 .date-filters {
-  margin-bottom: 16px;
-}
-ion-segment {
-  background: var(--color-background);
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
+
+ion-segment {
+  --background: transparent;
+  background: transparent;
+}
+
 ion-segment-button {
   --color: var(--color-text-muted);
-  --color-checked: var(--color-text);
-  --indicator-color: var(--color-surface);
+  --color-checked: var(--color-brand);
+  --indicator-color: var(--color-brand);
   --border-radius: var(--radius-md);
   margin: 0;
   min-height: 36px;
@@ -270,39 +271,39 @@ ion-segment-button {
 
 .status-filters {
   overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-  margin: 0 -16px;
-  padding: 0 16px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+
 .status-filters::-webkit-scrollbar {
   display: none;
 }
 
 .filter-chips {
-  display: inline-flex;
-  gap: 8px;
-  padding-bottom: 4px;
+  display: flex;
+  gap: var(--spacing-2);
+  padding: 4px 0;
 }
 
 .filter-chip {
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   white-space: nowrap;
-  background: var(--color-background);
-  color: var(--color-text-muted);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .filter-chip--active {
-  background: var(--color-text);
+  background: var(--color-brand);
   color: var(--color-surface);
-  border-color: var(--color-text);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
+  border-color: var(--color-brand);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
 }
 
 /* ── Content Area ──────────────────────────────────────────────────────── */

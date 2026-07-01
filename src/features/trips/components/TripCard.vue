@@ -30,11 +30,15 @@
       </div>
 
       <!-- Pickup Location -->
-      <div class="order-card__info-row">
+      <div class="order-card__info-row order-card__info-row--location">
         <div class="order-card__icon-container">
           <div class="route-dot route-dot--pickup"></div>
         </div>
-        <span class="order-card__address">{{ formatCoords(trip?.pickup_location) }}</span>
+        <div class="order-card__location-text">
+          <span class="order-card__location-label">Pickup Address</span>
+          <span class="order-card__address">{{ formatLocationAddress(trip?.pickup_location) }}</span>
+          <span class="order-card__coords">Lat, Lng: {{ formatCoords(trip?.pickup_location) }}</span>
+        </div>
         <button 
           v-if="hasCoordinates(trip?.pickup_location)" 
           class="nav-btn" 
@@ -45,11 +49,15 @@
       </div>
 
       <!-- Drop Location -->
-      <div class="order-card__info-row">
+      <div class="order-card__info-row order-card__info-row--location">
         <div class="order-card__icon-container">
           <div class="route-dot route-dot--drop"></div>
         </div>
-        <span class="order-card__address">{{ formatCoords(trip?.drop_location) }}</span>
+        <div class="order-card__location-text">
+          <span class="order-card__location-label">Drop Address</span>
+          <span class="order-card__address">{{ formatLocationAddress(trip?.drop_location) }}</span>
+          <span class="order-card__coords">Lat, Lng: {{ formatCoords(trip?.drop_location) }}</span>
+        </div>
         <button 
           v-if="hasCoordinates(trip?.drop_location)" 
           class="nav-btn" 
@@ -64,7 +72,7 @@
         <div class="order-card__icon-container">
           <Icon icon="lucide:map" class="order-card__icon" aria-hidden="true" />
         </div>
-        <span class="order-card__items" v-if="trip?.auto_distance_km != null">{{ trip?.auto_distance_km }} km</span>
+        <span class="order-card__items" v-if="totalDistance != null">{{ totalDistance }} km</span>
         <span class="order-card__items" v-else>Distance N/A</span>
 
         <span v-if="trip?.fare != null" class="order-card__total" style="margin-left: auto; font-weight: 800; color: var(--color-brand);">
@@ -126,11 +134,22 @@ const statusVariant = computed(() => {
   return 'warning'
 })
 
+const totalDistance = computed(() => {
+  const autoKm = props.trip?.auto_distance_km
+  if (autoKm == null) return null
+  const multiplier = props.trip?.is_two_way ? 2 : 1
+  return Number((autoKm * multiplier + (props.trip?.extra_km ?? 0)).toFixed(2))
+})
+
 function formatCoords(coords?: Coordinates): string {
   if (!coords || typeof coords?.latitude !== 'number' || typeof coords?.longitude !== 'number') {
     return 'Location not available'
   }
   return `${coords.latitude?.toFixed(5)}, ${coords.longitude?.toFixed(5)}`
+}
+
+function formatLocationAddress(coords?: Coordinates & { address?: string }): string {
+  return coords?.address?.trim() || 'Address not available'
 }
 
 function hasCoordinates(coords?: Coordinates): coords is Coordinates {
@@ -202,6 +221,10 @@ async function navTo(coords?: Coordinates) {
   gap: var(--spacing-3);
 }
 
+.order-card__info-row--location {
+  align-items: flex-start;
+}
+
 .order-card__icon-container {
   width: 28px;
   height: 28px;
@@ -240,7 +263,31 @@ async function navTo(coords?: Coordinates) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.order-card__location-text {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-card__location-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.order-card__coords {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .order-card__items {

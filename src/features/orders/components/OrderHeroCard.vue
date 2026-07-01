@@ -62,6 +62,10 @@
           <p class="masked-cell-value">{{ formatTime12(effective_start_time) }} - {{ formatTime12(effective_end_time) }}</p>
         </div>
       </div>
+      <div v-if="showAddressSummary && address" class="hero-summary-address">
+        <Icon icon="lucide:map-pin" class="detail-icon" />
+        <span class="hero-address">{{ address }}</span>
+      </div>
     </template>
   </div>
 </template>
@@ -82,6 +86,7 @@ const props = defineProps<{
   effective_end_time?: string
   phone?: string
   isCustomerHidden: boolean
+  showAddressSummary?: boolean
   showActions: boolean
   total: number
   date: string
@@ -299,5 +304,21 @@ defineEmits<{
   margin: 3px 0 0;
   font-size: 13px;
   font-weight: 700;
+}
+
+.hero-summary-address {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  position: relative;
+  z-index: 1;
 }
 </style>

@@ -1,3 +1,4 @@
+import type { OrderAddress } from '@/shared/models/order.model'
 import type { Coordinates } from './location.model'
 
 /**
@@ -61,6 +62,8 @@ export interface RawTrip {
           selected_start_time?: string
           surge_amount?: number
         }
+        address?: OrderAddress
+        delivery_address?: OrderAddress
       }
     | string
     | null
@@ -77,6 +80,9 @@ export interface RawTrip {
   order_time?: string
   zone_id?: string
   auto_distance_km?: number
+  extra_km?: number
+  is_commission_applicable?: boolean
+  commission_amount?: number
   fare?: number
   fare_calculation?: {
     trip_distance_km?: number
@@ -117,6 +123,9 @@ export interface Trip {
   notes?: string
   is_two_way?: boolean
   auto_distance_km?: number
+  extra_km?: number
+  is_commission_applicable?: boolean
+  commission_amount?: number
   fare_calculation?: RawTrip['fare_calculation']
   is_external_booking?: boolean
   external_booking_details?: {

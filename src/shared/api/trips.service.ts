@@ -13,6 +13,7 @@
 
 import { getOfficeId } from '@/shared/api/location.service'
 import apiClient from '@/shared/lib/api'
+import { formatCompactAddress } from '@/shared/lib/address'
 import type { Coordinates } from '@/shared/models/location.model'
 import type { RawTrip, Trip, TripKanbanState } from '@/shared/models/trip.model'
 
@@ -78,6 +79,12 @@ function normalizeTrip(raw: RawTrip): Trip {
   const scheduledStartTime = parseIstStartTime(orderDate, orderTime)
   const calculatedFare = raw.fare_calculation?.calculated_fare
   const calculatedDistance = raw.fare_calculation?.trip_distance_km
+  const riderFare =
+    raw.is_commission_applicable && raw.commission_amount != null
+      ? raw.commission_amount
+      : (raw.fare ?? calculatedFare)
+  const dropAddress = orderDetails?.delivery_address ?? orderDetails?.address
+  const dropAddressText = dropAddress ? formatCompactAddress(dropAddress) : undefined
 
   return {
     id: raw._id,
@@ -85,18 +92,21 @@ function normalizeTrip(raw: RawTrip): Trip {
     kanban_state: raw.kanban_state,
     start_time: scheduledStartTime ?? raw.created_at,
     pickup_location: geoJsonToCoords(raw.pickup_location),
-    drop_location: geoJsonToCoords(raw.drop_location),
+    drop_location: { ...geoJsonToCoords(raw.drop_location), address: dropAddressText },
     customer_name: customerName,
     order_number: orderNumber,
     order_date: orderDate,
     order_time: orderTime,
-    fare: raw.fare ?? calculatedFare,
+    fare: riderFare,
+    is_commission_applicable: raw.is_commission_applicable,
+    commission_amount: raw.commission_amount,
     fare_calculation: raw.fare_calculation,
     notes: raw.notes,
     created_at: raw.created_at,
     updated_at: raw.updated_at,
     is_two_way: raw.is_two_way,
-    auto_distance_km: calculatedDistance ?? raw.auto_distance_km,
+    auto_distance_km: raw.auto_distance_km ?? calculatedDistance,
+    extra_km: raw.extra_km,
     beautician_name: raw.beautician?.name ?? undefined,
     beautician_phone: raw.beautician?.phone ?? undefined,
   }
@@ -116,11 +126,6 @@ export async function getTrips(
 ): Promise<{ data: Trip[]; pagination?: any }> {
   if (!params.office_id) {
     params.office_id = await getOfficeId()
-  }
-
-  if (params.status && !params.kanban_state) {
-    params.kanban_state = params.status
-    delete params.status
   }
 
   const response = await apiClient.get<any>('/trips', { params })

@@ -123,10 +123,12 @@ export interface OrderAddress {
   line1?: string
   line2?: string
   street?: string
+  building_info?: string
   landmark?: string
   city?: string
   state?: string
   pincode?: string
+  gps?: string
   latitude?: number | string
   longitude?: number | string
 }
