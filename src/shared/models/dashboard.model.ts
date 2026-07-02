@@ -3,6 +3,11 @@
  */
 import type { Trip } from './trip.model'
 
+export interface DashboardImage {
+  url?: string
+  key?: string
+}
+
 export interface DashboardData {
   today: string
   today_count: number
@@ -24,4 +29,5 @@ export interface DashboardData {
   unread_notifications_count: number
   trips?: Trip[]
   leave_balance?: Record<string, number>
+  office_payment_qr_code?: DashboardImage
 }

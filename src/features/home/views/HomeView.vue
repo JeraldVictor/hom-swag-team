@@ -7,8 +7,21 @@
             <Icon icon="lucide:menu" class="header-icon" />
           </ion-button>
         </ion-buttons>
-        <ion-title class="header-title">HomSwag</ion-title>
+        <ion-title class="header-title">
+          <span class="header-title__content">
+            <Icon :icon="isBeautician ? 'lucide:crown' : 'lucide:bike'" class="header-title__icon" />
+            <span>Partner</span>
+          </span>
+        </ion-title>
         <ion-buttons slot="end">
+          <ion-button
+            v-if="paymentQrUrl"
+            class="header-icon-btn"
+            aria-label="Open payment QR code"
+            @click="openPaymentQr"
+          >
+            <Icon icon="lucide:qr-code" class="header-icon" />
+          </ion-button>
           <ion-button class="header-icon-btn" aria-label="Notifications" @click="router.push('/notifications')">
             <div class="notif-wrap">
               <Icon icon="lucide:bell" class="header-icon" />
@@ -295,6 +308,19 @@
         <div class="bottom-spacer" />
       </template>
     </ion-content>
+
+    <ion-modal :is-open="showPaymentQr" class="qr-modal" @didDismiss="showPaymentQr = false">
+      <div class="qr-modal__container">
+        <div class="qr-modal__header">
+          <button class="qr-modal__close" aria-label="Close payment QR code" @click="showPaymentQr = false">
+            <Icon icon="lucide:x" />
+          </button>
+        </div>
+        <div class="qr-modal__content">
+          <img v-if="paymentQrUrl" :src="paymentQrUrl" class="qr-modal__image" alt="Office payment QR code" />
+        </div>
+      </div>
+    </ion-modal>
   </ion-page>
 </template>
 
@@ -330,6 +356,7 @@ const orders = ref<Order[]>([])
 const trips = ref<Trip[]>([])
 const hasComplaints = ref(false)
 const isLoading = ref(false)
+const showPaymentQr = ref(false)
 
 // ── Computed: user info ────────────────────────────────────────────────────
 
@@ -479,6 +506,8 @@ const leaveBalanceEntries = computed(() => {
 
 const unreadNotificationsCount = computed(() => dashboard.value?.unread_notifications_count ?? 0)
 
+const paymentQrUrl = computed(() => mediaUrl(dashboard.value?.office_payment_qr_code?.url ?? ''))
+
 // ── Fetch ──────────────────────────────────────────────────────────────────
 
 async function fetchAll(): Promise<void> {
@@ -551,6 +580,11 @@ function goTo(path: string, query?: Record<string, string>): void {
   router.push({ path, query })
 }
 
+function openPaymentQr(): void {
+  if (!paymentQrUrl.value) return
+  showPaymentQr.value = true
+}
+
 function formatAmount(val?: number): string {
   if (val == null) return '₹0'
   return `₹${val.toLocaleString('en-IN')}`
@@ -583,6 +617,18 @@ watch([isBeautician, isRider], ([newB, newR]) => {
   color: var(--color-brand);
 }
 
+.header-title__content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.header-title__icon {
+  flex: 0 0 auto;
+  font-size: 20px;
+}
+
 .header-icon-btn {
   --background: transparent;
   --background-activated: transparent;
@@ -594,6 +640,54 @@ watch([isBeautician, isRider], ([newB, newR]) => {
 }
 
 .header-icon { font-size: 22px; }
+
+.qr-modal {
+  --background: rgba(0, 0, 0, 0.95);
+  --width: 100%;
+  --height: 100%;
+}
+
+.qr-modal__container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.qr-modal__header {
+  display: flex;
+  justify-content: flex-end;
+  padding: env(safe-area-inset-top, 12px) 16px 12px;
+}
+
+.qr-modal__close {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.qr-modal__content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.qr-modal__image {
+  max-width: min(100%, 420px);
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #fff;
+}
 
 .notif-wrap {
   position: relative;

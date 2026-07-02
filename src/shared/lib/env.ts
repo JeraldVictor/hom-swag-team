@@ -5,6 +5,8 @@
  * the app can rely on a stable typed object and feature flags.
  */
 
+import pkg from '../../../package.json'
+
 export const ENV = {
   MODE: import.meta.env.MODE,
   DEV: import.meta.env.DEV,
@@ -19,6 +21,7 @@ export const ENV = {
   VITE_GOOGLE_MAPS_API_KEY: (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined) ?? '',
   VITE_FEATURE_MAPS: import.meta.env.VITE_FEATURE_MAPS === 'true',
   VITE_FEATURE_DIRECTIONS: import.meta.env.VITE_FEATURE_DIRECTIONS === 'true',
+  VITE_APP_VERSION: (import.meta.env.VITE_APP_VERSION as string | undefined) ?? pkg.version,
 } as const
 
 export type EnvValues = typeof ENV

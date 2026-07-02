@@ -15,6 +15,7 @@ interface ImportMetaEnv {
   readonly VITE_WS_URL: string
   readonly VITE_FEATURE_MAPS: string
   readonly VITE_FEATURE_DIRECTIONS: string
+  readonly VITE_APP_VERSION: string
 }
 
 interface ImportMeta {

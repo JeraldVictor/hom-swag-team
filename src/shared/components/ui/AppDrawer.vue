@@ -20,11 +20,14 @@
       <!-- ── User profile header ──────────────────────────────────────── -->
       <div class="drawer-profile">
         <!-- Brand logo -->
-        <img
-          src="@/shared/images/HomSwagLogoWhite.png"
-          alt="HomSwag"
-          class="drawer-brand-logo"
-        />
+        <div class="drawer-brand-row">
+          <img
+            src="@/shared/images/HomSwagLogoWhite.png"
+            alt="HomSwag"
+            class="drawer-brand-logo"
+          />
+          <span class="drawer-version">v{{ appVersion }}</span>
+        </div>
 
         <!-- User row -->
         <div class="drawer-profile__user">
@@ -122,6 +125,7 @@ import { useDrawer } from '@/shared/composables/useDrawer'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUserTypeStore } from '@/shared/stores/userType'
 import { mediaUrl } from '@/shared/lib/media'
+import { ENV } from '@/shared/lib/env'
 
 const router = useRouter()
 const route = useRoute()
@@ -131,6 +135,7 @@ const userTypeStore = useUserTypeStore()
 const { user } = storeToRefs(authStore)
 const { isBeautician, isRider } = storeToRefs(userTypeStore)
 const { isDrawerOpen, closeDrawer } = useDrawer()
+const appVersion = ENV.VITE_APP_VERSION
 
 // ── Derived user info ──────────────────────────────────────────────────────
 
@@ -267,7 +272,25 @@ async function handleLogout(): Promise<void> {
   height: 32px;
   width: auto;
   object-fit: contain;
+}
+
+.drawer-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   align-self: flex-start;
+}
+
+.drawer-version {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
 }
 
 .drawer-profile__user {

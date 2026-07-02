@@ -5,6 +5,7 @@ import { config as loadDotenv } from '@dotenvx/dotenvx'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 import { mobileConsolePlugin } from './plugins/mobile-console'
+import pkg from './package.json'
 
 function loadEnvironmentFiles(mode: string) {
   const isProdMode = mode === 'production' || mode === 'prod'
@@ -36,6 +37,7 @@ export default defineConfig(({ mode }) => {
     VITE_GOOGLE_MAPS_API_KEY: process.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
     VITE_FEATURE_MAPS: process.env.VITE_FEATURE_MAPS ?? 'false',
     VITE_FEATURE_DIRECTIONS: process.env.VITE_FEATURE_DIRECTIONS ?? 'false',
+    VITE_APP_VERSION: process.env.VITE_APP_VERSION ?? pkg.version,
   }
 
   return {
