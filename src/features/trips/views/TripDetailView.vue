@@ -116,6 +116,7 @@
                   <p class="r-label">Pickup</p>
                   <p class="r-address">{{ formatLocationAddress(trip.pickup_location) }}</p>
                   <p class="r-coords">Lat, Lng: {{ formatCoords(trip.pickup_location) }}</p>
+                  <p v-if="trip.pickup_note" class="route-note">{{ trip.pickup_note }}</p>
                 </div>
                 <button
                   type="button"
@@ -137,6 +138,7 @@
                   <p class="r-label">Drop</p>
                   <p class="r-address">{{ formatLocationAddress(trip.drop_location) }}</p>
                   <p class="r-coords">Lat, Lng: {{ formatCoords(trip.drop_location) }}</p>
+                  <p v-if="trip.drop_note" class="route-note">{{ trip.drop_note }}</p>
                 </div>
                 <button
                   type="button"
@@ -182,9 +184,22 @@
           </div>
 
           <!-- Notes -->
-          <div v-if="trip.notes" class="notes-box">
+          <div v-if="hasTripNotes" class="notes-box">
             <Icon icon="lucide:file-text" class="notes-icon" />
-            <p>{{ trip.notes }}</p>
+            <div class="notes-content">
+              <div v-if="trip.notes" class="note-row">
+                <span>Note</span>
+                <p>{{ trip.notes }}</p>
+              </div>
+              <div v-if="trip.pickup_note" class="note-row">
+                <span>Pickup note</span>
+                <p>{{ trip.pickup_note }}</p>
+              </div>
+              <div v-if="trip.drop_note" class="note-row">
+                <span>Drop note</span>
+                <p>{{ trip.drop_note }}</p>
+              </div>
+            </div>
           </div>
           <div class="bottom-spacer" />
         </div>
@@ -310,6 +325,10 @@ const formattedTotalDistance = computed(() => {
   if (totalDistanceKm.value == null) return '—'
   return `${Number(totalDistanceKm.value.toFixed(2))} km`
 })
+
+const hasTripNotes = computed(() =>
+  Boolean(trip.value?.notes || trip.value?.pickup_note || trip.value?.drop_note)
+)
 
 const nextActionLabel = computed(() => {
   if (!trip.value) return null
@@ -805,6 +824,17 @@ function formatLocationAddress(coords?: (Coordinates & { address?: string }) | n
   font-family: monospace;
 }
 
+.route-note {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
 .nav-icon-btn {
   width: 40px;
   height: 40px;
@@ -879,7 +909,24 @@ function formatLocationAddress(coords?: (Coordinates & { address?: string }) | n
   flex-shrink: 0;
 }
 
-.notes-box p {
+.notes-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.note-row span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #b45309;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.note-row p {
   margin: 0;
   font-size: 13px;
   color: #92400e;

@@ -102,6 +102,8 @@ function normalizeTrip(raw: RawTrip): Trip {
     commission_amount: raw.commission_amount,
     fare_calculation: raw.fare_calculation,
     notes: raw.notes,
+    pickup_note: raw.pickup_note,
+    drop_note: raw.drop_note,
     created_at: raw.created_at,
     updated_at: raw.updated_at,
     is_two_way: raw.is_two_way,

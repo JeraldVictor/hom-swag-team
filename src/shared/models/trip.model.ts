@@ -92,6 +92,8 @@ export interface RawTrip {
     calculated_at?: string
   }
   notes?: string
+  pickup_note?: string
+  drop_note?: string
   beautician?: {
     name?: string | null
     phone?: string | null
@@ -121,6 +123,8 @@ export interface Trip {
   created_at?: string
   updated_at?: string
   notes?: string
+  pickup_note?: string
+  drop_note?: string
   is_two_way?: boolean
   auto_distance_km?: number
   extra_km?: number
