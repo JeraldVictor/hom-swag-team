@@ -15,6 +15,11 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Login',
     component: () => import('@/features/auth/views/LoginView.vue'),
   },
+  {
+    path: '/impersonate',
+    name: 'Impersonate',
+    component: () => import('@/features/auth/views/ImpersonateView.vue'),
+  },
 
   // ── Utility pages (no tabs) ─────────────────────────────────────────────
   {
@@ -205,7 +210,7 @@ const router = createRouter({
 
 router.beforeEach(async to => {
   // Allow navigation to the offline / error utility pages regardless of state
-  const alwaysAllowed = ['Error', 'PageNotFound']
+  const alwaysAllowed = ['Error', 'PageNotFound', 'Impersonate']
   if (to.name && alwaysAllowed.includes(to.name as string)) {
     return
   }
