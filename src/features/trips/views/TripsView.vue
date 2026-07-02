@@ -134,8 +134,8 @@ import {
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables'
-import type { TripKanbanState } from '@/shared/models/trip.model'
-import { KANBAN_STATE } from '@/shared/models/trip.model'
+import { TRIP_STATUS } from '@/shared/models/trip.model'
+import type { TripStatus } from '@/shared/models/trip.model'
 import TripCard from '../components/TripCard.vue'
 import { type TripStatusFilter, useTrips } from '../composables/useTrips'
 
@@ -154,12 +154,13 @@ const {
 } = useTrips()
 const { openDrawer } = useDrawer()
 
-const statusOptions: { value: TripKanbanState; label: string }[] = [
-  { value: KANBAN_STATE.ASSIGNED, label: 'Assigned' },
-  { value: KANBAN_STATE.TRIP_STARTED, label: 'Started' },
-  { value: KANBAN_STATE.DROPPED_AND_WAITING, label: 'Waiting' },
-  { value: KANBAN_STATE.TRIP_COMPLETED, label: 'Completed' },
-  { value: KANBAN_STATE.CANCELLED, label: 'Cancelled' },
+const statusOptions: { value: TripStatus; label: string }[] = [
+  { value: TRIP_STATUS.ASSIGNED, label: 'Assigned' },
+  { value: TRIP_STATUS.STARTED, label: 'Started' },
+  { value: TRIP_STATUS.DROPPED_AND_WAITING, label: 'Waiting' },
+  { value: TRIP_STATUS.ATTENTION_NEEDED, label: 'Attention' },
+  { value: TRIP_STATUS.COMPLETED, label: 'Completed' },
+  { value: TRIP_STATUS.CANCELLED, label: 'Cancelled' },
 ]
 
 function openMenu(): void {
@@ -169,14 +170,14 @@ function openMenu(): void {
 function normalizeStatusQuery(value: string): TripStatusFilter | null {
   const normalized = value.trim().toLowerCase()
   if (normalized === 'all') return 'all'
-  if (normalized === 'completed') return 'trip_completed'
-  if (normalized === 'started') return 'trip_started'
+  if (normalized === 'completed') return 'completed'
+  if (normalized === 'attention' || normalized === 'attention_needed') return 'attention_needed'
+  if (normalized === 'started' || normalized === 'trip_started') return 'started'
   if (normalized === 'waiting' || normalized === 'dropped_and_waiting') return 'dropped_and_waiting'
-  if (normalized === 'assigned') return 'assigned'
+  if (normalized === 'assigned' || normalized === 'viewed_by_rider') return 'assigned'
   if (normalized === 'cancelled') return 'cancelled'
-  if (normalized === 'viewed_by_rider') return 'viewed_by_rider'
-  if (normalized === 'trip_started') return 'trip_started'
-  if (normalized === 'trip_completed') return 'trip_completed'
+  if (normalized === 'trip_completed' || normalized === 'fare_calculation_pending')
+    return 'completed'
   return null
 }
 

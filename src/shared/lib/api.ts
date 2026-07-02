@@ -315,6 +315,33 @@ const apiClient: AxiosInstance = axios.create({
   },
 })
 
+function applyNoCachePolicy(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+  config.headers.set('Cache-Control', 'no-store, no-cache, max-age=0, must-revalidate')
+  config.headers.set('Pragma', 'no-cache')
+  config.headers.set('Expires', '0')
+
+  if ((config.method ?? 'get').toLowerCase() !== 'get') {
+    return config
+  }
+
+  if (config.params instanceof URLSearchParams) {
+    config.params.set('_cacheBust', String(Date.now()))
+    return config
+  }
+
+  const params =
+    config.params && typeof config.params === 'object' && !Array.isArray(config.params)
+      ? { ...(config.params as Record<string, unknown>) }
+      : {}
+
+  config.params = {
+    ...params,
+    _cacheBust: Date.now(),
+  }
+
+  return config
+}
+
 // ---------------------------------------------------------------------------
 // Dev-only API logger — request + response/error
 // ---------------------------------------------------------------------------
@@ -409,6 +436,15 @@ apiClient.interceptors.request.use(
 
     return config
   },
+  error => Promise.reject(error)
+)
+
+// ---------------------------------------------------------------------------
+// Request interceptor — never reuse client-side cached API responses
+// ---------------------------------------------------------------------------
+
+apiClient.interceptors.request.use(
+  config => applyNoCachePolicy(config),
   error => Promise.reject(error)
 )
 

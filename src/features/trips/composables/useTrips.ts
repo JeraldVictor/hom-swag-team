@@ -8,9 +8,10 @@ import type { Ref } from 'vue'
 import { readonly, ref, watch } from 'vue'
 import { getOfficeId } from '@/shared/api/location.service'
 import { getTrips } from '@/shared/api/trips.service'
-import type { Trip, TripKanbanState } from '@/shared/models/trip.model'
+import { TRIP_STATUS } from '@/shared/models/trip.model'
+import type { Trip, TripStatus } from '@/shared/models/trip.model'
 
-export type TripStatusFilter = TripKanbanState | 'all'
+export type TripStatusFilter = TripStatus | 'all'
 
 export interface UseTripsReturn {
   trips: Readonly<Ref<Trip[]>>
@@ -31,7 +32,7 @@ export function useTrips(): UseTripsReturn {
   const error = ref<string | null>(null)
 
   const dateFilter = ref<'today' | 'tomorrow' | 'past'>('today')
-  const statusFilter = ref<TripStatusFilter>('assigned')
+  const statusFilter = ref<TripStatusFilter>(TRIP_STATUS.ASSIGNED)
   const searchQuery = ref('')
   const currentPage = ref(1)
   const hasMore = ref(true)

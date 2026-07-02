@@ -1,3 +1,5 @@
+import type { TripStatus } from './trip.model'
+
 /**
  * Progression states for a beautician's service order.
  */
@@ -190,6 +192,7 @@ export interface OrderTrip {
   id?: string
   _id?: string
   trip_number?: string
+  status?: TripStatus
   kanban_state?: string
   start_time?: string
   end_time?: string

@@ -7,10 +7,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TripKanbanState } from '@/shared/models/trip.model'
+import type { TripKanbanState, TripStatus } from '@/shared/models/trip.model'
 
 interface Props {
-  state: TripKanbanState
+  state: TripKanbanState | TripStatus
 }
 
 const props = defineProps<Props>()
@@ -19,18 +19,23 @@ const label = computed(() => {
   switch (props.state) {
     case 'requests':
       return 'Requested'
+    case 'scheduled':
     case 'assigned':
       return 'Assigned'
     case 'viewed_by_rider':
-      return 'Viewed'
+      return 'Assigned'
+    case 'started':
+    case 'in_progress':
     case 'trip_started':
       return 'Trip Started'
     case 'dropped_and_waiting':
       return 'Drop & Wait'
     case 'trip_completed':
-      return 'Trip Completed'
+      return 'Completed'
     case 'fare_calculation_pending':
-      return 'Fare Calculated'
+      return 'Completed'
+    case 'attention_needed':
+      return 'Attention Needed'
     case 'completed':
       return 'Completed'
     case 'cancelled':
@@ -43,17 +48,22 @@ const label = computed(() => {
 const colorClass = computed(() => {
   switch (props.state) {
     case 'requests':
+    case 'scheduled':
     case 'assigned':
       return 'info'
     case 'viewed_by_rider':
       return 'warning'
+    case 'started':
+    case 'in_progress':
     case 'trip_started':
     case 'dropped_and_waiting':
       return 'brand'
     case 'trip_completed':
-      return 'success'
     case 'fare_calculation_pending':
     case 'completed':
+      return 'success'
+    case 'attention_needed':
+      return 'warning'
     case 'cancelled':
       return 'muted'
     default:

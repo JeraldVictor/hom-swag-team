@@ -15,6 +15,7 @@ export enum KANBAN_STATE {
   FARE_CALCULATION_PENDING = 'fare_calculation_pending',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+  ATTENTION_NEEDED = 'attention_needed',
 }
 
 export type TripKanbanState =
@@ -25,8 +26,22 @@ export type TripKanbanState =
   | 'dropped_and_waiting'
   | 'trip_completed'
   | 'fare_calculation_pending'
+  | 'attention_needed'
   | 'completed'
   | 'cancelled'
+
+export enum TRIP_STATUS {
+  SCHEDULED = 'scheduled',
+  ASSIGNED = 'assigned',
+  IN_PROGRESS = 'in_progress',
+  STARTED = 'started',
+  DROPPED_AND_WAITING = 'dropped_and_waiting',
+  ATTENTION_NEEDED = 'attention_needed',
+  CANCELLED = 'cancelled',
+  COMPLETED = 'completed',
+}
+
+export type TripStatus = `${TRIP_STATUS}`
 
 /**
  * Raw GeoJSON Point as returned by the API.
@@ -69,7 +84,9 @@ export interface RawTrip {
     | null
   pickup_location: GeoJsonPoint
   drop_location: GeoJsonPoint
-  status: string
+  status?: TripStatus
+  is_viewed?: boolean
+  viewed_at?: string
   trip_number: string
   kanban_state: TripKanbanState
   is_two_way: boolean
@@ -94,6 +111,7 @@ export interface RawTrip {
   notes?: string
   pickup_note?: string
   drop_note?: string
+  attention_note?: string
   beautician?: {
     name?: string | null
     phone?: string | null
@@ -107,7 +125,10 @@ export interface RawTrip {
 export interface Trip {
   id: string
   trip_number: string
+  status: TripStatus
   kanban_state: TripKanbanState
+  is_viewed?: boolean
+  viewed_at?: string
   /** ISO 8601 — derived from scheduled order time or created_at fallback */
   start_time: string
   pickup_location: Coordinates & { address?: string }
@@ -125,6 +146,7 @@ export interface Trip {
   notes?: string
   pickup_note?: string
   drop_note?: string
+  attention_note?: string
   is_two_way?: boolean
   auto_distance_km?: number
   extra_km?: number

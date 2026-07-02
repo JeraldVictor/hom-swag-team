@@ -98,6 +98,7 @@ import AppBadge from '@/shared/components/ui/AppBadge.vue'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, formatTime12 } from '@/shared/lib/datetime'
 import type { Coordinates } from '@/shared/models/location.model'
+import { TRIP_STATUS } from '@/shared/models/trip.model'
 import type { Trip } from '@/shared/models/trip.model'
 
 interface Props {
@@ -113,24 +114,27 @@ const formattedDate = computed(() =>
 )
 
 const formattedStatus = computed(() => {
-  const s = props.trip.kanban_state
-  if (s === 'assigned') return 'Assigned'
-  if (s === 'viewed_by_rider') return 'Viewed'
-  if (s === 'trip_started') return 'Started'
-  if (s === 'dropped_and_waiting') return 'Waiting'
-  if (s === 'trip_completed') return 'Completed'
-  if (s === 'fare_calculation_pending') return 'Fare Pending'
-  if (s === 'completed') return 'Completed'
-  if (s === 'cancelled') return 'Cancelled'
+  const s = props.trip.status
+  if (s === TRIP_STATUS.ASSIGNED || s === TRIP_STATUS.SCHEDULED) return 'Assigned'
+  if (s === TRIP_STATUS.STARTED || s === TRIP_STATUS.IN_PROGRESS) return 'Started'
+  if (s === TRIP_STATUS.DROPPED_AND_WAITING) return 'Waiting'
+  if (s === TRIP_STATUS.ATTENTION_NEEDED) return 'Attention Needed'
+  if (s === TRIP_STATUS.COMPLETED) return 'Completed'
+  if (s === TRIP_STATUS.CANCELLED) return 'Cancelled'
   return 'Pending'
 })
 
 const statusVariant = computed(() => {
-  const s = props.trip.kanban_state
-  if (s === 'completed' || s === 'trip_completed') return 'success'
-  if (s === 'trip_started' || s === 'dropped_and_waiting' || s === 'fare_calculation_pending')
+  const s = props.trip.status
+  if (s === TRIP_STATUS.COMPLETED) return 'success'
+  if (
+    s === TRIP_STATUS.STARTED ||
+    s === TRIP_STATUS.IN_PROGRESS ||
+    s === TRIP_STATUS.DROPPED_AND_WAITING
+  )
     return 'brand'
-  if (s === 'cancelled') return 'danger'
+  if (s === TRIP_STATUS.ATTENTION_NEEDED) return 'warning'
+  if (s === TRIP_STATUS.CANCELLED) return 'danger'
   return 'warning'
 })
 

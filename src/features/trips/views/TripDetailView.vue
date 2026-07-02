@@ -199,12 +199,59 @@
                 <span>Drop note</span>
                 <p>{{ trip.drop_note }}</p>
               </div>
+              <div v-if="trip.attention_note" class="note-row note-row--attention">
+                <span>Concern note</span>
+                <p>{{ trip.attention_note }}</p>
+              </div>
             </div>
           </div>
           <div class="bottom-spacer" />
         </div>
       </template>
     </ion-content>
+
+    <ion-modal
+      :is-open="isConcernModalOpen"
+      :initial-breakpoint="0.46"
+      :breakpoints="[0, 0.46, 0.78]"
+      handle-behavior="cycle"
+      class="concern-modal"
+      @didDismiss="isConcernModalOpen = false"
+    >
+      <ion-header class="ion-no-border concern-modal__header">
+        <ion-toolbar>
+          <ion-title>Raise Concern</ion-title>
+          <ion-buttons slot="end">
+            <ion-button :disabled="isUpdating" @click="closeConcernModal">Cancel</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="concern-modal__content">
+        <div class="concern-form">
+          <p class="concern-form__hint">Share what needs review. This note is optional.</p>
+          <ion-textarea
+            v-model="concernNote"
+            class="concern-textarea"
+            label="Concern note"
+            label-placement="stacked"
+            placeholder="Optional note for staff or admin..."
+            :auto-grow="true"
+            :counter="true"
+            :maxlength="1000"
+            :disabled="isUpdating"
+          />
+          <ion-button
+            expand="block"
+            class="concern-submit"
+            :disabled="isUpdating"
+            @click="submitConcern"
+          >
+            <ion-spinner v-if="isUpdating" name="crescent" class="btn-spinner" />
+            Request Review
+          </ion-button>
+        </div>
+      </ion-content>
+    </ion-modal>
 
     <!-- Action Footer -->
     <ion-footer v-if="trip" class="modern-footer ion-no-border">
@@ -230,6 +277,15 @@
           <ion-spinner v-if="isUpdating" name="crescent" class="btn-spinner" />
           {{ nextActionLabel }}
         </button>
+        <button
+          v-if="canRaiseConcern"
+          class="btn-secondary-action"
+          :disabled="isUpdating"
+          @click="openConcernModal"
+        >
+          <ion-spinner v-if="isUpdating" name="crescent" class="btn-spinner" />
+          Raise Concern
+        </button>
       </div>
     </ion-footer>
   </ion-page>
@@ -247,7 +303,8 @@ import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTTime } from '@/shared/lib/datetime'
 import { FEATURES } from '@/shared/lib/feature-flags'
 import type { Coordinates, PlaceResult } from '@/shared/models/location.model'
-import type { TripKanbanState } from '@/shared/models/trip.model'
+import type { TripStatus } from '@/shared/models/trip.model'
+import { TRIP_STATUS } from '@/shared/models/trip.model'
 import { useTripDetail } from '../composables/useTripDetail'
 
 // ── Route param ────────────────────────────────────────────────────────────
@@ -273,6 +330,8 @@ const dropQuery = ref('')
 const overridePickup = ref<PlaceResult | null>(null)
 const overrideDrop = ref<PlaceResult | null>(null)
 const mapInstance = ref<google.maps.Map | null>(null)
+const isConcernModalOpen = ref(false)
+const concernNote = ref('')
 
 const effectiveDrop = computed<Coordinates | null>(() => {
   if (overrideDrop.value) return overrideDrop.value.coordinates
@@ -286,24 +345,27 @@ const mapHeight = '40vh'
 // ── Computed ───────────────────────────────────────────────────────────────
 
 const formattedStatus = computed(() => {
-  const s = trip.value?.kanban_state
-  if (s === 'assigned') return 'Assigned'
-  if (s === 'viewed_by_rider') return 'Viewed'
-  if (s === 'trip_started') return 'Started'
-  if (s === 'dropped_and_waiting') return 'Waiting'
-  if (s === 'trip_completed') return 'Completed'
-  if (s === 'fare_calculation_pending') return 'Fare Pending'
-  if (s === 'completed') return 'Completed'
-  if (s === 'cancelled') return 'Cancelled'
+  const s = trip.value?.status
+  if (s === TRIP_STATUS.ASSIGNED || s === TRIP_STATUS.SCHEDULED) return 'Assigned'
+  if (s === TRIP_STATUS.STARTED || s === TRIP_STATUS.IN_PROGRESS) return 'Started'
+  if (s === TRIP_STATUS.DROPPED_AND_WAITING) return 'Waiting'
+  if (s === TRIP_STATUS.ATTENTION_NEEDED) return 'Attention Needed'
+  if (s === TRIP_STATUS.COMPLETED) return 'Completed'
+  if (s === TRIP_STATUS.CANCELLED) return 'Cancelled'
   return 'Pending'
 })
 
 const statusVariant = computed(() => {
-  const s = trip.value?.kanban_state
-  if (s === 'completed' || s === 'trip_completed') return 'success'
-  if (s === 'trip_started' || s === 'dropped_and_waiting' || s === 'fare_calculation_pending')
+  const s = trip.value?.status
+  if (s === TRIP_STATUS.COMPLETED) return 'success'
+  if (
+    s === TRIP_STATUS.STARTED ||
+    s === TRIP_STATUS.IN_PROGRESS ||
+    s === TRIP_STATUS.DROPPED_AND_WAITING
+  )
     return 'brand'
-  if (s === 'cancelled') return 'danger'
+  if (s === TRIP_STATUS.ATTENTION_NEEDED) return 'warning'
+  if (s === TRIP_STATUS.CANCELLED) return 'danger'
   return 'warning'
 })
 
@@ -327,15 +389,23 @@ const formattedTotalDistance = computed(() => {
 })
 
 const hasTripNotes = computed(() =>
-  Boolean(trip.value?.notes || trip.value?.pickup_note || trip.value?.drop_note)
+  Boolean(
+    trip.value?.notes ||
+      trip.value?.pickup_note ||
+      trip.value?.drop_note ||
+      trip.value?.attention_note
+  )
 )
+
+const canRaiseConcern = computed(() => trip.value?.status === TRIP_STATUS.COMPLETED)
 
 const nextActionLabel = computed(() => {
   if (!trip.value) return null
-  const state = trip.value.kanban_state
-  if (state === 'viewed_by_rider') return 'Start Trip'
-  if (state === 'trip_started') return trip.value.is_two_way ? 'Drop & Wait' : 'Complete Trip'
-  if (state === 'dropped_and_waiting') return 'Complete Trip'
+  const status = trip.value.status
+  if (status === TRIP_STATUS.ASSIGNED || status === TRIP_STATUS.SCHEDULED) return 'Start Trip'
+  if (status === TRIP_STATUS.STARTED || status === TRIP_STATUS.IN_PROGRESS)
+    return trip.value.is_two_way ? 'Drop & Wait' : 'Complete Trip'
+  if (status === TRIP_STATUS.DROPPED_AND_WAITING) return 'Complete Trip'
   return null
 })
 
@@ -347,20 +417,22 @@ onMounted(() => {
 
 onIonViewWillEnter(async () => {
   await fetchTrip(tripId.value)
-  // Auto-transition to viewed if it is assigned
-  if (trip.value?.kanban_state === 'assigned') {
-    await advanceStatus('viewed_by_rider')
-  }
 })
 
-// Auto-start tracking when trip enters "Trip Started" state
+// Auto-start tracking when trip enters the started status
 watch(
-  () => trip.value?.kanban_state,
-  async state => {
-    if (state === 'trip_started' && !isTracking.value) {
+  () => trip.value?.status,
+  async status => {
+    if (
+      (status === TRIP_STATUS.STARTED || status === TRIP_STATUS.IN_PROGRESS) &&
+      !isTracking.value
+    ) {
       await startTracking()
     }
-    if ((state === 'trip_completed' || state === 'completed') && isTracking.value) {
+    if (
+      (status === TRIP_STATUS.COMPLETED || status === TRIP_STATUS.CANCELLED) &&
+      isTracking.value
+    ) {
       await stopTracking()
     }
   }
@@ -396,8 +468,11 @@ async function toggleTracking(): Promise<void> {
 }
 
 async function handleAdvance(): Promise<void> {
-  const isOneWayCompleting = trip.value?.kanban_state === 'trip_started' && !trip.value?.is_two_way
-  const isTwoWayCompleting = trip.value?.kanban_state === 'dropped_and_waiting'
+  const isOneWayCompleting =
+    (trip.value?.status === TRIP_STATUS.STARTED ||
+      trip.value?.status === TRIP_STATUS.IN_PROGRESS) &&
+    !trip.value?.is_two_way
+  const isTwoWayCompleting = trip.value?.status === TRIP_STATUS.DROPPED_AND_WAITING
 
   if (isOneWayCompleting || isTwoWayCompleting) {
     const calculatedKm =
@@ -410,7 +485,7 @@ async function handleAdvance(): Promise<void> {
         {
           text: 'Complete',
           handler: async () => {
-            await advanceStatus('completed')
+            await advanceStatus(TRIP_STATUS.COMPLETED)
             if (!error.value) {
               showSuccess('Trip marked as completed!')
             } else {
@@ -424,14 +499,41 @@ async function handleAdvance(): Promise<void> {
     return
   }
 
-  let overrideState: TripKanbanState | undefined
-  if (trip.value?.kanban_state === 'trip_started' && trip.value?.is_two_way) {
-    overrideState = 'dropped_and_waiting'
+  let overrideStatus: TripStatus | undefined
+  if (
+    (trip.value?.status === TRIP_STATUS.STARTED ||
+      trip.value?.status === TRIP_STATUS.IN_PROGRESS) &&
+    trip.value?.is_two_way
+  ) {
+    overrideStatus = TRIP_STATUS.DROPPED_AND_WAITING
   }
 
-  await advanceStatus(overrideState)
+  await advanceStatus(overrideStatus)
   if (!error.value) {
-    showSuccess(`Status updated to: ${trip.value?.kanban_state}`)
+    showSuccess(`Status updated to: ${formattedStatus.value}`)
+  } else {
+    showError(error.value)
+  }
+}
+
+function openConcernModal(): void {
+  if (!trip.value || !canRaiseConcern.value) return
+  concernNote.value = trip.value.attention_note ?? ''
+  isConcernModalOpen.value = true
+}
+
+function closeConcernModal(): void {
+  if (isUpdating.value) return
+  isConcernModalOpen.value = false
+}
+
+async function submitConcern(): Promise<void> {
+  if (!trip.value || !canRaiseConcern.value) return
+
+  await advanceStatus(TRIP_STATUS.ATTENTION_NEEDED, undefined, concernNote.value.trim())
+  if (!error.value) {
+    isConcernModalOpen.value = false
+    showSuccess('Concern sent for review')
   } else {
     showError(error.value)
   }
@@ -934,6 +1036,11 @@ function formatLocationAddress(coords?: (Coordinates & { address?: string }) | n
   font-weight: 500;
 }
 
+.note-row--attention span,
+.note-row--attention p {
+  color: #b45309;
+}
+
 /* ── Location Override ───────────────────────────────────────────────────── */
 .override-card {
   padding: 0;
@@ -989,6 +1096,78 @@ function formatLocationAddress(coords?: (Coordinates & { address?: string }) | n
   margin-top: 8px;
 }
 .btn-apply-override:disabled { opacity: 0.5; }
+
+/* ── Concern Modal ───────────────────────────────────────────────────────── */
+.concern-modal {
+  --border-radius: 24px 24px 0 0;
+  --height: 100%;
+  --max-height: 100%;
+  --width: 100%;
+}
+
+.concern-modal__header ion-toolbar {
+  --background: var(--color-surface);
+  --color: var(--color-text);
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
+.concern-modal__header ion-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.concern-modal__header ion-button {
+  --color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
+.concern-modal__content {
+  --background: var(--color-surface);
+}
+
+.concern-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 20px 28px;
+}
+
+.concern-form__hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.concern-textarea {
+  --background: var(--color-background);
+  --border-color: var(--color-border);
+  --border-radius: 14px;
+  --border-style: solid;
+  --border-width: 1px;
+  --color: var(--color-text);
+  --highlight-color-focused: var(--color-brand);
+  --padding-bottom: 12px;
+  --padding-end: 12px;
+  --padding-start: 12px;
+  --padding-top: 12px;
+  color: var(--color-text);
+  font-size: 14px;
+  min-height: 128px;
+}
+
+.concern-submit {
+  --background: var(--color-brand);
+  --background-activated: var(--color-brand);
+  --border-radius: 16px;
+  --box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
+  --color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  min-height: 50px;
+}
 
 /* ── Footer / Actions ────────────────────────────────────────────────────── */
 .modern-footer {
@@ -1076,6 +1255,31 @@ function formatLocationAddress(coords?: (Coordinates & { address?: string }) | n
 .btn-primary-action:disabled {
   background: var(--color-text-muted);
   box-shadow: none;
+  transform: none;
+}
+
+.btn-secondary-action {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 15px;
+  font-weight: 700;
+  border: 1px solid #fed7aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+}
+
+.btn-secondary-action:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary-action:disabled {
+  opacity: 0.65;
   transform: none;
 }
 

@@ -12,10 +12,11 @@
  */
 
 import { getOfficeId } from '@/shared/api/location.service'
-import apiClient from '@/shared/lib/api'
 import { formatCompactAddress } from '@/shared/lib/address'
+import apiClient from '@/shared/lib/api'
 import type { Coordinates } from '@/shared/models/location.model'
-import type { RawTrip, Trip, TripKanbanState } from '@/shared/models/trip.model'
+import type { RawTrip, Trip, TripKanbanState, TripStatus } from '@/shared/models/trip.model'
+import { TRIP_STATUS } from '@/shared/models/trip.model'
 
 // ── Normalization helpers ──────────────────────────────────────────────────
 
@@ -89,7 +90,10 @@ function normalizeTrip(raw: RawTrip): Trip {
   return {
     id: raw._id,
     trip_number: raw.trip_number,
+    status: raw.status ?? statusFromKanbanState(raw.kanban_state),
     kanban_state: raw.kanban_state,
+    is_viewed: raw.is_viewed,
+    viewed_at: raw.viewed_at,
     start_time: scheduledStartTime ?? raw.created_at,
     pickup_location: geoJsonToCoords(raw.pickup_location),
     drop_location: { ...geoJsonToCoords(raw.drop_location), address: dropAddressText },
@@ -104,6 +108,7 @@ function normalizeTrip(raw: RawTrip): Trip {
     notes: raw.notes,
     pickup_note: raw.pickup_note,
     drop_note: raw.drop_note,
+    attention_note: raw.attention_note,
     created_at: raw.created_at,
     updated_at: raw.updated_at,
     is_two_way: raw.is_two_way,
@@ -111,6 +116,29 @@ function normalizeTrip(raw: RawTrip): Trip {
     extra_km: raw.extra_km,
     beautician_name: raw.beautician?.name ?? undefined,
     beautician_phone: raw.beautician?.phone ?? undefined,
+  }
+}
+
+function statusFromKanbanState(state: TripKanbanState): TripStatus {
+  switch (state) {
+    case 'assigned':
+    case 'requests':
+    case 'viewed_by_rider':
+      return TRIP_STATUS.ASSIGNED
+    case 'trip_started':
+      return TRIP_STATUS.STARTED
+    case 'dropped_and_waiting':
+      return TRIP_STATUS.DROPPED_AND_WAITING
+    case 'attention_needed':
+      return TRIP_STATUS.ATTENTION_NEEDED
+    case 'trip_completed':
+    case 'fare_calculation_pending':
+    case 'completed':
+      return TRIP_STATUS.COMPLETED
+    case 'cancelled':
+      return TRIP_STATUS.CANCELLED
+    default:
+      return TRIP_STATUS.ASSIGNED
   }
 }
 
@@ -169,17 +197,19 @@ export async function getTrip(id: string | number): Promise<Trip> {
 }
 
 /**
- * Update the kanban state of a trip.
- * PATCH /trips/:id/kanban-state
+ * Update the status of a trip.
+ * PATCH /trips/:id/status
  */
 export async function updateTripStatus(
   id: string | number,
-  kanbanState: TripKanbanState,
-  distanceKm?: number
+  status: TripStatus,
+  distanceKm?: number,
+  attentionNote?: string
 ): Promise<Trip> {
-  const response = await apiClient.patch<{ data: RawTrip }>(`/trips/${id}/kanban-state`, {
-    kanban_state: kanbanState,
+  const response = await apiClient.patch<{ data: RawTrip }>(`/trips/${id}/status`, {
+    status,
     distance_km: distanceKm,
+    attention_note: attentionNote,
   })
   return normalizeTrip(response.data.data)
 }
