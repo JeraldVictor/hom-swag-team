@@ -98,8 +98,8 @@ import AppBadge from '@/shared/components/ui/AppBadge.vue'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { formatISTDate, formatTime12 } from '@/shared/lib/datetime'
 import type { Coordinates } from '@/shared/models/location.model'
-import { TRIP_STATUS } from '@/shared/models/trip.model'
 import type { Trip } from '@/shared/models/trip.model'
+import { TRIP_STATUS } from '@/shared/models/trip.model'
 
 interface Props {
   trip: Trip
@@ -110,7 +110,9 @@ const emit = defineEmits<(e: 'click') => void>()
 const { openNavigationMenu } = useNavigation()
 
 const formattedDate = computed(() =>
-  formatISTDate(props.trip.start_time || new Date().toISOString())
+  formatISTDate(
+    props.trip.date || props.trip.order_date || props.trip.start_time || new Date().toISOString()
+  )
 )
 
 const formattedStatus = computed(() => {

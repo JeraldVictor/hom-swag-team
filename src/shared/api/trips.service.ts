@@ -72,7 +72,7 @@ function normalizeTrip(raw: RawTrip): Trip {
 
   const customerName = orderDetails?.customer?.full_name ?? undefined
   const orderNumber = orderDetails?.order_number ?? undefined
-  const orderDate = orderDetails?.booking_info?.date || raw.order_date
+  const orderDate = raw.date || orderDetails?.booking_info?.date || raw.order_date
   const orderTime =
     orderDetails?.booking_info?.effective_start_time ||
     orderDetails?.booking_info?.selected_start_time ||
@@ -90,11 +90,12 @@ function normalizeTrip(raw: RawTrip): Trip {
   return {
     id: raw._id,
     trip_number: raw.trip_number,
+    date: raw.date,
     status: raw.status ?? statusFromKanbanState(raw.kanban_state),
     kanban_state: raw.kanban_state,
     is_viewed: raw.is_viewed,
     viewed_at: raw.viewed_at,
-    start_time: scheduledStartTime ?? raw.created_at,
+    start_time: scheduledStartTime ?? (orderDate ? `${orderDate}T00:00:00.000Z` : raw.created_at),
     pickup_location: geoJsonToCoords(raw.pickup_location),
     drop_location: { ...geoJsonToCoords(raw.drop_location), address: dropAddressText },
     customer_name: customerName,

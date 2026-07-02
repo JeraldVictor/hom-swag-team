@@ -33,6 +33,7 @@ export interface UserProfile {
   phone: string
   user_type: UserType
   office_id?: string
+  can_self_drive?: boolean
   photo?: {
     url: string
   }

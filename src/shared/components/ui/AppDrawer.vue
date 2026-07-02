@@ -122,10 +122,10 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables/useDrawer'
+import { ENV } from '@/shared/lib/env'
+import { mediaUrl } from '@/shared/lib/media'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useUserTypeStore } from '@/shared/stores/userType'
-import { mediaUrl } from '@/shared/lib/media'
-import { ENV } from '@/shared/lib/env'
 
 const router = useRouter()
 const route = useRoute()
@@ -133,7 +133,7 @@ const authStore = useAuthStore()
 const userTypeStore = useUserTypeStore()
 
 const { user } = storeToRefs(authStore)
-const { isBeautician, isRider } = storeToRefs(userTypeStore)
+const { isBeautician, isRider, canAccessTrips } = storeToRefs(userTypeStore)
 const { isDrawerOpen, closeDrawer } = useDrawer()
 const appVersion = ENV.VITE_APP_VERSION
 
@@ -179,8 +179,11 @@ const primaryItems = computed<NavItem[]>(() => {
     })
   }
 
-  if (isRider.value) {
+  if (canAccessTrips.value) {
     items.push({ label: 'Trips', icon: 'lucide:car', route: '/trips' })
+  }
+
+  if (canAccessTrips.value) {
     items.push({ label: 'Trip Fees', icon: 'lucide:receipt', route: '/trip-fees' })
   }
 

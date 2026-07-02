@@ -83,13 +83,13 @@ const routes: Array<RouteRecordRaw> = [
         path: 'trips',
         name: 'Trips',
         component: () => import('@/features/trips/views/TripsView.vue'),
-        meta: { roles: ['rider'] },
+        meta: { roles: ['rider', 'beautician'], requiresSelfDriveForBeautician: true },
       },
       {
         path: 'trips/:id',
         name: 'TripDetail',
         component: () => import('@/features/trips/views/TripDetailView.vue'),
-        meta: { roles: ['rider'] },
+        meta: { roles: ['rider', 'beautician'], requiresSelfDriveForBeautician: true },
       },
 
       // Leave requests (both roles)
@@ -190,11 +190,12 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/sos/views/SosView.vue'),
       },
 
-      // Trip Fees Report (rider only)
+      // Trip Fees Report (riders and self-drive beauticians)
       {
         path: 'trip-fees',
         name: 'TripFees',
         component: () => import('@/features/trip-fees/views/TripFeesView.vue'),
+        meta: { roles: ['rider', 'beautician'], requiresSelfDriveForBeautician: true },
       },
     ],
   },
@@ -244,6 +245,17 @@ router.beforeEach(async to => {
     const storedUserType = await Storage_Service.getString(STORAGE_KEYS.userType)
     if (!storedUserType || !roles.includes(storedUserType)) {
       return { name: 'Home' }
+    }
+    const requiresSelfDriveForBeautician = to.matched.some(
+      record => record.meta.requiresSelfDriveForBeautician
+    )
+    if (storedUserType === 'beautician' && requiresSelfDriveForBeautician) {
+      const storedProfile = await Storage_Service.getJSON<{ can_self_drive?: boolean }>(
+        STORAGE_KEYS.userProfile
+      )
+      if (storedProfile?.can_self_drive !== true) {
+        return { name: 'Home' }
+      }
     }
   }
 

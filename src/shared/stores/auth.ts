@@ -105,6 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
       phone: authUser.phone,
       user_type: authUser.user_type,
       office_id: authUser.office_id,
+      can_self_drive: authUser.can_self_drive,
     }
 
     // Persist to storage

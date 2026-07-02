@@ -31,9 +31,15 @@ export const useUserTypeStore = defineStore('userType', () => {
   /** True when the authenticated user is a rider. */
   const isRider = computed<boolean>(() => userType.value === 'rider')
 
+  /** True when this user should see and operate trip workflows. */
+  const canAccessTrips = computed<boolean>(
+    () => isRider.value || (isBeautician.value && authStore.user?.can_self_drive === true)
+  )
+
   return {
     userType,
     isBeautician,
     isRider,
+    canAccessTrips,
   }
 })

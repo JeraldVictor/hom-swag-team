@@ -23,8 +23,8 @@
           <ion-label>Orders</ion-label>
         </ion-tab-button>
 
-        <!-- Rider: Trips tab -->
-        <ion-tab-button v-if="isRider" tab="trips" href="/trips">
+        <!-- Rider or self-drive beautician: Trips tab -->
+        <ion-tab-button v-if="canAccessTrips" tab="trips" href="/trips">
           <Icon icon="lucide:car" class="tab-icon" />
           <ion-label>Trips</ion-label>
         </ion-tab-button>
@@ -51,7 +51,7 @@ import { useRouter } from 'vue-router'
 import { useUserTypeStore } from '@/shared/stores'
 
 const userTypeStore = useUserTypeStore()
-const { isBeautician, isRider } = storeToRefs(userTypeStore)
+const { isBeautician, canAccessTrips } = storeToRefs(userTypeStore)
 const router = useRouter()
 
 function navigateToOrders(): void {

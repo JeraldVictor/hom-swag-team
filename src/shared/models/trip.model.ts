@@ -88,6 +88,7 @@ export interface RawTrip {
   is_viewed?: boolean
   viewed_at?: string
   trip_number: string
+  date?: string
   kanban_state: TripKanbanState
   is_two_way: boolean
   is_self_drive: boolean
@@ -137,6 +138,7 @@ export interface Trip {
   customer_name?: string
   /** Order number from the nested order */
   order_number?: string
+  date?: string
   order_date?: string
   order_time?: string
   end_time?: string
