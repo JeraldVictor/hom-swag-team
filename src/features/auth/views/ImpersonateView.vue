@@ -21,6 +21,7 @@ import { Icon } from '@iconify/vue'
 import { IonContent, IonPage } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getProfile } from '@/shared/api/profile.service'
 import type { AuthResponse } from '@/shared/models/auth.model'
 import { useAuthStore } from '@/shared/stores/auth'
 
@@ -75,6 +76,12 @@ onMounted(async () => {
   try {
     const payload = readPayload()
     await authStore.login(payload)
+    try {
+      const fullProfile = await getProfile()
+      await authStore.setUserProfile(fullProfile)
+    } catch {
+      // Non-fatal — the impersonation payload still contains enough identity to continue.
+    }
     await router.replace('/home')
   } catch (error) {
     console.error('[ImpersonateView] Failed to open impersonation session:', error)

@@ -64,6 +64,13 @@ export const useAuthStore = defineStore('auth', () => {
         ...storedProfile,
         user_type: storedProfile.user_type ?? (storedUserType as UserType) ?? 'beautician',
       }
+      try {
+        const { getProfile } = await import('@/shared/api/profile.service')
+        const fullProfile = await getProfile()
+        await setUserProfile(fullProfile)
+      } catch {
+        // Non-fatal — stored auth state is enough to keep the session usable.
+      }
       return true
     }
 
@@ -122,6 +129,9 @@ export const useAuthStore = defineStore('auth', () => {
     // (server Beautician/Rider models don't include user_type)
     const merged: UserProfile = {
       ...profile,
+      id: profile.id ?? user.value?.id ?? '',
+      name: profile.name ?? user.value?.name ?? '',
+      phone: profile.phone ?? user.value?.phone ?? '',
       user_type: profile.user_type ?? user.value?.user_type ?? 'beautician',
     }
     user.value = merged

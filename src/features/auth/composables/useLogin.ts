@@ -7,7 +7,7 @@
  *
  * On successful verification:
  *   - Persists tokens and user profile via the auth store
- *   - If `get_profile` is true, fetches the full profile from GET /profile
+ *   - Fetches the full profile from GET /profile
  *   - Navigates to /tabs/home
  */
 
@@ -166,8 +166,8 @@ export function useLogin(): UseLoginReturn {
 
   /**
    * Step 2 — verify OTP and complete login.
-   * Calls POST /auth/otp/verify, persists auth state, optionally fetches
-   * the full profile, then navigates to the home tab.
+   * Calls POST /auth/otp/verify, persists auth state, fetches the full profile,
+   * then navigates to the home tab.
    */
   async function verifyOtpAndLogin(): Promise<void> {
     otpError.value = ''
@@ -184,14 +184,11 @@ export function useLogin(): UseLoginReturn {
       // Persist tokens + basic user info to store and storage
       await authStore.login(authResponse)
 
-      // If the server signals a profile fetch is needed, get the full profile
-      if (authResponse.get_profile) {
-        try {
-          const fullProfile = await getProfile()
-          await authStore.setUserProfile(fullProfile)
-        } catch {
-          // Non-fatal — basic profile from auth response is already stored
-        }
+      try {
+        const fullProfile = await getProfile()
+        await authStore.setUserProfile(fullProfile)
+      } catch {
+        // Non-fatal — basic profile from auth response is already stored
       }
 
       const redirectPath =
