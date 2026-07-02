@@ -31,7 +31,7 @@ cp .env .env.prod
 Edit `.env.prod` with production values:
 
 ```env
-VITE_BFF_API_URL=https://api.your-production-domain.com/bff
+VITE_BFF_API_URL=https://partner.homswag.com/bff/field
 VITE_WS_URL=wss://api.your-production-domain.com
 VITE_GOOGLE_MAPS_API_KEY=YOUR_PROD_GOOGLE_MAPS_KEY
 
@@ -41,6 +41,10 @@ VITE_FEATURE_DIRECTIONS=true
 ```
 
 > **Note:** `.env.prod` should be in `.gitignore` to avoid leaking secrets.
+> For web deployments on `partner.homswag.com`, keep `VITE_BFF_API_URL` on
+> `https://partner.homswag.com/bff/field` or `/bff/field` so API calls stay on
+> the same origin and avoid CORS. Use another absolute URL only when that API
+> host is intentionally configured for cross-origin field-app traffic.
 
 ---
 
