@@ -104,7 +104,13 @@
           <!-- 2nd place -->
           <div v-if="top3[1]" class="podium-slot podium-slot--second">
             <div class="podium-avatar podium-avatar--second">
-              <img v-if="top3[1].photo_url" :src="leaderboardPhotoUrl(top3[1])" :alt="top3[1].name" class="podium-avatar__img" />
+              <img
+                v-if="shouldShowPhoto(top3[1])"
+                :src="leaderboardPhotoUrl(top3[1])"
+                :alt="top3[1].name"
+                class="podium-avatar__img"
+                @error="markAvatarFailed(top3[1])"
+              />
               <span v-else class="podium-avatar__initials">{{ initials(top3[1].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[1].name.split(' ')[0] }}</p>
@@ -117,7 +123,13 @@
           <div v-if="top3[0]" class="podium-slot podium-slot--first">
             <div class="podium-crown" aria-hidden="true">👑</div>
             <div class="podium-avatar podium-avatar--first">
-              <img v-if="top3[0].photo_url" :src="leaderboardPhotoUrl(top3[0])" :alt="top3[0].name" class="podium-avatar__img" />
+              <img
+                v-if="shouldShowPhoto(top3[0])"
+                :src="leaderboardPhotoUrl(top3[0])"
+                :alt="top3[0].name"
+                class="podium-avatar__img"
+                @error="markAvatarFailed(top3[0])"
+              />
               <span v-else class="podium-avatar__initials">{{ initials(top3[0].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[0].name.split(' ')[0] }}</p>
@@ -129,7 +141,13 @@
           <!-- 3rd place -->
           <div v-if="top3[2]" class="podium-slot podium-slot--third">
             <div class="podium-avatar podium-avatar--third">
-              <img v-if="top3[2].photo_url" :src="leaderboardPhotoUrl(top3[2])" :alt="top3[2].name" class="podium-avatar__img" />
+              <img
+                v-if="shouldShowPhoto(top3[2])"
+                :src="leaderboardPhotoUrl(top3[2])"
+                :alt="top3[2].name"
+                class="podium-avatar__img"
+                @error="markAvatarFailed(top3[2])"
+              />
               <span v-else class="podium-avatar__initials">{{ initials(top3[2].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[2].name.split(' ')[0] }}</p>
@@ -159,7 +177,13 @@
                 <td class="year-table__cell-name">
                   <div class="name-wrapper">
                     <div class="entry-avatar-small">
-                      <img v-if="entry.photo_url" :src="leaderboardPhotoUrl(entry)" :alt="entry.name" class="entry-avatar__img" />
+                      <img
+                        v-if="shouldShowPhoto(entry)"
+                        :src="leaderboardPhotoUrl(entry)"
+                        :alt="entry.name"
+                        class="entry-avatar__img"
+                        @error="markAvatarFailed(entry)"
+                      />
                       <span v-else class="entry-avatar__initials-small">{{ initials(entry.name) }}</span>
                     </div>
                     <span class="name-text">{{ entry.name }}</span>
@@ -190,7 +214,13 @@
               <span class="entry-rank">{{ entry.rank }}</span>
               <div class="entry-avatar">
                 <Icon v-if="entry.user_id === 'masked'" icon="lucide:user-x" class="masked-icon" />
-                <img v-else-if="entry.photo_url" :src="leaderboardPhotoUrl(entry)" :alt="entry.name" class="entry-avatar__img" />
+                <img
+                  v-else-if="shouldShowPhoto(entry)"
+                  :src="leaderboardPhotoUrl(entry)"
+                  :alt="entry.name"
+                  class="entry-avatar__img"
+                  @error="markAvatarFailed(entry)"
+                />
                 <span v-else class="entry-avatar__initials">{{ initials(entry.name) }}</span>
               </div>
               <div class="entry-info">
@@ -214,10 +244,11 @@
             <span class="entry-rank">{{ data.self_entry.rank }}</span>
             <div class="entry-avatar">
               <img
-                v-if="data.self_entry.photo_url"
+                v-if="shouldShowPhoto(data.self_entry)"
                 :src="leaderboardPhotoUrl(data.self_entry)"
                 :alt="data.self_entry.name"
                 class="entry-avatar__img"
+                @error="markAvatarFailed(data.self_entry)"
               />
               <span v-else class="entry-avatar__initials">{{ initials(data.self_entry.name) }}</span>
             </div>
@@ -242,6 +273,7 @@ const data = ref<LeaderboardData | null>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 const selectedPeriod = ref<LeaderboardPeriod>('monthly')
+const failedAvatarKeys = ref<Set<string>>(new Set())
 
 const periods: { value: LeaderboardPeriod; label: string }[] = [
   { value: 'weekly', label: 'This Week' },
@@ -287,6 +319,18 @@ function initials(name: string): string {
 
 function leaderboardPhotoUrl(entry: LeaderboardEntry): string {
   return mediaUrl(entry.photo_url)
+}
+
+function avatarKey(entry: LeaderboardEntry): string {
+  return `${entry.user_id}:${entry.photo_url ?? ''}`
+}
+
+function shouldShowPhoto(entry: LeaderboardEntry): boolean {
+  return Boolean(entry.photo_url) && !failedAvatarKeys.value.has(avatarKey(entry))
+}
+
+function markAvatarFailed(entry: LeaderboardEntry): void {
+  failedAvatarKeys.value = new Set(failedAvatarKeys.value).add(avatarKey(entry))
 }
 
 function formatAmount(amount: number): string {

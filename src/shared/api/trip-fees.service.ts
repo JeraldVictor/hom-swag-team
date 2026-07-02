@@ -15,6 +15,7 @@ import type { TripFeesReport } from '@/shared/models/trip-fees.model'
 export async function getTripFeesReport(params?: {
   from_date?: string
   to_date?: string
+  q?: string
   page?: number
   limit?: number
 }): Promise<TripFeesReport> {

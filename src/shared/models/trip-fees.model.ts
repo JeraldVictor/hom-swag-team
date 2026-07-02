@@ -9,6 +9,9 @@ export interface TripFeeEntry {
   /** ISO 8601 date string */
   date: string
   distance_km?: number
+  auto_distance_km?: number
+  extra_km?: number
+  is_two_way?: boolean
   fare: number
   /** Rider per-trip commission */
   commission: number

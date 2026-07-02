@@ -25,6 +25,30 @@
           <input v-model="toDate" type="date" class="filter-input" :min="fromDate" :max="todayStr" @change="fetchReport" />
         </div>
       </div>
+      <div class="search-row">
+        <div class="filter-field">
+          <label class="filter-label">Search</label>
+          <div class="search-box">
+            <Icon icon="lucide:search" class="search-box__icon" aria-hidden="true" />
+            <input
+              v-model="searchQuery"
+              type="search"
+              class="search-input"
+              placeholder="Trip ID, status, date"
+              @input="scheduleFetchReport"
+            />
+            <button
+              v-if="searchQuery"
+              type="button"
+              class="search-box__clear"
+              aria-label="Clear search"
+              @click="clearSearch"
+            >
+              <Icon icon="lucide:x" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Loading skeleton -->
       <template v-if="isLoading">
@@ -57,19 +81,19 @@
             <div class="summary-divider" />
             <div class="summary-item">
               <p class="summary-item__label">Total Fare</p>
-              <p class="summary-item__value">₹{{ report.total_fare.toLocaleString('en-IN') }}</p>
+              <p class="summary-item__value">{{ formatCurrency(report.total_fare) }}</p>
             </div>
             <div class="summary-divider" />
             <div class="summary-item">
               <p class="summary-item__label">Trip Commission</p>
               <p class="summary-item__value summary-item__value--deduction">
-                ₹{{ report.total_commission.toLocaleString('en-IN') }}
+                {{ formatCurrency(report.total_commission) }}
               </p>
             </div>
           </div>
           <div class="summary-net">
             <span class="summary-net__label">Petrol Payable</span>
-            <span class="summary-net__amount">₹{{ report.total_net.toLocaleString('en-IN') }}</span>
+            <span class="summary-net__amount">{{ formatCurrency(report.total_net) }}</span>
           </div>
         </div>
 
@@ -82,7 +106,16 @@
 
         <!-- Trip entries -->
         <div v-else class="list">
-          <div v-for="entry in report.entries" :key="entry.trip_id" class="entry-card">
+          <div
+            v-for="entry in report.entries"
+            :key="entry.trip_id"
+            class="entry-card"
+            role="button"
+            tabindex="0"
+            @click="openTrip(entry)"
+            @keyup.enter="openTrip(entry)"
+            @keyup.space="openTrip(entry)"
+          >
             <div class="entry-card__header">
               <div>
                 <p class="entry-card__trip">#{{ entry.trip_number }}</p>
@@ -97,22 +130,25 @@
             <div class="entry-card__amounts">
               <div class="entry-amount">
                 <span class="entry-amount__label">Fare</span>
-                <span class="entry-amount__value">₹{{ entry.fare.toLocaleString('en-IN') }}</span>
+                <span class="entry-amount__value">{{ formatCurrency(entry.fare) }}</span>
               </div>
               <div class="entry-amount">
                 <span class="entry-amount__label">Commission</span>
-                <span class="entry-amount__value">₹{{ entry.commission.toLocaleString('en-IN') }}</span>
+                <span class="entry-amount__value">{{ formatCurrency(entry.commission) }}</span>
               </div>
               <div class="entry-amount entry-amount--net">
                 <span class="entry-amount__label">Petrol</span>
                 <span class="entry-amount__value entry-amount__value--net">
-                  ₹{{ entry.net_amount.toLocaleString('en-IN') }}
+                  {{ formatCurrency(entry.net_amount) }}
                 </span>
               </div>
             </div>
             <p v-if="entry.distance_km != null" class="entry-card__distance">
               <Icon icon="lucide:route" aria-hidden="true" />
-              {{ entry.distance_km.toFixed(1) }} km
+              {{ formatKm(entry.distance_km) }} km
+              <span class="entry-card__distance-breakdown">
+                {{ distanceBreakdown(entry) }}
+              </span>
             </p>
           </div>
         </div>
@@ -124,9 +160,11 @@
 <script setup lang="ts">
 import { onIonViewWillEnter } from '@ionic/vue'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { getTripFeesReport } from '@/shared/api'
-import type { TripFeesReport } from '@/shared/models'
+import type { TripFeeEntry, TripFeesReport } from '@/shared/models'
 
+const router = useRouter()
 const report = ref<TripFeesReport | null>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -137,6 +175,8 @@ const firstOfMonth = new Date()
 firstOfMonth.setDate(1)
 const fromDate = ref(firstOfMonth.toISOString().split('T')[0])
 const toDate = ref(todayStr)
+const searchQuery = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -146,6 +186,39 @@ function formatDate(iso: string): string {
   })
 }
 
+function formatCurrency(amount: number): string {
+  return `₹${Math.round(amount).toLocaleString('en-IN')}`
+}
+
+function formatKm(km: number): string {
+  return km.toFixed(1)
+}
+
+function distanceBreakdown(entry: TripFeeEntry): string {
+  const autoKm = entry.auto_distance_km ?? 0
+  const extraKm = entry.extra_km ?? 0
+  const multiplier = entry.is_two_way ? 2 : 1
+  const parts = [`auto ${formatKm(autoKm)}${multiplier > 1 ? ' x2' : ''}`]
+  if (extraKm > 0) parts.push(`extra ${formatKm(extraKm)}`)
+  return `(${parts.join(' + ')})`
+}
+
+function scheduleFetchReport(): void {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    fetchReport()
+  }, 300)
+}
+
+function clearSearch(): void {
+  searchQuery.value = ''
+  fetchReport()
+}
+
+function openTrip(entry: TripFeeEntry): void {
+  router.push(`/trips/${entry.trip_id}`)
+}
+
 async function fetchReport(): Promise<void> {
   isLoading.value = true
   error.value = null
@@ -153,6 +226,7 @@ async function fetchReport(): Promise<void> {
     report.value = await getTripFeesReport({
       from_date: fromDate.value,
       to_date: toDate.value,
+      q: searchQuery.value.trim() || undefined,
     })
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load report'
@@ -207,6 +281,52 @@ onIonViewWillEnter(() => {
 }
 
 .filter-input:focus { border-color: var(--color-brand); }
+
+.search-row {
+  padding: 10px 16px 0;
+}
+
+.search-box {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.search-box:focus-within { border-color: var(--color-brand); }
+
+.search-box__icon {
+  flex: 0 0 auto;
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.search-input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.search-box__clear {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-background);
+  color: var(--color-text-muted);
+}
 
 /* Summary card */
 .summary-card {
@@ -299,6 +419,21 @@ onIonViewWillEnter(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.entry-card:active {
+  transform: scale(0.99);
+}
+
+.entry-card:focus-visible {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 18%, transparent);
+  outline: none;
 }
 
 .entry-card__header {
@@ -360,6 +495,11 @@ onIonViewWillEnter(() => {
   gap: 5px;
   margin: 0;
   font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.entry-card__distance-breakdown {
+  min-width: 0;
   color: var(--color-text-muted);
 }
 
