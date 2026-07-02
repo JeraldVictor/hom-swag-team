@@ -150,7 +150,7 @@
 
           <div class="notif-detail__footer" v-if="hasAction(selectedNotif)">
             <ion-button expand="block" @click="handleAction(selectedNotif)">
-              View Details
+              {{ getActionLabel(selectedNotif) }}
               <Icon icon="lucide:chevron-right" slot="end" />
             </ion-button>
           </div>
@@ -239,62 +239,80 @@ async function handleRead(notif: Notification, showModal = true): Promise<void> 
     await notificationStore.markAsRead(notif.id)
   }
 
-  if (showModal) {
-    selectedNotif.value = notif
-  }
+  if (!showModal) return
+
+  selectedNotif.value = notif
 }
 
 function hasAction(notif: Notification): boolean {
-  const type = notif.type
+  return !!resolveNotificationRoute(notif)
+}
+
+function getDataValue(data: NotificationData, keys: string[]): string | number | undefined {
+  for (const key of keys) {
+    const value = data[key]
+    if (typeof value === 'string' || typeof value === 'number') {
+      return value
+    }
+  }
+  return undefined
+}
+
+function isOrderOrTripDetailRoute(route: string): boolean {
+  return /^\/(?:orders|trips)\/[^/]+$/.test(route)
+}
+
+function resolveNotificationRoute(notif: Notification): string | null {
+  const type = notif.type ?? ''
   const data: NotificationData = notif.data ?? {}
-  const hasRef = !!(data.order_id || data.trip_id || notif.reference_id)
+  const referenceType = notif.reference_type?.toLowerCase()
+  const text = `${notif.title ?? ''} ${notif.body ?? ''} ${notif.message ?? ''}`
+  const orderId =
+    getDataValue(data, ['order_id', 'orderId']) ??
+    (referenceType === 'order' ? notif.reference_id : undefined)
+  const tripId =
+    getDataValue(data, ['trip_id', 'tripId']) ??
+    (referenceType === 'trip' ? notif.reference_id : undefined)
+  const tripNumber =
+    getDataValue(data, ['trip_number', 'tripNumber']) ?? text.match(/#?(T-\d{8}-\d+)/i)?.[1]
+  const orderNumber =
+    getDataValue(data, ['order_number', 'orderNumber']) ?? text.match(/#?(\d{8}-\d{4})\b/)?.[1]
 
-  const actionableTypes = [
-    'order_assigned',
-    'order_status_changed',
-    'invoice_sent',
-    'trip_assigned',
-    'trip_status_changed',
-    'leave_approved',
-    'leave_rejected',
-    'complaint_visible',
-  ]
+  if (orderId) return `/orders/${orderId}`
+  if (tripId) return `/trips/${tripId}`
+  if (tripNumber) return `/trips?q=${encodeURIComponent(String(tripNumber))}&x=past&status=all`
+  if (orderNumber) return `/orders?q=${encodeURIComponent(String(orderNumber))}`
 
-  return actionableTypes.includes(type ?? '') || hasRef
+  if (type === 'order_assigned' || type === 'order_status_changed' || type === 'invoice_sent') {
+    return '/orders'
+  }
+  if (type === 'trip_assigned' || type === 'trip_status_changed') {
+    return '/trips'
+  }
+  if (type === 'leave_approved' || type === 'leave_rejected') {
+    return '/leave'
+  }
+  if (type === 'complaint_visible') {
+    return '/complaints'
+  }
+
+  return null
 }
 
 function handleAction(notif: Notification): void {
+  const route = resolveNotificationRoute(notif)
   selectedNotif.value = null
-
-  // Deep linking logic
-  const type = notif.type
-  const data: NotificationData = notif.data ?? {}
-
-  if (type === 'order_assigned' || type === 'order_status_changed' || type === 'invoice_sent') {
-    const orderId = data.order_id ?? notif.reference_id
-    if (orderId) {
-      router.push(`/orders/${orderId}`)
-    } else {
-      router.push('/orders')
-    }
-  } else if (type === 'trip_assigned' || type === 'trip_status_changed') {
-    const tripId = data.trip_id ?? notif.reference_id
-    if (tripId) {
-      router.push(`/trips/${tripId}`)
-    } else {
-      router.push('/trips')
-    }
-  } else if (type === 'leave_approved' || type === 'leave_rejected') {
-    router.push('/leave')
-  } else if (type === 'complaint_visible') {
-    router.push('/complaints')
-  } else {
-    // Check for generic reference
-    if (notif.reference_id && notif.reference_type) {
-      if (notif.reference_type === 'order') router.push(`/orders/${notif.reference_id}`)
-      else if (notif.reference_type === 'trip') router.push(`/trips/${notif.reference_id}`)
-    }
+  if (route) {
+    router.push(route)
   }
+}
+
+function getActionLabel(notif: Notification): string {
+  const route = resolveNotificationRoute(notif)
+  if (route && isOrderOrTripDetailRoute(route)) return 'View Details'
+  if (notif.type === 'leave_approved' || notif.type === 'leave_rejected') return 'View Leave'
+  if (notif.type === 'complaint_visible') return 'View Complaints'
+  return 'View Details'
 }
 
 async function handleMarkAll(): Promise<void> {
@@ -630,10 +648,11 @@ onMounted(() => {
 
 /* Detail Modal */
 .notif-detail {
-  padding: 24px;
+  padding: 24px 24px calc(16px + env(safe-area-inset-bottom, 0px));
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .notif-detail__header {
@@ -676,15 +695,17 @@ onMounted(() => {
 }
 
 .notif-detail__content {
-  flex: 1;
+  flex: 0 1 auto;
   overflow-y: auto;
-  margin-bottom: 24px;
+  max-height: 34vh;
+  margin-bottom: 16px;
 }
 
 .notif-detail__body {
   font-size: 16px;
   color: var(--color-text-secondary, #444);
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .notif-detail__body :deep(strong) {
@@ -697,7 +718,8 @@ onMounted(() => {
 }
 
 .notif-detail__footer {
-  padding-top: 16px;
+  padding-top: 12px;
+  background: var(--color-white, #fff);
 }
 
 ion-modal {

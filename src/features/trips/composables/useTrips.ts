@@ -18,6 +18,7 @@ export interface UseTripsReturn {
   error: Readonly<Ref<string | null>>
   dateFilter: Ref<'today' | 'tomorrow' | 'past'>
   statusFilter: Ref<TripStatusFilter>
+  searchQuery: Ref<string>
   hasMore: Readonly<Ref<boolean>>
   fetchTrips(reset?: boolean): Promise<void>
   loadMoreTrips(): Promise<void>
@@ -31,6 +32,7 @@ export function useTrips(): UseTripsReturn {
 
   const dateFilter = ref<'today' | 'tomorrow' | 'past'>('today')
   const statusFilter = ref<TripStatusFilter>('assigned')
+  const searchQuery = ref('')
   const currentPage = ref(1)
   const hasMore = ref(true)
 
@@ -55,6 +57,9 @@ export function useTrips(): UseTripsReturn {
 
       if (statusFilter.value !== 'all') {
         params.status = statusFilter.value
+      }
+      if (searchQuery.value.trim()) {
+        params.q = searchQuery.value.trim()
       }
 
       const { data, pagination } = await getTrips(params)
@@ -104,12 +109,17 @@ export function useTrips(): UseTripsReturn {
     fetchTrips(true)
   })
 
+  watch(searchQuery, () => {
+    fetchTrips(true)
+  })
+
   return {
     trips: readonly(trips) as Readonly<Ref<Trip[]>>,
     isLoading: readonly(isLoading),
     error: readonly(error),
     dateFilter,
     statusFilter,
+    searchQuery,
     hasMore: readonly(hasMore),
     fetchTrips,
     loadMoreTrips,

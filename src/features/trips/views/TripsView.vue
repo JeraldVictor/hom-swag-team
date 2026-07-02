@@ -141,8 +141,17 @@ import { type TripStatusFilter, useTrips } from '../composables/useTrips'
 
 const router = useRouter()
 const route = useRoute()
-const { trips, isLoading, error, fetchTrips, dateFilter, statusFilter, hasMore, loadMoreTrips } =
-  useTrips()
+const {
+  trips,
+  isLoading,
+  error,
+  fetchTrips,
+  dateFilter,
+  statusFilter,
+  searchQuery,
+  hasMore,
+  loadMoreTrips,
+} = useTrips()
 const { openDrawer } = useDrawer()
 
 const statusOptions: { value: TripKanbanState; label: string }[] = [
@@ -188,6 +197,10 @@ onMounted(() => {
     if (normalizedStatus && normalizedStatus !== 'all') {
       statusFilter.value = normalizedStatus
     }
+  }
+
+  if (route.query.q && typeof route.query.q === 'string') {
+    searchQuery.value = route.query.q
   }
 
   fetchTrips(true)
