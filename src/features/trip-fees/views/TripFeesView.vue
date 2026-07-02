@@ -14,41 +14,66 @@
         <ion-refresher-content />
       </ion-refresher>
 
-      <!-- Date range filter -->
-      <div class="filter-row">
-        <div class="filter-field">
-          <label class="filter-label">From</label>
-          <input v-model="fromDate" type="date" class="filter-input" :max="toDate" @change="fetchReport" />
-        </div>
-        <div class="filter-field">
-          <label class="filter-label">To</label>
-          <input v-model="toDate" type="date" class="filter-input" :min="fromDate" :max="todayStr" @change="fetchReport" />
-        </div>
-      </div>
-      <div class="search-row">
-        <div class="filter-field">
-          <label class="filter-label">Search</label>
-          <div class="search-box">
-            <Icon icon="lucide:search" class="search-box__icon" aria-hidden="true" />
-            <input
-              v-model="searchQuery"
-              type="search"
-              class="search-input"
-              placeholder="Trip ID, status, date"
-              @input="scheduleFetchReport"
-            />
-            <button
-              v-if="searchQuery"
-              type="button"
-              class="search-box__clear"
-              aria-label="Clear search"
-              @click="clearSearch"
-            >
-              <Icon icon="lucide:x" aria-hidden="true" />
-            </button>
+      <!-- Filters -->
+      <section class="filters-panel">
+        <button
+          type="button"
+          class="filters-toggle"
+          :aria-expanded="showFilters"
+          @click="showFilters = !showFilters"
+        >
+          <span class="filters-toggle__left">
+            <Icon icon="lucide:sliders-horizontal" aria-hidden="true" />
+            <span>
+              <span class="filters-toggle__label">Filters</span>
+              <span class="filters-toggle__summary">{{ filterSummary }}</span>
+            </span>
+          </span>
+          <Icon
+            icon="lucide:chevron-down"
+            class="filters-toggle__chevron"
+            :class="{ 'filters-toggle__chevron--open': showFilters }"
+            aria-hidden="true"
+          />
+        </button>
+
+        <template v-if="showFilters">
+          <div class="filter-row">
+            <div class="filter-field">
+              <label class="filter-label">From</label>
+              <input v-model="fromDate" type="date" class="filter-input" :max="toDate" @change="fetchReport" />
+            </div>
+            <div class="filter-field">
+              <label class="filter-label">To</label>
+              <input v-model="toDate" type="date" class="filter-input" :min="fromDate" :max="todayStr" @change="fetchReport" />
+            </div>
           </div>
-        </div>
-      </div>
+          <div class="search-row">
+            <div class="filter-field">
+              <label class="filter-label">Search</label>
+              <div class="search-box">
+                <Icon icon="lucide:search" class="search-box__icon" aria-hidden="true" />
+                <input
+                  v-model="searchQuery"
+                  type="search"
+                  class="search-input"
+                  placeholder="Trip ID, status, date"
+                  @input="scheduleFetchReport"
+                />
+                <button
+                  v-if="searchQuery"
+                  type="button"
+                  class="search-box__clear"
+                  aria-label="Clear search"
+                  @click="clearSearch"
+                >
+                  <Icon icon="lucide:x" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </section>
 
       <!-- Loading skeleton -->
       <template v-if="isLoading">
@@ -159,7 +184,7 @@
 
 <script setup lang="ts">
 import { onIonViewWillEnter } from '@ionic/vue'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getTripFeesReport } from '@/shared/api'
 import type { TripFeeEntry, TripFeesReport } from '@/shared/models'
@@ -170,13 +195,20 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 const todayStr = new Date().toISOString().split('T')[0]
-// Default: current month
-const firstOfMonth = new Date()
-firstOfMonth.setDate(1)
-const fromDate = ref(firstOfMonth.toISOString().split('T')[0])
+const startOfWeek = new Date()
+const dayOfWeek = startOfWeek.getDay()
+const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday)
+const fromDate = ref(startOfWeek.toISOString().split('T')[0])
 const toDate = ref(todayStr)
 const searchQuery = ref('')
+const showFilters = ref(false)
 let searchTimer: ReturnType<typeof setTimeout> | undefined
+
+const filterSummary = computed(() => {
+  const range = `${formatDate(fromDate.value)} - ${formatDate(toDate.value)}`
+  return searchQuery.value.trim() ? `${range} · ${searchQuery.value.trim()}` : range
+})
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -247,11 +279,72 @@ onIonViewWillEnter(() => {
 </script>
 
 <style scoped>
-/* Filter row */
+/* Filters */
+.filters-panel {
+  padding: 14px 16px 0;
+}
+
+.filters-toggle {
+  width: 100%;
+  min-height: 58px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.filters-toggle__left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filters-toggle__left > svg {
+  flex: 0 0 auto;
+  font-size: 20px;
+  color: var(--color-brand);
+}
+
+.filters-toggle__label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.filters-toggle__summary {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filters-toggle__chevron {
+  flex: 0 0 auto;
+  font-size: 20px;
+  color: var(--color-text-muted);
+  transition: transform 0.16s ease;
+}
+
+.filters-toggle__chevron--open {
+  transform: rotate(180deg);
+}
+
 .filter-row {
   display: flex;
   gap: 12px;
-  padding: 16px 16px 0;
+  padding-top: 12px;
 }
 
 .filter-field {
@@ -283,7 +376,7 @@ onIonViewWillEnter(() => {
 .filter-input:focus { border-color: var(--color-brand); }
 
 .search-row {
-  padding: 10px 16px 0;
+  padding-top: 10px;
 }
 
 .search-box {

@@ -10,12 +10,14 @@ import { getOfficeId } from '@/shared/api/location.service'
 import { getTrips } from '@/shared/api/trips.service'
 import type { Trip, TripKanbanState } from '@/shared/models/trip.model'
 
+export type TripStatusFilter = TripKanbanState | 'all'
+
 export interface UseTripsReturn {
   trips: Readonly<Ref<Trip[]>>
   isLoading: Readonly<Ref<boolean>>
   error: Readonly<Ref<string | null>>
   dateFilter: Ref<'today' | 'tomorrow' | 'past'>
-  statusFilter: Ref<TripKanbanState>
+  statusFilter: Ref<TripStatusFilter>
   hasMore: Readonly<Ref<boolean>>
   fetchTrips(reset?: boolean): Promise<void>
   loadMoreTrips(): Promise<void>
@@ -28,7 +30,7 @@ export function useTrips(): UseTripsReturn {
   const error = ref<string | null>(null)
 
   const dateFilter = ref<'today' | 'tomorrow' | 'past'>('today')
-  const statusFilter = ref<TripKanbanState>('assigned')
+  const statusFilter = ref<TripStatusFilter>('assigned')
   const currentPage = ref(1)
   const hasMore = ref(true)
 
@@ -47,9 +49,12 @@ export function useTrips(): UseTripsReturn {
       const params: Record<string, unknown> = {
         office_id: officeId,
         x: dateFilter.value,
-        status: statusFilter.value,
         page: currentPage.value,
         limit: 20,
+      }
+
+      if (statusFilter.value !== 'all') {
+        params.status = statusFilter.value
       }
 
       const { data, pagination } = await getTrips(params)
@@ -83,8 +88,19 @@ export function useTrips(): UseTripsReturn {
     await fetchTrips(true)
   }
 
-  // Reload when filters change
-  watch([dateFilter, statusFilter], () => {
+  watch(dateFilter, () => {
+    if (dateFilter.value === 'past' && statusFilter.value !== 'all') {
+      statusFilter.value = 'all'
+      return
+    }
+    fetchTrips(true)
+  })
+
+  watch(statusFilter, () => {
+    if (dateFilter.value === 'past' && statusFilter.value !== 'all') {
+      statusFilter.value = 'all'
+      return
+    }
     fetchTrips(true)
   })
 

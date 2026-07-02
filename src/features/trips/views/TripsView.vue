@@ -35,7 +35,7 @@
           </ion-segment>
         </div>
 
-        <div class="status-filters">
+        <div v-if="dateFilter !== 'past'" class="status-filters">
           <div class="filter-chips">
             <div 
               v-for="status in statusOptions" 
@@ -137,7 +137,7 @@ import { useDrawer } from '@/shared/composables'
 import type { TripKanbanState } from '@/shared/models/trip.model'
 import { KANBAN_STATE } from '@/shared/models/trip.model'
 import TripCard from '../components/TripCard.vue'
-import { useTrips } from '../composables/useTrips'
+import { type TripStatusFilter, useTrips } from '../composables/useTrips'
 
 const router = useRouter()
 const route = useRoute()
@@ -157,8 +157,9 @@ function openMenu(): void {
   openDrawer()
 }
 
-function normalizeStatusQuery(value: string): TripKanbanState | null {
+function normalizeStatusQuery(value: string): TripStatusFilter | null {
   const normalized = value.trim().toLowerCase()
+  if (normalized === 'all') return 'all'
   if (normalized === 'completed') return 'trip_completed'
   if (normalized === 'started') return 'trip_started'
   if (normalized === 'waiting' || normalized === 'dropped_and_waiting') return 'dropped_and_waiting'
@@ -176,12 +177,15 @@ onMounted(() => {
     const dateValue = dateQuery.toLowerCase()
     if (dateValue === 'today' || dateValue === 'tomorrow' || dateValue === 'past') {
       dateFilter.value = dateValue as 'today' | 'tomorrow' | 'past'
+      if (dateValue === 'past') {
+        statusFilter.value = 'all'
+      }
     }
   }
 
-  if (route.query.status && typeof route.query.status === 'string') {
+  if (dateFilter.value !== 'past' && route.query.status && typeof route.query.status === 'string') {
     const normalizedStatus = normalizeStatusQuery(route.query.status)
-    if (normalizedStatus) {
+    if (normalizedStatus && normalizedStatus !== 'all') {
       statusFilter.value = normalizedStatus
     }
   }
