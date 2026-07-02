@@ -51,26 +51,31 @@ const routes: Array<RouteRecordRaw> = [
         path: 'orders',
         name: 'Orders',
         component: () => import('@/features/orders/views/OrdersView.vue'),
+        meta: { roles: ['beautician'] },
       },
       {
         path: 'orders/:id/payment',
         name: 'OrderPayment',
         component: () => import('@/features/orders/views/OrderPaymentView.vue'),
+        meta: { roles: ['beautician'] },
       },
       {
         path: 'orders/:id',
         name: 'OrderDetail',
         component: () => import('@/features/orders/views/OrderDetailView.vue'),
+        meta: { roles: ['beautician'] },
       },
       {
         path: 'orders/:id/edit',
         name: 'OrderEdit',
         component: () => import('@/features/orders/views/OrderEditView.vue'),
+        meta: { roles: ['beautician'] },
       },
       {
         path: 'orders/:id/preview',
         name: 'OrderPreview',
         component: () => import('@/features/orders/views/OrderPreviewView.vue'),
+        meta: { roles: ['beautician'] },
       },
 
       // Trips (rider)
@@ -78,11 +83,13 @@ const routes: Array<RouteRecordRaw> = [
         path: 'trips',
         name: 'Trips',
         component: () => import('@/features/trips/views/TripsView.vue'),
+        meta: { roles: ['rider'] },
       },
       {
         path: 'trips/:id',
         name: 'TripDetail',
         component: () => import('@/features/trips/views/TripDetailView.vue'),
+        meta: { roles: ['rider'] },
       },
 
       // Leave requests (both roles)
@@ -227,6 +234,17 @@ router.beforeEach(async to => {
 
   if (requiresAuth && !isAuthenticated) {
     return { name: 'Login', query: { redirect: to.fullPath } }
+  }
+
+  const roles = to.matched.flatMap(record => {
+    const routeRoles = record.meta.roles
+    return Array.isArray(routeRoles) ? routeRoles : []
+  })
+  if (roles.length > 0) {
+    const storedUserType = await Storage_Service.getString(STORAGE_KEYS.userType)
+    if (!storedUserType || !roles.includes(storedUserType)) {
+      return { name: 'Home' }
+    }
   }
 
   if (to.name === 'Login' && isAuthenticated) {

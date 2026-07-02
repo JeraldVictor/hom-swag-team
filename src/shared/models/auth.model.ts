@@ -40,6 +40,7 @@ export interface AuthResponse {
     name: string
     phone: string
     user_type: UserProfile['user_type']
+    office_id?: string
   }
 }
 
