@@ -1,8 +1,19 @@
 import { ENV } from '@/shared/lib/env'
 
-const MEDIA_BASE_URL = ENV.VITE_MEDIA_BASE_URL
+const MEDIA_BASE_URL =
+  ENV.VITE_BFF_BASE_URL || bffBaseUrlFromApiUrl(ENV.VITE_BFF_API_URL) || ENV.VITE_MEDIA_BASE_URL
 
 let mediaBuster = Date.now()
+
+function bffBaseUrlFromApiUrl(apiUrl?: string): string {
+  if (!apiUrl || !apiUrl.startsWith('http')) return ''
+  try {
+    const parsed = new URL(apiUrl)
+    return parsed.origin
+  } catch {
+    return ''
+  }
+}
 
 function mediaBaseUrl(): string {
   return MEDIA_BASE_URL.replace(/\/+$/, '')

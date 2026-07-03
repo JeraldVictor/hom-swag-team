@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ENV } from '@/shared/lib/env'
 import { mediaUrl } from '@/shared/lib/media'
 
-const mediaBaseUrl = ENV.VITE_MEDIA_BASE_URL.replace(/\/+$/, '')
+const mediaBaseUrl = ENV.VITE_BFF_BASE_URL.replace(/\/+$/, '')
 
 describe('mediaUrl', () => {
   it('prepends the media base URL to relative media paths', () => {
