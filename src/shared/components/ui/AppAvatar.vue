@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { colors } from '@/core/theme/index'
 
 const props = withDefaults(
@@ -20,6 +20,13 @@ const props = withDefaults(
 const imgError = ref(false)
 
 const showImage = computed(() => !!props.imageUrl && !imgError.value)
+
+watch(
+  () => props.imageUrl,
+  () => {
+    imgError.value = false
+  }
+)
 
 const sizeValue = computed(() => (typeof props.size === 'number' ? `${props.size}px` : props.size))
 

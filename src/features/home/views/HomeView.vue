@@ -50,7 +50,13 @@
           </div>
         </div>
         <div class="home-hero__avatar" aria-hidden="true">
-          <img v-if="user?.photo?.url" :src="avatarSrc" :alt="user.name" class="home-hero__avatar-img" />
+          <img
+            v-if="showAvatarImage"
+            :src="avatarSrc"
+            :alt="user?.name || 'Profile photo'"
+            class="home-hero__avatar-img"
+            @error="handleAvatarError"
+          />
           <span v-else class="home-hero__avatar-initials">{{ initials }}</span>
         </div>
       </div>
@@ -357,6 +363,7 @@ const trips = ref<Trip[]>([])
 const hasComplaints = ref(false)
 const isLoading = ref(false)
 const showPaymentQr = ref(false)
+const avatarLoadFailed = ref(false)
 
 // ── Computed: user info ────────────────────────────────────────────────────
 
@@ -373,6 +380,15 @@ const initials = computed(() => {
 })
 
 const avatarSrc = computed(() => mediaUrl(user.value?.photo?.url ?? ''))
+const showAvatarImage = computed(() => Boolean(avatarSrc.value) && !avatarLoadFailed.value)
+
+watch(avatarSrc, () => {
+  avatarLoadFailed.value = false
+})
+
+function handleAvatarError(): void {
+  avatarLoadFailed.value = true
+}
 
 const greeting = computed(() => {
   const h = new Date().getHours()
