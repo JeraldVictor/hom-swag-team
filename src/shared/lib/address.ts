@@ -107,3 +107,27 @@ export function formatCompactAddress(address: OrderAddress | unknown): string {
     })
     .join(', ')
 }
+
+export function formatPrimaryAddressLine(address: OrderAddress | unknown): string {
+  if (!address) return ''
+  if (typeof address !== 'object') return text(address)
+
+  const source = address as Record<string, unknown>
+  const parts = [
+    first(source, ['building_info', 'building_name', 'building', 'building_no']),
+    first(source, ['street', 'line1']),
+    first(source, ['landmark']),
+  ]
+
+  const seen = new Set<string>()
+  return parts
+    .map(part => part.trim())
+    .filter(part => {
+      if (!part || isGpsLike(part)) return false
+      const key = part.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .join(', ')
+}

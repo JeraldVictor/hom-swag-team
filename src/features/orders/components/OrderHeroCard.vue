@@ -8,10 +8,11 @@
       </div>
       <p class="hero-customer-name">{{ customerName }}</p>
       <div class="hero-details">
-        <div class="hero-detail-item">
+        <button type="button" class="hero-detail-item hero-address-button" @click="$emit('viewAddress')">
           <Icon icon="lucide:map-pin" class="detail-icon" />
           <span class="hero-address">{{ address }}</span>
-        </div>
+          <span class="hero-address-view">View</span>
+        </button>
         <div class="hero-detail-item" v-if="(status === ORDER_STATUS.CONFIRMED || status === ORDER_STATUS.STARTED || status === ORDER_STATUS.ONGOING || status === ORDER_STATUS.REACHED_CUSTOMER_PLACE) && beautician_start_time">
           <Icon icon="lucide:clock" class="detail-icon" />
           <span>{{ formatTime12(beautician_start_time) }}</span>
@@ -65,6 +66,7 @@
       <div v-if="showAddressSummary && address" class="hero-summary-address">
         <Icon icon="lucide:map-pin" class="detail-icon" />
         <span class="hero-address">{{ address }}</span>
+        <button type="button" class="hero-address-view" @click="$emit('viewAddress')">View</button>
       </div>
     </template>
   </div>
@@ -109,6 +111,7 @@ defineEmits<{
   navigate: []
   bookRide: []
   copyAddress: []
+  viewAddress: []
 }>()
 </script>
 
@@ -209,8 +212,35 @@ defineEmits<{
   line-height: 1.4;
 }
 
+.hero-address-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .hero-address {
   white-space: pre-line;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hero-address-view {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
 }
 
 .detail-icon {

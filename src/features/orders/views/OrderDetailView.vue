@@ -44,7 +44,7 @@
           :status-label="orderStatusLabel"
           :status-variant="statusVariant"
           :customer-name="order.customer?.full_name || 'Customer'"
-          :address="fullAddress"
+          :address="compactAddress"
           :phone="order.customer?.phone"
           :duration="order?.booking_info?.timing || ''"
           :is-customer-hidden="isCustomerHidden"
@@ -59,6 +59,7 @@
           @navigate="navigateToLocation"
           @book-ride="showRideModal = true"
           @copy-address="copyAddress"
+          @view-address="showAddressModal = true"
         />
 
         <div class="order-top-actions" v-if="canEditOrder && orderChangeAllowed">
@@ -313,6 +314,45 @@
       @booked="(p: string) => showSuccess(`Ride booked via ${p}`)"
     />
 
+    <!-- Delivery Address Details -->
+    <ion-modal
+      :is-open="showAddressModal"
+      @didDismiss="showAddressModal = false"
+      class="address-modal"
+      :initial-breakpoint="0.9"
+      :breakpoints="[0, 0.9, 1]"
+      handle-behavior="cycle"
+    >
+      <div class="address-modal-content">
+        <div class="address-modal-header">
+          <div class="address-modal-icon">
+            <Icon icon="lucide:map-pin" />
+          </div>
+          <div class="address-modal-title-wrap">
+            <h3>Delivery Address</h3>
+            <p>{{ compactAddress || 'No address provided' }}</p>
+          </div>
+          <button class="address-modal-close" type="button" @click="showAddressModal = false">
+            <Icon icon="lucide:x" />
+          </button>
+        </div>
+
+        <div class="address-detail-list">
+          <div v-for="row in addressDetailRows" :key="row.label" class="address-detail-row">
+            <span class="address-detail-label">{{ row.label }}</span>
+            <span class="address-detail-value">{{ row.value || '—' }}</span>
+          </div>
+        </div>
+
+        <div class="address-modal-actions">
+          <AppButton variant="outline" icon="lucide:copy" @click="copyAddress">Copy</AppButton>
+          <AppButton v-if="addressMapUrl" variant="primary" icon="lucide:map" @click="openAddressMap">
+            Open Map
+          </AppButton>
+        </div>
+      </div>
+    </ion-modal>
+
     <!-- Upgrade Item Modal -->
     <ion-modal
       :is-open="showUpgradeModal"
@@ -404,7 +444,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
 import { useNavigation } from '@/shared/composables/useNavigation'
 import { ORDER_STATUS } from '@/shared/constants'
-import { formatAddressText } from '@/shared/lib/address'
+import {
+  formatAddressLines,
+  formatAddressText,
+  formatPrimaryAddressLine,
+  getAddressMapUrl,
+} from '@/shared/lib/address'
 import { formatISTDate, formatISTDateShort, getTodayIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
 import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
@@ -444,6 +489,7 @@ const {
 
 const { showSuccess, showError } = useToast()
 const showRideModal = ref(false)
+const showAddressModal = ref(false)
 const showGallery = ref(false)
 const activeImageUrl = ref('')
 const showOtpInput = ref(false)
@@ -652,6 +698,28 @@ const totalServiceDuration = computed(() => {
 const fullAddress = computed(() => {
   const addr = order.value?.delivery_address || order.value?.address
   return formatAddressText(addr)
+})
+
+const compactAddress = computed(() => {
+  const addr = order.value?.delivery_address || order.value?.address
+  return formatPrimaryAddressLine(addr) || formatAddressText(addr)
+})
+
+const addressDetailRows = computed(() => {
+  const addr = order.value?.delivery_address || order.value?.address
+  return formatAddressLines(addr).map(line => {
+    const separatorIndex = line.indexOf(':')
+    if (separatorIndex === -1) return { label: 'Address', value: line }
+    return {
+      label: line.slice(0, separatorIndex),
+      value: line.slice(separatorIndex + 1).trim(),
+    }
+  })
+})
+
+const addressMapUrl = computed(() => {
+  const addr = order.value?.delivery_address || order.value?.address
+  return getAddressMapUrl(addr)
 })
 
 const scheduleDate = computed(
@@ -1190,6 +1258,14 @@ async function navigateToLocation() {
   )
 }
 
+function openAddressMap() {
+  if (!addressMapUrl.value) {
+    showError('Coordinates not available for this address.')
+    return
+  }
+  window.open(addressMapUrl.value, '_system')
+}
+
 async function copyAddress() {
   if (!fullAddress.value) return
 
@@ -1392,6 +1468,93 @@ onUnmounted(() => {
 .cancel-modal { --border-radius: 28px 28px 0 0; }
 .cancel-container { padding: 6px 4px 20px; display: flex; flex-direction: column; gap: 22px; }
 .cancel-warning { text-align: center; }
+
+/* ── Address Modal ───────────────────────────────────────────────────────── */
+.address-modal { --border-radius: 28px 28px 0 0; }
+.address-modal-content {
+  padding: 24px 16px max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.address-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.address-modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--color-brand-pale);
+  color: var(--color-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.address-modal-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.address-modal-title-wrap h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+.address-modal-title-wrap p {
+  margin: 3px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.address-modal-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.address-detail-list {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+.address-detail-row {
+  display: grid;
+  grid-template-columns: minmax(86px, 0.42fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.address-detail-row:last-child { border-bottom: 0; }
+.address-detail-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.address-detail-value {
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.address-modal-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
 
 /* ── Upgrade Modal ───────────────────────────────────────────────────────── */
 .upgrade-modal { --border-radius: 32px 32px 0 0; }
