@@ -32,6 +32,17 @@
       </template>
 
       <template v-else-if="details">
+        <section class="filters-card">
+          <div class="filter-field">
+            <label for="target-month">Month</label>
+            <input id="target-month" v-model="selectedMonth" type="month" />
+          </div>
+          <button class="filter-apply" type="button" :disabled="isLoading" @click="fetchDetails">
+            <Icon icon="lucide:search" />
+            Apply
+          </button>
+        </section>
+
         <section class="target-hero">
           <p class="target-hero__period">{{ details.period.label }}</p>
           <div class="target-hero__amounts">
@@ -114,6 +125,16 @@
             <span>Total Payable Commission</span>
             <strong>{{ formatCurrency(details.summary.final_payable_amount) }}</strong>
           </div>
+          <template v-if="!isRider">
+            <div class="summary-row summary-row--estimate">
+              <span>Expected if Target 1 achieved</span>
+              <strong>{{ formatCurrency(details.summary.expected_if_target1_achieved) }}</strong>
+            </div>
+            <div class="summary-row summary-row--estimate">
+              <span>Expected if Target 2 achieved</span>
+              <strong>{{ formatCurrency(details.summary.expected_if_target2_achieved) }}</strong>
+            </div>
+          </template>
         </section>
 
         <section v-if="details.leaderboard.prizes.length > 0" class="prize-card">
@@ -130,11 +151,19 @@
             No completed orders for this month.
           </div>
           <div v-else class="list">
-            <article v-for="order in details.orders" :key="order.id" class="order-card">
+            <article
+              v-for="order in details.orders"
+              :key="order.id"
+              class="order-card order-card--clickable"
+              role="button"
+              tabindex="0"
+              @click="openOrder(order.id)"
+              @keydown.enter.prevent="openOrder(order.id)"
+              @keydown.space.prevent="openOrder(order.id)"
+            >
               <div class="order-card__head">
                 <div>
                   <p class="order-card__number">#{{ order.order_number ?? order.id.slice(-6) }}</p>
-                  <p class="order-card__customer">{{ order.customer_name || 'Customer' }}</p>
                 </div>
                 <strong>{{ formatCurrency(order.order_cost) }}</strong>
               </div>
@@ -179,12 +208,15 @@
 <script setup lang="ts">
 import { onIonViewWillEnter } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { getTargetDetails } from '@/shared/api'
 import type { TargetDetailsData } from '@/shared/models'
 
+const router = useRouter()
 const details = ref<TargetDetailsData | null>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
+const selectedMonth = ref(currentMonthKey())
 
 const isRider = computed(() => details.value?.role === 'rider')
 
@@ -215,11 +247,19 @@ function formatDate(iso?: string): string {
   })
 }
 
+function openOrder(orderId: string): void {
+  router.push({ name: 'OrderDetail', params: { id: orderId } })
+}
+
 async function fetchDetails(): Promise<void> {
   isLoading.value = true
   error.value = null
   try {
-    details.value = await getTargetDetails()
+    const [year, month] = selectedMonth.value.split('-').map(Number)
+    details.value = await getTargetDetails({
+      month,
+      year,
+    })
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load target details'
   } finally {
@@ -236,17 +276,78 @@ onMounted(fetchDetails)
 onIonViewWillEnter(() => {
   if (!details.value) fetchDetails()
 })
+
+function currentMonthKey(): string {
+  const date = new Date()
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
+}
 </script>
 
 <style scoped>
 .target-hero,
 .summary-card,
+.filters-card,
 .prize-card {
   margin: 16px;
   padding: 16px;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
+}
+
+.filters-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-field label {
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.filter-field input,
+.filter-field select {
+  width: 100%;
+  min-height: 42px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  padding: 0 10px;
+}
+
+.filter-apply {
+  min-height: 44px;
+  min-width: 120px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-brand);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-weight: 800;
+}
+
+.filter-apply:disabled {
+  opacity: 0.65;
 }
 
 .target-hero {
@@ -358,6 +459,10 @@ onIonViewWillEnter(() => {
   color: var(--color-success-text);
 }
 
+.summary-row--estimate strong {
+  color: var(--color-brand);
+}
+
 .orders-section {
   padding: 0 16px 20px;
 }
@@ -373,6 +478,23 @@ onIonViewWillEnter(() => {
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
+}
+
+.order-card--clickable {
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.order-card--clickable:active {
+  transform: scale(0.99);
+}
+
+.order-card--clickable:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
 }
 
 .order-card__head {

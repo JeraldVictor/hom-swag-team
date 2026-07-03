@@ -27,6 +27,8 @@ export interface TargetDetailsData {
   period: {
     month: number
     year: number
+    date_from?: string
+    date_to?: string
     label: string
   }
   targets: {
@@ -56,6 +58,8 @@ export interface TargetDetailsData {
     total_weekly_commission: number
     total_trip_distance_km: number
     final_payable_amount: number
+    expected_if_target1_achieved: number
+    expected_if_target2_achieved: number
     total_tips: number
     total_complaint_deduction: number
   }
