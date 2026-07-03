@@ -4,8 +4,8 @@ import path from 'node:path'
 import { config as loadDotenv } from '@dotenvx/dotenvx'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
-import { mobileConsolePlugin } from './plugins/mobile-console'
 import pkg from './package.json'
+import { mobileConsolePlugin } from './plugins/mobile-console'
 
 function loadEnvironmentFiles(mode: string) {
   const isProdMode = mode === 'production' || mode === 'prod'
@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
     BASE_URL: process.env.BASE_URL ?? '/',
     VITE_BFF_API_URL: process.env.VITE_BFF_API_URL ?? '',
     VITE_BFF_BASE_URL: process.env.VITE_BFF_BASE_URL ?? 'http://localhost:3000',
-    VITE_MEDIA_BASE_URL: process.env.VITE_MEDIA_BASE_URL ?? 'https://partner.homswag.com',
+    VITE_MEDIA_BASE_URL: process.env.VITE_MEDIA_BASE_URL ?? 'https://api.alpha.homswag.com',
     VITE_WS_URL: process.env.VITE_WS_URL ?? 'http://localhost:3000',
     VITE_GOOGLE_MAPS_API_KEY: process.env.VITE_GOOGLE_MAPS_API_KEY ?? '',
     VITE_FEATURE_MAPS: process.env.VITE_FEATURE_MAPS ?? 'false',
