@@ -6,8 +6,8 @@ import {
   fontSize,
   fontWeight,
   theme,
-} from '@/theme/index'
-import type { Colors, Spacing, Radius, FontSize, FontWeight, Theme } from '@/theme/index'
+} from '@/core/theme/index'
+import type { Colors, Spacing, Radius, FontSize, FontWeight, Theme } from '@/core/theme/index'
 
 // ---------------------------------------------------------------------------
 // Token shape tests

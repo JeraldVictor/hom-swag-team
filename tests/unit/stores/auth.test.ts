@@ -32,9 +32,11 @@ vi.mock('@capacitor/preferences', () => ({
 // Mock @/lib/api (used by refreshTokens)
 // ---------------------------------------------------------------------------
 
-const mockApiPost = vi.fn()
+const { mockApiPost } = vi.hoisted(() => ({
+  mockApiPost: vi.fn(),
+}))
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/shared/lib/api', () => ({
   default: {
     post: mockApiPost,
   },
@@ -44,8 +46,8 @@ vi.mock('@/lib/api', () => ({
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
-import { useAuthStore } from '@/stores/auth'
-import { STORAGE_KEYS } from '@/lib/storage'
+import { useAuthStore } from '@/shared/stores/auth'
+import { STORAGE_KEYS } from '@/shared/lib/storage'
 import type { AuthResponse } from '@/models/auth.model'
 import type { UserProfile } from '@/models/user.model'
 
@@ -59,10 +61,10 @@ function clearMockStore() {
   }
 }
 
-function makeAuthResponse(userType: string = 'beautician'): AuthResponse {
+  function makeAuthResponse(userType: string = 'beautician'): AuthResponse {
   return {
-    access_token: 'access-token-abc',
-    refresh_token: 'refresh-token-xyz',
+    accessToken: 'access-token-abc',
+    refreshToken: 'refresh-token-xyz',
     user: {
       id: '1',
       name: 'Alice',
@@ -315,7 +317,7 @@ describe('useAuthStore', () => {
       await store.login(makeAuthResponse('beautician'))
 
       mockApiPost.mockResolvedValueOnce({
-        data: { access_token: 'new-access', refresh_token: 'new-refresh' },
+        data: { data: { accessToken: 'new-access', refreshToken: 'new-refresh' } },
       })
 
       await store.refreshTokens()
@@ -330,7 +332,7 @@ describe('useAuthStore', () => {
       await store.login(makeAuthResponse('beautician'))
 
       mockApiPost.mockResolvedValueOnce({
-        data: { access_token: 'new-access', refresh_token: 'new-refresh' },
+        data: { data: { accessToken: 'new-access', refreshToken: 'new-refresh' } },
       })
 
       await store.refreshTokens()
@@ -342,7 +344,7 @@ describe('useAuthStore', () => {
       await store.login(makeAuthResponse('beautician'))
 
       mockApiPost.mockResolvedValueOnce({
-        data: { access_token: 'new-access', refresh_token: 'new-refresh' },
+        data: { data: { accessToken: 'new-access', refreshToken: 'new-refresh' } },
       })
 
       await store.refreshTokens()

@@ -31,7 +31,7 @@ vi.mock('@capacitor/preferences', () => ({
 // Mock @/lib/api (used by auth store's refreshTokens)
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/shared/lib/api', () => ({
   default: {
     post: vi.fn(),
   },
@@ -41,8 +41,8 @@ vi.mock('@/lib/api', () => ({
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
-import { useAuthStore } from '@/stores/auth'
-import { useUserTypeStore } from '@/stores/userType'
+import { useAuthStore } from '@/shared/stores/auth'
+import { useUserTypeStore } from '@/shared/stores/userType'
 import type { AuthResponse } from '@/models/auth.model'
 import type { UserProfile } from '@/models/user.model'
 

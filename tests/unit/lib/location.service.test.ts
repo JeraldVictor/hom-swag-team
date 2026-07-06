@@ -6,7 +6,7 @@
  *  - Watch interval clamping (must not exceed 30 000 ms)
  *  - stopWatching delegates to Geolocation.clearWatch
  *  - startWatching invokes the caller callback with coordinates
- *  - startWatching calls postLocation on each update
+ *  - startWatching calls pushLocation on each update
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -25,22 +25,24 @@ vi.mock('@capacitor/geolocation', () => ({
 
 // ─── Mock src/api/location.service ───────────────────────────────────────────
 
-vi.mock('@/api/location.service', () => ({
-  postLocation: vi.fn(),
+vi.mock('@/shared/api/location.service', () => ({
+  getOfficeId: vi.fn(),
+  pushLocation: vi.fn(),
 }))
 
 // ─── Import after mocks are registered ───────────────────────────────────────
 
 import { Geolocation } from '@capacitor/geolocation'
-import { postLocation } from '@/api/location.service'
-import { locationService, MAX_WATCH_INTERVAL_MS } from '@/lib/location.service'
+import { getOfficeId, pushLocation } from '@/shared/api/location.service'
+import { locationService, MAX_WATCH_INTERVAL_MS } from '@/shared/lib/location.service'
 
 // Typed references to the mocked functions.
 const mockRequestPermissions = vi.mocked(Geolocation.requestPermissions)
 const mockGetCurrentPosition = vi.mocked(Geolocation.getCurrentPosition)
 const mockWatchPosition = vi.mocked(Geolocation.watchPosition)
 const mockClearWatch = vi.mocked(Geolocation.clearWatch)
-const mockPostLocation = vi.mocked(postLocation)
+const mockPushLocation = vi.mocked(pushLocation)
+const mockGetOfficeId = vi.mocked(getOfficeId)
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
@@ -133,9 +135,9 @@ describe('LocationService', () => {
     })
   })
 
-  // ── startWatching — callback and postLocation ──────────────────────────────
+  // ── startWatching — callback and pushLocation ──────────────────────────────
 
-  describe('startWatching() — callback and postLocation', () => {
+  describe('startWatching() — callback and pushLocation', () => {
     it('invokes the caller callback with coordinates on each position update', async () => {
       const fakePosition = {
         coords: { latitude: 28.6139, longitude: 77.209, accuracy: 5, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
@@ -148,7 +150,7 @@ describe('LocationService', () => {
         internalCallback = cb as typeof internalCallback
         return Promise.resolve('watch-cb')
       })
-      mockPostLocation.mockResolvedValue(undefined)
+      mockPushLocation.mockResolvedValue(undefined)
 
       const userCallback = vi.fn()
       await locationService.startWatching(userCallback, 5_000)
@@ -162,7 +164,7 @@ describe('LocationService', () => {
       })
     })
 
-    it('calls postLocation with coordinates, timestamp, and accuracy on each update', async () => {
+    it('calls pushLocation with coordinates, accuracy, and office id on each update', async () => {
       const fakePosition = {
         coords: { latitude: 19.076, longitude: 72.8777, accuracy: 8, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
         timestamp: 1_700_000_001_000,
@@ -173,23 +175,24 @@ describe('LocationService', () => {
         internalCallback = cb as typeof internalCallback
         return Promise.resolve('watch-post')
       })
-      mockPostLocation.mockResolvedValue(undefined)
+      mockPushLocation.mockResolvedValue(undefined)
+      mockGetOfficeId.mockResolvedValue('office-1')
 
       await locationService.startWatching(vi.fn(), 5_000)
       internalCallback!(fakePosition)
 
-      // Allow the async postLocation call to settle.
-      await vi.waitFor(() => expect(mockPostLocation).toHaveBeenCalledOnce())
+      // Allow the async pushLocation call to settle.
+      await vi.waitFor(() => expect(mockPushLocation).toHaveBeenCalledOnce())
 
-      expect(mockPostLocation).toHaveBeenCalledWith({
+      expect(mockPushLocation).toHaveBeenCalledWith({
         latitude: 19.076,
         longitude: 72.8777,
-        timestamp: 1_700_000_001_000,
         accuracy: 8,
+        office_id: 'office-1',
       })
     })
 
-    it('does not invoke callback or postLocation when position is null', async () => {
+    it('does not invoke callback or pushLocation when position is null', async () => {
       let internalCallback: ((pos: null, err?: unknown) => void) | null = null
       mockWatchPosition.mockImplementationOnce((_opts: unknown, cb: unknown) => {
         internalCallback = cb as typeof internalCallback
@@ -201,10 +204,10 @@ describe('LocationService', () => {
       internalCallback!(null)
 
       expect(userCallback).not.toHaveBeenCalled()
-      expect(mockPostLocation).not.toHaveBeenCalled()
+      expect(mockPushLocation).not.toHaveBeenCalled()
     })
 
-    it('does not crash when postLocation rejects', async () => {
+    it('does not crash when pushLocation rejects', async () => {
       const fakePosition = {
         coords: { latitude: 0, longitude: 0, accuracy: 1, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
         timestamp: 0,
@@ -215,7 +218,7 @@ describe('LocationService', () => {
         internalCallback = cb as typeof internalCallback
         return Promise.resolve('watch-err')
       })
-      mockPostLocation.mockRejectedValue(new Error('network error'))
+      mockPushLocation.mockRejectedValue(new Error('network error'))
 
       const userCallback = vi.fn()
       await locationService.startWatching(userCallback)

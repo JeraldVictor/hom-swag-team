@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { formatISTDate, formatISTTime } from '@/lib/datetime'
+import { formatISTDate, formatISTTime } from '@/shared/lib/datetime'
 
 // ---------------------------------------------------------------------------
 // formatISTTime

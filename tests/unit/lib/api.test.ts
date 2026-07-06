@@ -134,6 +134,13 @@ function clearPrefsStore() {
   }
 }
 
+function createMockHeaders() {
+  return {
+    get: vi.fn(),
+    set: vi.fn(),
+  }
+}
+
 /** Run a config through all registered request interceptors in order. */
 async function runRequestInterceptors(
   config: Record<string, unknown>,
@@ -203,36 +210,39 @@ describe('Request interceptor — header injection', () => {
   it('attaches Authorization Bearer header when a valid access token is stored', async () => {
     mockPrefsStore[STORAGE_KEYS.accessToken] = VALID_TOKEN
 
-    const config = { url: '/some/endpoint', headers: { set: vi.fn() } }
+    const config = { url: '/some/endpoint', headers: createMockHeaders() }
     await runRequestInterceptors(config as unknown as Record<string, unknown>)
 
     expect(config.headers.set).toHaveBeenCalledWith('Authorization', `Bearer ${VALID_TOKEN}`)
+    expect(config.headers.set).toHaveBeenCalledWith('Cache-Control', 'no-store, no-cache, max-age=0, must-revalidate')
+    expect(config.headers.set).toHaveBeenCalledWith('Pragma', 'no-cache')
+    expect(config.headers.set).toHaveBeenCalledWith('Expires', '0')
   })
 
   it('does not attach Authorization header when no token is stored', async () => {
-    const config = { url: '/some/endpoint', headers: { set: vi.fn() } }
+    const config = { url: '/some/endpoint', headers: createMockHeaders() }
     await runRequestInterceptors(config as unknown as Record<string, unknown>)
 
-    expect(config.headers.set).not.toHaveBeenCalled()
+    expect(config.headers.set).not.toHaveBeenCalledWith('Authorization', expect.any(String))
   })
 
   it('skips token injection for /auth/refresh endpoint', async () => {
     mockPrefsStore[STORAGE_KEYS.accessToken] = VALID_TOKEN
 
-    const config = { url: '/auth/refresh', headers: { set: vi.fn() } }
+    const config = { url: '/auth/refresh', headers: createMockHeaders() }
     await runRequestInterceptors(config as unknown as Record<string, unknown>)
 
-    expect(config.headers.set).not.toHaveBeenCalled()
+    expect(config.headers.set).not.toHaveBeenCalledWith('Authorization', expect.any(String))
   })
 
   it('skips token injection and refresh for /auth/otp/verify endpoint', async () => {
     mockPrefsStore[STORAGE_KEYS.accessToken] = EXPIRED_TOKEN
 
-    const config = { url: '/auth/otp/verify', headers: { set: vi.fn() } }
+    const config = { url: '/auth/otp/verify', headers: createMockHeaders() }
     await runRequestInterceptors(config as unknown as Record<string, unknown>)
 
     expect(mockAxiosInstance.post).not.toHaveBeenCalled()
-    expect(config.headers.set).not.toHaveBeenCalled()
+    expect(config.headers.set).not.toHaveBeenCalledWith('Authorization', expect.any(String))
   })
 })
 
@@ -249,7 +259,7 @@ describe('Request interceptor — proactive token refresh', () => {
     mockPrefsStore[STORAGE_KEYS.accessToken] = EXPIRING_TOKEN
     mockPrefsStore[STORAGE_KEYS.refreshToken] = 'old-refresh-token'
 
-    const config = { url: '/protected', headers: { set: vi.fn() } }
+    const config = { url: '/protected', headers: createMockHeaders() }
     await runRequestInterceptors(config as unknown as Record<string, unknown>)
 
     expect(mockAxiosInstance.post).toHaveBeenCalledWith(
@@ -263,7 +273,7 @@ describe('Request interceptor — proactive token refresh', () => {
     mockPrefsStore[STORAGE_KEYS.accessToken] = EXPIRED_TOKEN
     mockPrefsStore[STORAGE_KEYS.refreshToken] = 'old-refresh-token'
 
-    const config = { url: '/protected', headers: { set: vi.fn() } }
+    const config = { url: '/protected', headers: createMockHeaders() }
     await runRequestInterceptors(config as unknown as Record<string, unknown>)
 
     expect(mockAxiosInstance.post).toHaveBeenCalledWith(
@@ -275,7 +285,7 @@ describe('Request interceptor — proactive token refresh', () => {
   it('does NOT refresh when token has more than 60 seconds remaining', async () => {
     mockPrefsStore[STORAGE_KEYS.accessToken] = VALID_TOKEN
 
-    const config = { url: '/protected', headers: { set: vi.fn() } }
+    const config = { url: '/protected', headers: createMockHeaders() }
     await runRequestInterceptors(config as unknown as Record<string, unknown>)
 
     expect(mockAxiosInstance.post).not.toHaveBeenCalled()
@@ -286,7 +296,7 @@ describe('Request interceptor — proactive token refresh', () => {
     mockPrefsStore[STORAGE_KEYS.accessToken] = EXPIRING_TOKEN
     mockPrefsStore[STORAGE_KEYS.refreshToken] = 'old-refresh-token'
 
-    const config = { url: '/protected', headers: { set: vi.fn() } }
+    const config = { url: '/protected', headers: createMockHeaders() }
     await runRequestInterceptors(config as unknown as Record<string, unknown>)
 
     expect(mockPrefsStore[STORAGE_KEYS.accessToken]).toBe(NEW_ACCESS_TOKEN)
@@ -301,7 +311,11 @@ describe('Response interceptor — ApiError for non-2xx', () => {
   })
 
   it('passes through successful 2xx responses unchanged', () => {
-    const response = { status: 200, data: { id: 1, name: 'Test' } }
+    const response = {
+      config: { method: 'GET', url: '/test', baseURL: '' },
+      status: 200,
+      data: { id: 1, name: 'Test' },
+    }
     const result = runResponseFulfilled(response as unknown as Record<string, unknown>)
     expect(result).toEqual(response)
   })
@@ -309,7 +323,7 @@ describe('Response interceptor — ApiError for non-2xx', () => {
   it('throws ApiError for a 404 response', async () => {
     const error = {
       response: { status: 404, data: { message: 'Not found' } },
-      config: { _retry: false },
+      config: { url: '/protected', _retry: false },
       message: 'Request failed with status code 404',
     }
 
@@ -323,7 +337,7 @@ describe('Response interceptor — ApiError for non-2xx', () => {
   it('throws ApiError for a 500 response', async () => {
     const error = {
       response: { status: 500, data: { message: 'Internal server error' } },
-      config: { _retry: false },
+      config: { url: '/protected', _retry: false },
       message: 'Request failed with status code 500',
     }
 
@@ -334,7 +348,7 @@ describe('Response interceptor — ApiError for non-2xx', () => {
   })
 
   it('throws ApiError with status 0 for network errors (no response)', async () => {
-    const error = { message: 'Network Error' }
+    const error = { config: { url: '/protected' }, message: 'Network Error' }
 
     await expect(runResponseRejected(error)).rejects.toMatchObject({
       status: 0,
@@ -344,6 +358,7 @@ describe('Response interceptor — ApiError for non-2xx', () => {
 
   it('throws ApiError for success:false response body', () => {
     const response = {
+      config: { method: 'GET', url: '/test', baseURL: '' },
       status: 200,
       data: { success: false, message: 'Operation not allowed' },
     }
@@ -358,7 +373,11 @@ describe('Response interceptor — ApiError for non-2xx', () => {
   })
 
   it('passes through when success is true', () => {
-    const response = { status: 200, data: { success: true, data: [1, 2, 3] } }
+    const response = {
+      config: { method: 'GET', url: '/test', baseURL: '' },
+      status: 200,
+      data: { success: true, data: [1, 2, 3] },
+    }
     const result = runResponseFulfilled(response as unknown as Record<string, unknown>)
     expect(result).toEqual(response)
   })
@@ -396,11 +415,9 @@ describe('Response interceptor — 401 retry', () => {
     )
   })
 
-  it('calls Auth_Store.logout() and throws ApiError(401) when refresh fails', async () => {
+  it('bubbles ApiError(401) when refresh fails', async () => {
     mockAxiosInstance.post.mockRejectedValueOnce(
-      Object.assign(new Error('Unauthorized'), {
-        response: { status: 401, data: { message: 'Refresh token expired' } },
-      }),
+      Object.assign(new ApiError(401, 'Refresh token expired', { message: 'Refresh token expired' })),
     )
 
     const error = {
@@ -410,7 +427,7 @@ describe('Response interceptor — 401 retry', () => {
     }
 
     await expect(runResponseRejected(error)).rejects.toMatchObject({ status: 401 })
-    expect(mockLogout).toHaveBeenCalled()
+    expect(mockLogout).not.toHaveBeenCalled()
   })
 
   it('does not retry if _retry flag is already set (prevents infinite loop)', async () => {
@@ -444,8 +461,8 @@ describe('Request queue draining', () => {
 
     mockPrefsStore[STORAGE_KEYS.accessToken] = EXPIRING_TOKEN
 
-    const config1 = { url: '/endpoint-1', headers: { set: vi.fn() } }
-    const config2 = { url: '/endpoint-2', headers: { set: vi.fn() } }
+    const config1 = { url: '/endpoint-1', headers: createMockHeaders() }
+    const config2 = { url: '/endpoint-2', headers: createMockHeaders() }
 
     // Start both requests concurrently — the second should queue behind the first
     const req1 = runRequestInterceptors(config1 as unknown as Record<string, unknown>)

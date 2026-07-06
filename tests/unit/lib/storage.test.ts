@@ -27,7 +27,7 @@ vi.mock('@capacitor/preferences', () => ({
 }))
 
 // Import after mock is set up
-import { Storage_Service, STORAGE_KEYS } from '@/lib/storage'
+import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
 import { Preferences } from '@capacitor/preferences'
 
 // ---------------------------------------------------------------------------
