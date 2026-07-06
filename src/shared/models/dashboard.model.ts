@@ -18,6 +18,7 @@ export interface DashboardData {
   today_earnings: number
   today_commission: number
   today_petrol_commission?: number
+  today_total_distance_km?: number
   month_earnings: number
   month_commission: number
   month_petrol_commission?: number

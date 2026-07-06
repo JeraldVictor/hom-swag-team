@@ -57,10 +57,11 @@ export function formatAddressLines(address: OrderAddress | unknown): string[] {
   }
 
   const source = address as Record<string, unknown>
+  const fullAddress =
+    first(source, ['building_info', 'building_name', 'building', 'building_no']) ||
+    [first(source, ['street', 'line1']), first(source, ['landmark'])].filter(Boolean).join(', ')
   const rows = [
-    ['Building', first(source, ['building_info', 'building_name', 'building', 'building_no'])],
-    ['Street', first(source, ['street', 'line1'])],
-    ['Landmark', first(source, ['landmark'])],
+    ['Address', fullAddress],
     ['City', first(source, ['city'])],
     ['State', first(source, ['state'])],
     ['Pincode', first(source, ['pincode', 'pin', 'zip'])],
@@ -87,8 +88,8 @@ export function formatCompactAddress(address: OrderAddress | unknown): string {
 
   const source = address as Record<string, unknown>
   const parts = [
-    first(source, ['building_info', 'building_name', 'building', 'building_no']),
-    first(source, ['street', 'line1']),
+    first(source, ['building_info', 'building_name', 'building', 'building_no']) ||
+      first(source, ['street', 'line1']),
     first(source, ['line2', 'area']),
     first(source, ['city']),
     first(source, ['state']),
@@ -114,9 +115,8 @@ export function formatPrimaryAddressLine(address: OrderAddress | unknown): strin
 
   const source = address as Record<string, unknown>
   const parts = [
-    first(source, ['building_info', 'building_name', 'building', 'building_no']),
-    first(source, ['street', 'line1']),
-    first(source, ['landmark']),
+    first(source, ['building_info', 'building_name', 'building', 'building_no']) ||
+      [first(source, ['street', 'line1']), first(source, ['landmark'])].filter(Boolean).join(', '),
   ]
 
   const seen = new Set<string>()

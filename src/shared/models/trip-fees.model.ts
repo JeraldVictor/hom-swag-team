@@ -33,5 +33,6 @@ export interface TripFeesReport {
   total_commission: number
   total_deductions: number
   total_net: number
+  total_distance_km?: number
   entries: TripFeeEntry[]
 }

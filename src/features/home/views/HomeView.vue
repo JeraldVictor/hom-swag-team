@@ -92,7 +92,11 @@
                 <Icon icon="lucide:trending-up" class="earnings-main__icon" />
               </div>
               <div class="earnings-main__amount">{{ formatAmount(dashboard?.today_earnings) }}</div>
-              <div class="earnings-main__target">
+              <div v-if="isRider" class="earnings-main__metrics">
+                <span>Petrol: {{ formatAmount(dashboard?.today_petrol_commission) }}</span>
+                <span>Today KM: {{ formatKm(todayTripDistanceKm) }} km</span>
+              </div>
+              <div v-else class="earnings-main__target">
                 {{ isRider ? 'Petrol' : 'Commission' }}:
                 {{ formatAmount(isRider ? dashboard?.today_petrol_commission : dashboard?.today_commission) }}
               </div>
@@ -495,6 +499,13 @@ const todayDone = computed(() => {
   return isBeautician.value ? completedOrders.value.length : completedTrips.value.length
 })
 
+const todayTripDistanceKm = computed(() => {
+  if (typeof dashboard.value?.today_total_distance_km === 'number') {
+    return dashboard.value.today_total_distance_km
+  }
+  return completedTrips.value.reduce((total, trip) => total + getTripDistanceKm(trip), 0)
+})
+
 // ── Computed: target progress ──────────────────────────────────────────────
 
 const targetProgress = computed(() => {
@@ -611,6 +622,17 @@ function formatAmountShort(val?: number): string {
   if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`
   if (val >= 1000) return `₹${(val / 1000).toFixed(1)}K`
   return `₹${val}`
+}
+
+function formatKm(km: number): string {
+  return km.toFixed(1)
+}
+
+function getTripDistanceKm(trip: Trip): number {
+  const autoKm = trip.auto_distance_km
+  if (autoKm == null) return 0
+  const multiplier = trip.is_two_way ? 2 : 1
+  return autoKm * multiplier + (trip.extra_km ?? 0)
 }
 
 onMounted(fetchAll)
@@ -913,6 +935,17 @@ watch([isBeautician, isRider], ([newB, newR]) => {
   font-weight: 600;
   opacity: 0.7;
   text-align: right;
+}
+
+.earnings-main__metrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.82;
 }
 
 .earnings-sub {

@@ -117,8 +117,14 @@
             </div>
           </div>
           <div class="summary-net">
-            <span class="summary-net__label">Petrol Payable</span>
-            <span class="summary-net__amount">{{ formatCurrency(report.total_net) }}</span>
+            <div>
+              <span class="summary-net__label">Total KM</span>
+              <span class="summary-net__amount">{{ formatKm(reportTotalDistanceKm) }} km</span>
+            </div>
+            <div class="summary-net__payable">
+              <span class="summary-net__label">Petrol Payable</span>
+              <span class="summary-net__amount">{{ formatCurrency(report.total_net) }}</span>
+            </div>
           </div>
         </div>
 
@@ -168,10 +174,10 @@
                 </span>
               </div>
             </div>
-            <p v-if="entry.distance_km != null" class="entry-card__distance">
+            <p v-if="hasDistance(entry)" class="entry-card__distance">
               <Icon icon="lucide:route" aria-hidden="true" />
-              {{ formatKm(entry.distance_km) }} km
-              <span class="entry-card__distance-breakdown">
+              {{ formatKm(payableDistanceKm(entry)) }} km
+              <span v-if="hasDistanceBreakdown(entry)" class="entry-card__distance-breakdown">
                 {{ distanceBreakdown(entry) }}
               </span>
             </p>
@@ -187,6 +193,7 @@ import { onIonViewWillEnter } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getTripFeesReport } from '@/shared/api'
+import { getTodayIST } from '@/shared/lib/datetime'
 import type { TripFeeEntry, TripFeesReport } from '@/shared/models'
 
 const router = useRouter()
@@ -194,12 +201,8 @@ const report = ref<TripFeesReport | null>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
-const todayStr = new Date().toISOString().split('T')[0]
-const startOfWeek = new Date()
-const dayOfWeek = startOfWeek.getDay()
-const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday)
-const fromDate = ref(startOfWeek.toISOString().split('T')[0])
+const todayStr = getTodayIST()
+const fromDate = ref(todayStr)
 const toDate = ref(todayStr)
 const searchQuery = ref('')
 const showFilters = ref(false)
@@ -208,6 +211,14 @@ let searchTimer: ReturnType<typeof setTimeout> | undefined
 const filterSummary = computed(() => {
   const range = `${formatDate(fromDate.value)} - ${formatDate(toDate.value)}`
   return searchQuery.value.trim() ? `${range} · ${searchQuery.value.trim()}` : range
+})
+
+const reportTotalDistanceKm = computed(() => {
+  if (!report.value) return 0
+  if (typeof report.value.total_distance_km === 'number') {
+    return report.value.total_distance_km
+  }
+  return report.value.entries.reduce((total, entry) => total + payableDistanceKm(entry), 0)
 })
 
 function formatDate(iso: string): string {
@@ -224,6 +235,26 @@ function formatCurrency(amount: number): string {
 
 function formatKm(km: number): string {
   return km.toFixed(1)
+}
+
+function payableDistanceKm(entry: TripFeeEntry): number {
+  if (typeof entry.distance_km === 'number') return entry.distance_km
+  const autoKm = entry.auto_distance_km ?? 0
+  const extraKm = entry.extra_km ?? 0
+  const multiplier = entry.is_two_way ? 2 : 1
+  return autoKm * multiplier + extraKm
+}
+
+function hasDistance(entry: TripFeeEntry): boolean {
+  return (
+    typeof entry.distance_km === 'number' ||
+    typeof entry.auto_distance_km === 'number' ||
+    typeof entry.extra_km === 'number'
+  )
+}
+
+function hasDistanceBreakdown(entry: TripFeeEntry): boolean {
+  return typeof entry.auto_distance_km === 'number' || typeof entry.extra_km === 'number'
 }
 
 function distanceBreakdown(entry: TripFeeEntry): string {
@@ -480,20 +511,27 @@ onIonViewWillEnter(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding-top: 12px;
   border-top: 1px solid rgba(255,255,255,0.25);
 }
 
 .summary-net__label {
+  display: block;
   font-size: var(--font-size-sm);
   font-weight: 600;
   opacity: 0.85;
 }
 
 .summary-net__amount {
+  display: block;
   font-size: var(--font-size-2xl);
   font-weight: 800;
   color: #fff;
+}
+
+.summary-net__payable {
+  text-align: right;
 }
 
 /* List */
