@@ -82,6 +82,7 @@ export function usePlacesSearch(): UsePlacesSearchReturn {
         const response = await autocompleteService?.getPlacePredictions({
           input: q,
           types: ['geocode', 'establishment'],
+          componentRestrictions: { country: 'in' },
         })
         suggestions.value = response?.predictions || []
       } catch (err) {
