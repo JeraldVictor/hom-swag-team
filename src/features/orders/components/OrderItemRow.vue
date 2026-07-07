@@ -100,6 +100,7 @@ interface OptionDisplayItem {
   price?: number
   min_price?: number
   base_price?: number
+  quantity?: number
   duration?: number
   duration_minutes?: number
   banner?: DisplayImage
@@ -146,16 +147,10 @@ const serviceLines = computed<ServiceLine[]>(() => {
       imageUrl: getImageUrl(props.item),
       amount: props.item.total,
       priceMeta: `${props.item.quantity}×₹${props.item.price}`,
-      meta: [
-        props.item.duration ? `${props.item.duration}m` : '',
-        isPackage ? 'Package' : 'Service',
-      ]
-        .filter(Boolean)
-        .join(' • '),
+      meta: formatDuration(props.item.duration),
       canUpgrade: Boolean(props.canUpgrade && !props.item.upgrade_info),
       badges: getLineBadges({
         isFree: props.item.total === 0,
-        isPackage,
         beauticianAdded: props.item.beautician_added,
       }),
     })
@@ -170,10 +165,7 @@ const serviceLines = computed<ServiceLine[]>(() => {
       icon: 'lucide:plus',
       imageUrl: getImageUrl(option),
       amount,
-      parentTitle: formatParentContext(
-        props.item.title,
-        option.duration ?? option.duration_minutes
-      ),
+      meta: formatItemMeta(option.quantity ?? 1, option.duration ?? option.duration_minutes),
       canUpgrade: false,
       badges: getLineBadges({ beauticianAdded: option.beautician_added }),
     })
@@ -186,10 +178,9 @@ const serviceLines = computed<ServiceLine[]>(() => {
       kind: 'package-service',
       icon: 'lucide:check',
       imageUrl: getImageUrl(service),
-      parentTitle: props.item.title,
+      meta: formatItemMeta(1, service.duration),
       canUpgrade: false,
       badges: getLineBadges({
-        isPackageService: true,
         beauticianAdded: service.beautician_added,
       }),
     })
@@ -215,8 +206,12 @@ const serviceLines = computed<ServiceLine[]>(() => {
   return lines
 })
 
-function formatParentContext(parentTitle: string, duration?: number) {
-  return [parentTitle, duration ? `${duration}m` : ''].filter(Boolean).join(' · ')
+function formatDuration(duration?: number) {
+  return duration ? `${duration}m` : ''
+}
+
+function formatItemMeta(quantity: number, duration?: number) {
+  return [`Qty ${quantity}`, formatDuration(duration)].filter(Boolean).join(' • ')
 }
 
 function getImageUrl(value: {
@@ -232,19 +227,13 @@ function getImageUrl(value: {
 
 function getLineBadges({
   isFree = false,
-  isPackage = false,
-  isPackageService = false,
   beauticianAdded = false,
 }: {
   isFree?: boolean
-  isPackage?: boolean
-  isPackageService?: boolean
   beauticianAdded?: boolean
 }): ServiceLineBadge[] {
   const badges: ServiceLineBadge[] = []
   if (isFree) badges.push({ label: 'Free', className: 'ibadge-free' })
-  if (isPackage) badges.push({ label: 'Package', className: 'ibadge-pkg' })
-  if (isPackageService) badges.push({ label: 'Package item', className: 'ibadge-pkg' })
   if (beauticianAdded) {
     badges.push({
       label: 'Beautician added',

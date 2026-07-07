@@ -122,7 +122,7 @@
             </div>
             <div class="cs-row" v-if="completedPrepaid > 0">
               <span class="cs-row-label">Prepaid online</span>
-              <strong class="cs-row-val cs-val-success">−₹{{ completedPrepaid }}</strong>
+              <strong class="cs-row-val cs-val-success">₹{{ completedPrepaid }}</strong>
             </div>
             <div class="cs-row" v-if="completedCod > 0">
               <span class="cs-row-label cs-row-label-icon"><Icon icon="lucide:banknote" class="cs-icon-cash" /> Cash (COD)</span>
