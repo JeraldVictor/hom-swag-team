@@ -23,6 +23,8 @@ export interface DashboardData {
   month_commission: number
   month_petrol_commission?: number
   payable_commission: number
+  estimated_commission_if_target1_achieved?: number
+  estimated_commission_if_target2_achieved?: number
   payable_petrol_commission?: number
   monthly_target: number
   target_achieved: boolean

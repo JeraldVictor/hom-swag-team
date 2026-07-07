@@ -102,11 +102,13 @@
               </div>
             </div>
             <div class="earnings-sub press-feedback" @click="goTo('/leaderboard')" v-if="!isRider">
-              <span class="earnings-sub__label">Month Revenue</span>
-              <div class="earnings-sub__amount">{{ formatAmountShort(dashboard?.month_earnings) }}</div>
-              <span class="earnings-sub__label mt-4">Payable Comm.</span>
+              <span class="earnings-sub__label">Payable Comm.</span>
               <div class="earnings-sub__amount" :class="{ 'text-success': dashboard?.target_achieved }">
                 {{ formatAmountShort(dashboard?.payable_commission) }}
+              </div>
+              <span class="earnings-sub__label mt-4">Est. Comm.</span>
+              <div class="earnings-sub__amount" :class="{ 'text-success': dashboard?.target_achieved }">
+                {{ formatAmountShort(estimatedCommission) }}
               </div>
             </div>
           </div>
@@ -132,7 +134,7 @@
               </div>
               <div class="target-card__labels">
                 <span class="target-card__current">
-                  {{ isRider ? `${dashboard.month_completed_count} trips` : formatAmountShort(dashboard.month_earnings) }}
+                  {{ isRider ? `${dashboard.month_completed_count} trips` : `Revenue: ${formatAmountShort(dashboard.month_earnings)}` }}
                 </span>
                 <span class="target-card__goal">
                   {{
@@ -504,6 +506,15 @@ const todayTripDistanceKm = computed(() => {
     return dashboard.value.today_total_distance_km
   }
   return completedTrips.value.reduce((total, trip) => total + getTripDistanceKm(trip), 0)
+})
+
+const estimatedCommission = computed(() => {
+  return (
+    dashboard.value?.estimated_commission_if_target1_achieved ??
+    dashboard.value?.month_commission ??
+    dashboard.value?.payable_commission ??
+    0
+  )
 })
 
 // ── Computed: target progress ──────────────────────────────────────────────
