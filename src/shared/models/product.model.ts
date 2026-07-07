@@ -65,6 +65,7 @@ export interface ProductOption {
   price?: number
   min_price?: number
   base_price?: number
+  quantity?: number
   duration_minutes?: number
   is_active?: boolean
 }

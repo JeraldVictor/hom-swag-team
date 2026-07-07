@@ -330,7 +330,6 @@
           </div>
           <div class="address-modal-title-wrap">
             <h3>Delivery Address</h3>
-            <p>{{ compactAddress || 'No address provided' }}</p>
           </div>
           <button class="address-modal-close" type="button" @click="showAddressModal = false">
             <Icon icon="lucide:x" />
@@ -1503,13 +1502,6 @@ onUnmounted(() => {
   font-size: 17px;
   font-weight: 800;
   color: var(--color-text);
-}
-.address-modal-title-wrap p {
-  margin: 3px 0 0;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
 }
 .address-modal-close {
   width: 34px;

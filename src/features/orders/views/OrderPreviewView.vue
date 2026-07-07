@@ -23,46 +23,14 @@
             <h3>Order Summary</h3>
           </div>
           
-          <div class="comparison-grid">
-            <div class="comparison-row header">
-              <div class="label">Charge</div>
-              <div class="old">Old</div>
-              <div class="new">New</div>
+          <div class="total-comparison">
+            <div class="total-box old-total">
+              <span>Old Order Total</span>
+              <strong>₹{{ oldTotal }}</strong>
             </div>
-            
-            <div class="comparison-row">
-              <div class="label">Subtotal</div>
-              <div class="old">₹{{ oldSubtotal }}</div>
-              <div class="new">₹{{ newSubtotal }}</div>
-            </div>
-            
-            <div class="comparison-row" v-if="deliveryFee > 0">
-              <div class="label">Delivery Fee</div>
-              <div class="old">₹{{ deliveryFee }}</div>
-              <div class="new">₹{{ deliveryFee }}</div>
-            </div>
-
-            <div class="comparison-row" v-if="membershipCharge > 0">
-              <div class="label">Membership</div>
-              <div class="old">₹{{ membershipCharge }}</div>
-              <div class="new">₹{{ membershipCharge }}</div>
-            </div>
-
-            <div class="comparison-row" v-if="displayOtherCharges !== 0">
-              <div class="label">Other Charges</div>
-              <div class="old">{{ formatCurrency(displayOtherCharges) }}</div>
-              <div class="new">{{ formatCurrency(displayOtherCharges) }}</div>
-            </div>
-            <div class="comparison-row" v-if="roundingAdjustment !== 0">
-              <div class="label">Rounding</div>
-              <div class="old">₹{{ roundingAdjustment }}</div>
-              <div class="new">₹{{ roundingAdjustment }}</div>
-            </div>
-
-            <div class="comparison-row total">
-              <div class="label">Grand Total</div>
-              <div class="old">₹{{ oldTotal }}</div>
-              <div class="new highlight">₹{{ newTotal }}</div>
+            <div class="total-box new-total">
+              <span>New Order Total</span>
+              <strong>₹{{ newTotal }}</strong>
             </div>
           </div>
           
@@ -104,9 +72,9 @@
                   <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
                   <span class="mic-total">₹{{ item.total }}</span>
                 </div>
-                <div v-if="item.duration || item.type" class="mic-attributes">
-                  <span v-if="item.duration" class="mic-attr">
-                    <Icon icon="lucide:clock" class="mic-icon" /> {{ item.duration }} mins
+                <div v-if="getLineDuration(item) || item.type" class="mic-attributes">
+                  <span v-if="getLineDuration(item)" class="mic-attr">
+                    <Icon icon="lucide:clock" class="mic-icon" /> {{ getLineDuration(item) }} mins
                   </span>
                   <span v-if="item.type" class="mic-attr">
                     <Icon icon="lucide:layers" class="mic-icon" /> {{ item.type === 'package' ? 'Package item' : 'Service item' }}
@@ -146,12 +114,17 @@
                   <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
                     <div class="mic-item-info">
                       <span class="mic-item-title">{{ opt.title }}</span>
+                      <span class="mic-item-meta">
+                        Qty {{ opt.quantity ?? 1 }} × ₹{{ opt.price ?? 0 }} · Total ₹{{
+                          (opt.price ?? 0) * (opt.quantity ?? 1)
+                        }}
+                      </span>
                       <span v-if="opt.beautician_added" class="mic-added-tag mic-added-tag-inline">
                         <Icon icon="lucide:user-check" class="mic-badge-icon" />
                         Beautician added
                       </span>
                     </div>
-                    <span class="mic-item-price">₹{{ opt.price ?? 0 }}</span>
+                    <span class="mic-item-price">₹{{ (opt.price ?? 0) * (opt.quantity ?? 1) }}</span>
                   </div>
                 </div>
               </div>
@@ -192,8 +165,8 @@
                   </div>
                 </div>
                 <div class="mic-meta">
-                  <span class="mic-price-info">{{ item.quantity }} × ₹{{ item.price }}</span>
-                  <span class="mic-total">₹{{ (item.price + (item.selected_options || []).reduce((sum, o) => sum + o.price, 0)) * item.quantity }}</span>
+                  <span class="mic-price-info">{{ item.quantity }} × ₹{{ getLineUnitPrice(item) }}</span>
+                  <span class="mic-total">₹{{ getLineTotal(item) }}</span>
                 </div>
                 <div v-if="item.duration || item.type" class="mic-attributes">
                   <span v-if="item.duration" class="mic-attr">
@@ -226,13 +199,30 @@
                   <div v-for="opt in item.selected_options" :key="opt.product_option_id" class="mic-sub-item mic-item-row">
                     <div class="mic-item-info">
                       <span class="mic-item-title">{{ opt.title }}</span>
+                      <span class="mic-item-meta">
+                        Qty {{ getOptionQuantity(opt) }} × ₹{{ getOptionPrice(opt) }} · Total
+                        ₹{{ getOptionPrice(opt) * getOptionQuantity(opt) }}
+                      </span>
                       <span v-if="opt.duration" class="mic-item-meta">{{ opt.duration }} min</span>
                       <span v-if="opt.beautician_added" class="mic-added-tag mic-added-tag-inline">
                         <Icon icon="lucide:user-check" class="mic-badge-icon" />
                         Beautician added
                       </span>
                     </div>
-                    <span class="mic-item-price">₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</span>
+                    <div class="option-review-actions">
+                      <div class="qty-control option-qty-control">
+                        <button @click="updateOptionQuantity(item.product_id, opt.product_option_id, -1)" class="qty-btn">
+                          <Icon icon="lucide:minus" />
+                        </button>
+                        <span class="qty-val">{{ getOptionQuantity(opt) }}</span>
+                        <button @click="updateOptionQuantity(item.product_id, opt.product_option_id, 1)" class="qty-btn">
+                          <Icon icon="lucide:plus" />
+                        </button>
+                      </div>
+                      <span class="mic-item-price">
+                        ₹{{ getOptionPrice(opt) * getOptionQuantity(opt) }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -367,7 +357,6 @@
 import { alertController, loadingController, toastController } from '@ionic/vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ApiError } from '@/shared/lib/api'
 import {
   generateOrderChangeOtp,
   getOrder,
@@ -375,8 +364,16 @@ import {
   verifyServiceOtp,
 } from '@/shared/api/orders.service'
 import { getProduct } from '@/shared/api/products.service'
+import { ApiError } from '@/shared/lib/api'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { Order } from '@/shared/models'
+import {
+  calculateOrderEditEffectiveDiscountTotal,
+  getOrderEditLineTotal,
+  getOrderEditLineUnitPrice,
+  getOrderEditOptionPrice,
+  getOrderEditOptionQuantity,
+} from '../utils/order-edit-calculations'
 import { getPackageServices } from '../utils/order-item-normalizers'
 
 interface CartItem {
@@ -389,12 +386,15 @@ interface CartItem {
   duration?: number
   image?: string
   type?: 'service' | 'package'
+  package_mode?: 'fixed' | 'limit' | 'choose_any'
   total?: number
   beautician_added?: boolean
   selected_options?: {
+    order_product_option_id?: string
     product_option_id: string
     title: string
     price: number
+    quantity?: number
     duration?: number
     min_price?: number
     base_price?: number
@@ -412,6 +412,22 @@ interface CartItem {
     free_product_id?: string
     title?: string
     beautician_added?: boolean
+  }[]
+}
+
+interface DurationLineItem {
+  duration?: number
+  type?: 'service' | 'package'
+  package_mode?: 'fixed' | 'limit' | 'choose_any'
+  selected_options?: readonly {
+    duration?: number
+    quantity?: number
+  }[]
+  selected_package_items?: readonly {
+    duration?: number
+  }[]
+  selected_package_services?: readonly {
+    duration?: number
   }[]
 }
 
@@ -600,6 +616,12 @@ function normalizeCartItem(item: any): CartItem {
     order_product_id: item.order_product_id,
     base_product_id: item.base_product_id || item.product_id,
     beautician_added: item.beautician_added ?? false,
+    selected_options: Array.isArray(item.selected_options)
+      ? item.selected_options.map((option: any) => ({
+          ...option,
+          quantity: option.quantity ?? 1,
+        }))
+      : undefined,
     selected_free_items: normalizeFreeItems(
       item.selected_free_items || item.selectedFreeItems || item.free_products
     ),
@@ -668,23 +690,26 @@ const roundingAdjustment = computed(() => order.value?.rounding || 0)
 const oldTotal = computed(() => order.value?.total || 0)
 
 const newSubtotal = computed(() => {
-  return newCartItems.value.reduce((sum, item) => {
-    const optionsTotal = (item.selected_options || []).reduce((s, o) => s + o.price, 0)
-    return sum + (item.price + optionsTotal) * item.quantity
-  }, 0)
+  return newCartItems.value.reduce((sum, item) => sum + getLineTotal(item), 0)
 })
 
 const otherCharges = computed(() => surgeAmount.value + convenienceFees.value + hygieneFees.value)
-const displayOtherCharges = computed(() => otherCharges.value - discountTotal.value)
 
 const preservedCharges = computed(
   () => deliveryFee.value + otherCharges.value + roundingAdjustment.value
 )
 
+const effectiveDiscountTotal = computed(() =>
+  calculateOrderEditEffectiveDiscountTotal(discountTotal.value, newCartItems.value)
+)
+
 const newTotal = computed(() => {
   return Math.max(
     0,
-    newSubtotal.value + membershipCharge.value + preservedCharges.value - discountTotal.value
+    newSubtotal.value +
+      membershipCharge.value +
+      preservedCharges.value -
+      effectiveDiscountTotal.value
   )
 })
 
@@ -716,9 +741,43 @@ const canConfirmOrder = computed(() => {
   return true
 })
 
-function formatCurrency(amount: number): string {
-  const prefix = amount < 0 ? '-₹' : '₹'
-  return `${prefix}${Math.abs(amount)}`
+function getOptionQuantity(option: { quantity?: number }) {
+  return getOrderEditOptionQuantity(option)
+}
+
+function getOptionPrice(option: { price?: number; min_price?: number; base_price?: number }) {
+  return getOrderEditOptionPrice(option)
+}
+
+function getLineUnitPrice(item: CartItem) {
+  return getOrderEditLineUnitPrice(item)
+}
+
+function getLineDuration(item: DurationLineItem) {
+  if (item.selected_options?.length) {
+    return item.selected_options.reduce(
+      (sum, option) => sum + (option.duration ?? 0) * getOptionQuantity(option),
+      0
+    )
+  }
+
+  if (
+    item.type === 'package' &&
+    item.package_mode &&
+    item.package_mode !== 'fixed' &&
+    (item.selected_package_items?.length || item.selected_package_services?.length)
+  ) {
+    return (item.selected_package_items ?? item.selected_package_services ?? []).reduce(
+      (sum, service) => sum + (service.duration ?? 0),
+      0
+    )
+  }
+
+  return item.duration ?? 0
+}
+
+function getLineTotal(item: CartItem) {
+  return getOrderEditLineTotal(item)
 }
 
 async function fetchOrderData() {
@@ -773,6 +832,18 @@ async function updateQuantity(productId: string, delta: number) {
   } else {
     updateQuantity(productId, 0)
   }
+}
+
+async function updateOptionQuantity(productId: string, optionId: string, delta: number) {
+  const item = newCartItems.value.find(i => i.product_id === productId)
+  const option = item?.selected_options?.find(opt => opt.product_option_id === optionId)
+  if (!item || !option) return
+
+  const nextQuantity = getOptionQuantity(option) + delta
+  if (nextQuantity < 1) return
+
+  option.quantity = nextQuantity
+  persistEdits()
 }
 
 async function persistEdits() {
@@ -856,18 +927,17 @@ async function handleVerifyAndSubmit() {
         product_id: item.base_product_id || item.product_id,
         quantity: item.quantity,
         title: item.title,
-        price: item.price,
-        duration: item.duration,
+        price: getLineUnitPrice(item),
+        duration: getLineDuration(item),
         beautician_added: item.beautician_added ?? isNewItem,
-        total:
-          (item.price + (item.selected_options || []).reduce((s, o) => s + o.price, 0)) *
-          item.quantity,
+        total: getLineTotal(item),
         selected_options: item.selected_options?.map(opt => ({
           ...opt,
+          price: getOptionPrice(opt),
+          quantity: getOptionQuantity(opt),
           duration: opt.duration ?? 0,
           beautician_added:
-            opt.beautician_added ??
-            (originalItem && originalOptionIds.has(opt.product_option_id) ? false : true),
+            opt.beautician_added ?? !(originalItem && originalOptionIds.has(opt.product_option_id)),
         })),
         selected_package_services: item.selected_package_items?.map(pkg => ({
           product_id: pkg.product_id,
@@ -875,17 +945,14 @@ async function handleVerifyAndSubmit() {
           price: pkg.price ?? 0,
           duration: pkg.duration ?? 0,
           beautician_added:
-            pkg.beautician_added ??
-            (originalItem && originalPackageIds.has(pkg.product_id) ? false : true),
+            pkg.beautician_added ?? !(originalItem && originalPackageIds.has(pkg.product_id)),
         })),
         selected_free_items: item.selected_free_items?.map(free => ({
           free_product_id: free.product_id || free.free_product_id || '',
           title: free.title || '',
           beautician_added:
             free.beautician_added ??
-            (originalItem && originalFreeIds.has(free.product_id || free.free_product_id || '')
-              ? false
-              : true),
+            !(originalItem && originalFreeIds.has(free.product_id || free.free_product_id || '')),
         })),
       }
     })
@@ -983,58 +1050,45 @@ onUnmounted(clearOrderOtpCooldown)
   color: var(--color-brand);
 }
 
-.comparison-grid {
-  display: flex;
-  flex-direction: column;
+.total-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.comparison-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  align-items: center;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed var(--color-border);
+.total-box {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-background);
 }
 
-.comparison-row.header {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-sm);
+.total-box span {
+  display: block;
+  margin-bottom: 8px;
   color: var(--color-text-muted);
-  border-bottom-style: solid;
-}
-
-.comparison-row.total {
-  margin-top: 8px;
-  padding-top: 12px;
-  border-bottom: none;
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-md);
-}
-
-.comparison-row .label {
-  color: var(--color-text-secondary);
-}
-
-.comparison-row .old {
-  text-align: right;
-  color: var(--color-text-muted);
-  text-decoration: line-through;
-  font-size: var(--font-size-sm);
-}
-
-.comparison-row .new {
-  text-align: right;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
-.comparison-row .new.highlight {
+.total-box strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: clamp(1.3rem, 8vw, 1.75rem);
+  line-height: 1.05;
+  word-break: break-word;
+}
+
+.new-total {
+  border-color: rgba(var(--ion-color-primary-rgb), 0.35);
+  background: rgba(var(--ion-color-primary-rgb), 0.08);
+}
+
+.new-total strong {
   color: var(--color-brand);
-  font-size: var(--font-size-xl);
-}
-
-.comparison-row.discount .new {
-  color: var(--ion-color-success);
 }
 
 .diff-banner {
@@ -1219,6 +1273,7 @@ onUnmounted(clearOrderOtpCooldown)
 .mic-item-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .mic-item-title {
@@ -1233,6 +1288,18 @@ onUnmounted(clearOrderOtpCooldown)
 .mic-item-price {
   font-weight: 600;
   font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.option-review-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.option-qty-control {
+  gap: 4px;
 }
 
 .mic-added-tag {

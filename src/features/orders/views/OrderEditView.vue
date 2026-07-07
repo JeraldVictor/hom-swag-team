@@ -19,11 +19,14 @@ interface CartItem {
   duration?: number
   image?: string
   type?: 'service' | 'package'
+  package_mode?: 'fixed' | 'limit' | 'choose_any'
   beautician_added?: boolean
   selected_options?: ReadonlyArray<{
+    order_product_option_id?: string
     product_option_id: string
     title: string
     price: number
+    quantity?: number
     duration?: number
     beautician_added?: boolean
   }>
@@ -74,16 +77,71 @@ const cartMap = reactive<Record<string, CartItem>>({})
 
 const cartItems = computed(() => Object.values(cartMap))
 
+function getOptionQuantity(option: { quantity?: number }) {
+  return option.quantity ?? 1
+}
+
+function getLineUnitPrice(item: CartItem) {
+  if (item.selected_options?.length) {
+    return item.selected_options.reduce(
+      (sum, option) => sum + option.price * getOptionQuantity(option),
+      0
+    )
+  }
+
+  if (
+    item.type === 'package' &&
+    item.package_mode &&
+    item.package_mode !== 'fixed' &&
+    item.selected_package_items?.length
+  ) {
+    return item.selected_package_items.reduce((sum, service) => sum + (service.price ?? 0), 0)
+  }
+
+  return item.price
+}
+
+function getLineDuration(item: CartItem) {
+  if (item.selected_options?.length) {
+    return item.selected_options.reduce(
+      (sum, option) => sum + (option.duration ?? 0) * getOptionQuantity(option),
+      0
+    )
+  }
+
+  if (
+    item.type === 'package' &&
+    item.package_mode &&
+    item.package_mode !== 'fixed' &&
+    item.selected_package_items?.length
+  ) {
+    return item.selected_package_items.reduce((sum, service) => sum + (service.duration ?? 0), 0)
+  }
+
+  return item.duration ?? 0
+}
+
 const subtotal = computed(() => {
-  return cartItems.value.reduce((sum, item) => {
-    const optionsTotal = (item.selected_options || []).reduce((s, o) => s + o.price, 0)
-    return sum + (item.price + optionsTotal) * item.quantity
-  }, 0)
+  return cartItems.value.reduce((sum, item) => sum + getLineUnitPrice(item) * item.quantity, 0)
 })
 
 const totalQuantity = computed(() => {
   return cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
 })
+
+function getProductDisplayPrice(product: Product) {
+  const productPrice = product.min_price || product.price || product.base_price || 0
+  if (productPrice > 0) return productPrice
+
+  const optionPrices = (product.options ?? [])
+    .map(option => option.price ?? option.min_price ?? option.base_price ?? 0)
+    .filter(price => price > 0)
+  return optionPrices.length ? Math.min(...optionPrices) : 0
+}
+
+function isSellableProduct(product: Product) {
+  return getProductDisplayPrice(product) > 0
+}
 
 async function saveToStorage() {
   const allEdits =
@@ -135,11 +193,14 @@ async function fetchOrderData() {
           price: p.price,
           duration: p.duration,
           type: p.type,
+          package_mode: 'fixed',
           beautician_added: p.beautician_added ?? false,
           selected_options: p.selected_options?.map(o => ({
+            order_product_option_id: o.order_product_option_id,
             product_option_id: o.product_option_id,
             title: o.title,
             price: o.price ?? 0,
+            quantity: o.quantity ?? 1,
             duration: o.duration ?? 0,
             beautician_added: o.beautician_added ?? false,
           })),
@@ -198,7 +259,7 @@ async function fetchProducts() {
     }
 
     const response = await getProducts(params)
-    products.value = response.data
+    products.value = response.data.filter(isSellableProduct)
   } catch (err) {
     console.error('Failed to fetch products', err)
   } finally {
@@ -259,17 +320,37 @@ function onSelectionConfirm(data: {
     product_option_id: String(o._id || o.id || o.product_option_id),
     title: o.title,
     price: o.price ?? 0,
+    quantity: o.quantity ?? 1,
     duration: o.duration_minutes ?? 0,
     beautician_added: originalItem
       ? !originalOptionIds.has(String(o._id || o.id || o.product_option_id))
       : true,
   }))
+  const packageMode = getPackageMode(data.product)
+  const selectedPackagePrice = data.selectedPackageItems.reduce(
+    (sum, item) => sum + (item.price ?? 0),
+    0
+  )
+  const itemPrice =
+    selectedOptions.length > 0
+      ? selectedOptions.reduce((sum, option) => sum + option.price * getOptionQuantity(option), 0)
+      : data.product.type === 'package' && packageMode !== 'fixed'
+        ? selectedPackagePrice
+        : data.product.min_price
 
   if (existing) {
     existing.title = data.product.name || data.product.title || ''
-    existing.price = data.product.min_price
-    existing.duration = data.product.duration_minutes
+    existing.price = itemPrice
+    existing.duration = getLineDuration({
+      ...existing,
+      price: itemPrice,
+      duration: data.product.duration_minutes,
+      selected_options: selectedOptions,
+      selected_package_items: data.selectedPackageItems,
+      package_mode: packageMode,
+    })
     existing.type = data.product.type
+    existing.package_mode = packageMode
     existing.image = data.product.image_url || data.product.images?.[0]?.url
     existing.base_product_id =
       data.product.product_id || String(data.product._id || data.product.id)
@@ -289,9 +370,20 @@ function onSelectionConfirm(data: {
       base_product_id: data.product.product_id || String(data.product._id || data.product.id),
       quantity: 1,
       title: data.product.name || data.product.title || '',
-      price: data.product.min_price,
-      duration: data.product.duration_minutes,
+      price: itemPrice,
+      duration: getLineDuration({
+        product_id: pid,
+        quantity: 1,
+        title: data.product.name || data.product.title || '',
+        price: itemPrice,
+        duration: data.product.duration_minutes,
+        type: data.product.type,
+        package_mode: packageMode,
+        selected_options: selectedOptions,
+        selected_package_items: data.selectedPackageItems,
+      }),
       type: data.product.type,
+      package_mode: packageMode,
       image: data.product.image_url || data.product.images?.[0]?.url,
       beautician_added: true,
       selected_options: selectedOptions,
@@ -325,6 +417,7 @@ function addToCart(product: Product) {
       price: product.min_price,
       duration: product.duration_minutes,
       type: product.type,
+      package_mode: getPackageMode(product),
       image: product.image_url || product.images?.[0]?.url,
       beautician_added: true,
       selected_free_items: product.free_products?.length
@@ -339,6 +432,15 @@ function addToCart(product: Product) {
     }
   }
   saveToStorage()
+}
+
+function getPackageMode(product: Product): 'fixed' | 'limit' | 'choose_any' {
+  const config = product.package_config
+  if (product.type !== 'package' || !config) return 'fixed'
+  if (config.selection_type) return config.selection_type
+  if (config.choose_any) return 'choose_any'
+  if ((config.min_selection ?? 0) > 0 || (config.max_selection ?? 0) > 0) return 'limit'
+  return 'fixed'
 }
 
 function removeFromCart(productId: string) {
@@ -469,10 +571,10 @@ watch([activeMenuId, searchQuery], () => {
               <h4 class="product-name">{{ product.name || product.title }}</h4>
               <div class="product-meta">
                 <div class="price-container">
-                  <span v-if="product.base_price && product.base_price > product.min_price" class="product-base-price">
+                  <span v-if="product.base_price && product.base_price > getProductDisplayPrice(product)" class="product-base-price">
                     ₹{{ product.base_price }}
                   </span>
-                  <span class="product-min-price">₹{{ product.min_price }}</span>
+                  <span class="product-min-price">₹{{ getProductDisplayPrice(product) }}</span>
                 </div>
                 <span v-if="product.duration_minutes" class="product-duration">
                   <Icon icon="lucide:clock" /> {{ product.duration_minutes }}m

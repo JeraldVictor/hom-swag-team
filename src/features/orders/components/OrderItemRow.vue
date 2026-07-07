@@ -178,6 +178,8 @@ const serviceLines = computed<ServiceLine[]>(() => {
       kind: 'package-service',
       icon: 'lucide:check',
       imageUrl: getImageUrl(service),
+      amount: service.price ?? 0,
+      priceMeta: service.price != null ? '1×₹' + service.price : undefined,
       meta: formatItemMeta(1, service.duration),
       canUpgrade: false,
       badges: getLineBadges({

@@ -118,9 +118,13 @@
           <span>Membership</span>
           <strong>₹{{ membershipCharge }}</strong>
         </div>
-        <div v-if="displayOtherCharges !== 0" class="summary-row">
+        <div v-if="otherCharges > 0" class="summary-row">
           <span>Other Charges</span>
-          <strong>{{ formatCurrency(displayOtherCharges) }}</strong>
+          <strong>₹{{ otherCharges }}</strong>
+        </div>
+        <div v-if="discountTotal > 0" class="summary-row">
+          <span>Discount</span>
+          <strong class="summary-discount">-₹{{ discountTotal }}</strong>
         </div>
         <div class="summary-row summary-total-row">
           <span>Total</span>
@@ -350,12 +354,6 @@ const otherCharges = computed(
     (props.order.booking_info?.surge_amount ?? 0) +
     (props.order.rounding ?? 0)
 )
-const displayOtherCharges = computed(() => otherCharges.value - discountTotal.value)
-
-function formatCurrency(amount: number): string {
-  const prefix = amount < 0 ? '-₹' : '₹'
-  return `${prefix}${Math.abs(amount)}`
-}
 
 const pendingAmount = computed(() => {
   const total = props.order.total ?? 0
@@ -629,6 +627,10 @@ function formatTime(val: string): string {
   font-size: 13px;
   font-weight: 700;
   color: var(--color-text);
+}
+
+.summary-row .summary-discount {
+  color: var(--color-success);
 }
 
 .summary-total-row {

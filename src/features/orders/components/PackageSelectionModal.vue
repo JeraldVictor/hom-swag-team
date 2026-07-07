@@ -29,6 +29,7 @@ const emit = defineEmits<{
 const product = ref<Product | null>(null)
 const isLoading = ref(true)
 const selectedOptionIds = ref<string[]>([])
+const selectedOptionQuantities = ref<Record<string, number>>({})
 const selectedPackageItemIds = ref<string[]>([])
 const packageItemDetails = ref<Product[]>([])
 const selectedFreeItemIds = ref<string[]>([])
@@ -163,6 +164,8 @@ function handleConfirm() {
     .map(opt => ({
       ...opt,
       price: opt.price ?? opt.min_price ?? opt.base_price ?? 0,
+      quantity:
+        selectedOptionQuantities.value[String(opt._id || opt.id || opt.product_option_id)] ?? 1,
     }))
 
   const selectedFreeItems = freeProducts.value
@@ -195,6 +198,7 @@ function toggleOption(id: string) {
   const index = selectedOptionIds.value.indexOf(id)
   if (index > -1) {
     selectedOptionIds.value.splice(index, 1)
+    delete selectedOptionQuantities.value[id]
   } else {
     // Check max limit before adding if not unlimited
     const limits = product.value?.option_limits
@@ -207,10 +211,12 @@ function toggleOption(id: string) {
       // If max_selection is 1, replace current
       if (limits.max_selection === 1) {
         selectedOptionIds.value = [id]
+        selectedOptionQuantities.value = { [id]: selectedOptionQuantities.value[id] ?? 1 }
       }
       return
     }
     selectedOptionIds.value.push(id)
+    selectedOptionQuantities.value[id] = selectedOptionQuantities.value[id] ?? 1
   }
 }
 
@@ -235,6 +241,34 @@ function togglePackageItem(id: string) {
 
 function isOptionSelected(id: string) {
   return selectedOptionIds.value.includes(id)
+}
+
+function getOptionQuantity(id: string) {
+  return selectedOptionQuantities.value[id] ?? 1
+}
+
+function incrementOptionQuantity(id: string) {
+  if (!isOptionSelected(id)) {
+    toggleOption(id)
+    return
+  }
+  selectedOptionQuantities.value[id] = getOptionQuantity(id) + 1
+}
+
+function decrementOptionQuantity(id: string) {
+  if (!isOptionSelected(id)) return
+  const nextQuantity = getOptionQuantity(id) - 1
+  if (nextQuantity <= 0) {
+    toggleOption(id)
+    return
+  }
+  selectedOptionQuantities.value[id] = nextQuantity
+}
+
+function getOptionTotal(opt: ProductOption) {
+  const optionId = String(opt._id || opt.id || opt.product_option_id)
+  const price = opt.price ?? opt.min_price ?? opt.base_price ?? 0
+  return price * getOptionQuantity(optionId)
 }
 
 function toggleFreeItem(id: string) {
@@ -358,8 +392,38 @@ function isPackageItemSelected(id: string) {
               ></ion-checkbox>
               <ion-label>
                 <h2>{{ opt.title }}</h2>
-                <p>+ ₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}</p>
+                <p>
+                  + ₹{{ opt.price ?? opt.min_price ?? opt.base_price ?? 0 }}
+                  <template v-if="isOptionSelected(String(opt._id || opt.id || opt.product_option_id))">
+                    · Total ₹{{ getOptionTotal(opt) }}
+                  </template>
+                </p>
               </ion-label>
+              <div
+                v-if="isOptionSelected(String(opt._id || opt.id || opt.product_option_id))"
+                class="option-qty-control"
+                @click.stop
+              >
+                <button
+                  type="button"
+                  class="option-qty-btn"
+                  aria-label="Decrease option quantity"
+                  @click.stop="decrementOptionQuantity(String(opt._id || opt.id || opt.product_option_id))"
+                >
+                  <Icon icon="lucide:minus" />
+                </button>
+                <span class="option-qty-value">
+                  {{ getOptionQuantity(String(opt._id || opt.id || opt.product_option_id)) }}
+                </span>
+                <button
+                  type="button"
+                  class="option-qty-btn"
+                  aria-label="Increase option quantity"
+                  @click.stop="incrementOptionQuantity(String(opt._id || opt.id || opt.product_option_id))"
+                >
+                  <Icon icon="lucide:plus" />
+                </button>
+              </div>
             </ion-item>
           </ion-list>
         </div>
@@ -442,5 +506,38 @@ ion-checkbox {
   --size: 20px;
   --checkbox-background-checked: var(--color-brand);
   --border-color-checked: var(--color-brand);
+}
+
+.option-qty-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.option-qty-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.option-qty-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.option-qty-value {
+  min-width: 18px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-text);
 }
 </style>
