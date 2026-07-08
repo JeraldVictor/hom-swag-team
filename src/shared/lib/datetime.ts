@@ -109,3 +109,16 @@ export function formatISTDateShort(date: string | Date | number): string {
 export function getTodayIST(): string {
   return format(toZonedTime(new Date(), IST_TIMEZONE), 'yyyy-MM-dd', { timeZone: IST_TIMEZONE })
 }
+
+/**
+ * Returns true when the given date falls within the final N calendar days of
+ * its month in IST.
+ */
+export function isInLastDaysOfMonthIST(date: Date = new Date(), days = 5): boolean {
+  const zonedDate = toZonedTime(date, IST_TIMEZONE)
+  const dayOfMonth = zonedDate.getDate()
+  const daysInMonth = new Date(zonedDate.getFullYear(), zonedDate.getMonth() + 1, 0).getDate()
+  const firstVisibleDay = Math.max(1, daysInMonth - days + 1)
+
+  return dayOfMonth >= firstVisibleDay
+}

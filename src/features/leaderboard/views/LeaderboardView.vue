@@ -266,6 +266,7 @@
 import { onIonViewWillEnter } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
 import { getLeaderboard } from '@/shared/api'
+import { isInLastDaysOfMonthIST } from '@/shared/lib/datetime'
 import { mediaUrl } from '@/shared/lib/media'
 import type { LeaderboardData, LeaderboardEntry, LeaderboardPeriod } from '@/shared/models'
 
@@ -293,15 +294,18 @@ const prizeAmounts = computed(() => {
     ? (data.value.prizes.rider ?? [])
     : (data.value.prizes.beutician ?? [])
 })
+const shouldShowBonus = computed(() => isInLastDaysOfMonthIST())
 const prizeCards = computed(() =>
-  prizeAmounts.value
-    .slice(0, 2)
-    .map((amount, index) => ({
-      rank: index + 1,
-      label: index === 0 ? '1st Bonus' : '2nd Bonus',
-      amount,
-    }))
-    .filter(prize => prize.amount > 0)
+  shouldShowBonus.value
+    ? prizeAmounts.value
+        .slice(0, 2)
+        .map((amount, index) => ({
+          rank: index + 1,
+          label: index === 0 ? '1st Bonus' : '2nd Bonus',
+          amount,
+        }))
+        .filter(prize => prize.amount > 0)
+    : []
 )
 const emptyStateText = computed(() =>
   isRiderLeaderboard.value
