@@ -748,13 +748,7 @@ const orderDateRestrictionMessage = computed(() => {
 })
 
 const hasOrderContext = computed(() => {
-  return !!(
-    order.value?.notes ||
-    order.value?.custom_instruction ||
-    order.value?.staff_notes ||
-    order.value?.payment?.internal_comment ||
-    order.value?.instruction_presets?.length
-  )
+  return !!order.value?.instruction_presets?.some(preset => preset.beautician_visible)
 })
 
 const isCustomerHidden = computed(() => {

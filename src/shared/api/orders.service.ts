@@ -14,6 +14,32 @@ import type {
 } from '@/shared/models/order.model'
 import type { PaginatedResponse } from '@/shared/models/pagination.model'
 
+function hideTeamRestrictedOrderMessages(order: Order): Order {
+  const {
+    notes: _notes,
+    staff_notes: _staffNotes,
+    custom_instruction: _customInstruction,
+    ...visibleOrder
+  } = order
+
+  if (!visibleOrder.payment?.internal_comment) return visibleOrder
+
+  const { internal_comment: _internalComment, ...visiblePayment } = visibleOrder.payment
+  return {
+    ...visibleOrder,
+    payment: visiblePayment,
+  }
+}
+
+function hideTeamRestrictedOrderMessagesFromPage(
+  page: PaginatedResponse<Order>
+): PaginatedResponse<Order> {
+  return {
+    ...page,
+    data: page.data.map(hideTeamRestrictedOrderMessages),
+  }
+}
+
 /**
  * Fetch a paginated list of orders assigned to the authenticated beautician.
  * GET /orders
@@ -41,7 +67,7 @@ export async function getOrders(
   // Handle both paginated envelope and plain array
   if (Array.isArray(raw)) {
     return {
-      data: raw,
+      data: raw.map(hideTeamRestrictedOrderMessages),
       total: raw.length,
       count: raw.length,
       page: 1,
@@ -51,7 +77,7 @@ export async function getOrders(
       hasPrevPage: false,
     }
   }
-  return raw as PaginatedResponse<Order>
+  return hideTeamRestrictedOrderMessagesFromPage(raw as PaginatedResponse<Order>)
 }
 
 /**
@@ -60,7 +86,7 @@ export async function getOrders(
  */
 export async function getOrder(id: string | number): Promise<Order> {
   const response = await apiClient.get<{ data: Order }>(`/orders/${id}`)
-  return response.data.data
+  return hideTeamRestrictedOrderMessages(response.data.data)
 }
 
 /**

@@ -51,46 +51,24 @@
       </div>
     </div>
 
-    <!-- ── Notes & Instructions Card ─────────────────────────────────────── -->
+    <!-- ── Order Instructions Card ───────────────────────────────────────── -->
     <div class="content-card" v-if="hasOrderContext">
       <div class="card-header">
         <div class="header-icon-wrap"><Icon icon="lucide:notebook-tabs" /></div>
-        <h3>Notes & Instructions</h3>
+        <h3>Order Instructions</h3>
       </div>
       <div class="context-grid">
-        <div v-if="order.notes" class="context-box note-box">
-          <div class="box-header">
-            <Icon icon="lucide:message-square-quote" />
-            <span>Customer Note</span>
-          </div>
-          <p v-html="order.notes"></p>
-        </div>
-        <div v-if="order.custom_instruction || visibleInstructionPresets.length" class="context-box instruction-box">
+        <div v-if="visibleInstructionPresets.length" class="context-box instruction-box">
           <div class="box-header">
             <Icon icon="lucide:clipboard-list" />
-            <span>Special Instructions</span>
+            <span>Beautician Instructions</span>
           </div>
-          <p
-            v-if="order.custom_instruction"
-            :class="{ 'mb-2': visibleInstructionPresets.length }"
-            v-html="order.custom_instruction"
-          ></p>
-          <div v-if="visibleInstructionPresets.length" class="preset-chips">
+          <div class="preset-chips">
             <AppBadge v-for="preset in visibleInstructionPresets" :key="preset._id" variant="info" size="sm">
               {{ preset.text }}
               {{ preset.description ? `: ${preset.description}` : '' }}
             </AppBadge>
           </div>
-        </div>
-        <div v-if="order.staff_notes || order.payment?.internal_comment" class="context-box internal-box">
-          <div class="box-header">
-            <Icon icon="lucide:shield-alert" />
-            <span>Internal Reference</span>
-          </div>
-          <p v-if="order.staff_notes"><strong>Staff:</strong> {{ order.staff_notes }}</p>
-          <p v-if="order.payment?.internal_comment" :class="{ 'mt-1': order.staff_notes }">
-            <strong>Payment:</strong> {{ order.payment.internal_comment }}
-          </p>
         </div>
       </div>
     </div>
@@ -330,9 +308,7 @@ const prepaidAmount = computed(() => {
 })
 
 const visibleInstructionPresets = computed(() =>
-  (props.order.instruction_presets ?? []).filter(
-    preset => preset.beautician_visible || preset.customer_facing
-  )
+  (props.order.instruction_presets ?? []).filter(preset => preset.beautician_visible)
 )
 
 const pendingAmount = computed(() => {
