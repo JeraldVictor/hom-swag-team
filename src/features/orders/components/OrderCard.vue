@@ -28,7 +28,10 @@
           <Icon icon="lucide:shopping-bag" class="order-card__icon" aria-hidden="true" />
         </div>
         <span class="order-card__items">{{ order.products?.length || 0 }} Items</span>
-        <span class="order-card__total" style="margin-left: auto; font-weight: 800; color: var(--color-brand);">₹{{ order.total }}</span>
+        <span class="order-card__total">
+          <span class="order-card__total-label">Total Order Value</span>
+          <strong>₹{{ orderTotal }}</strong>
+        </span>
       </div>
     </div>
 
@@ -77,6 +80,8 @@ const formattedDate = computed(() => {
   if (!d) return ''
   return formatISTDate(d)
 })
+
+const orderTotal = computed(() => props.order.total ?? 0)
 </script>
 
 <style scoped>
@@ -165,6 +170,35 @@ const formattedDate = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.order-card__items {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.order-card__total {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.order-card__total-label {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.order-card__total strong {
+  font-size: var(--font-size-base);
+  line-height: 1.1;
+  font-weight: 800;
+  color: var(--color-brand);
 }
 
 .order-card__footer {

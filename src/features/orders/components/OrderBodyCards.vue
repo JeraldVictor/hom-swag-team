@@ -110,24 +110,8 @@
         />
       </div>
       <div class="order-summary">
-        <div class="summary-row">
-          <span>Subtotal</span>
-          <strong>₹{{ order.subtotal ?? 0 }}</strong>
-        </div>
-        <div v-if="membershipCharge > 0" class="summary-row">
-          <span>Membership</span>
-          <strong>₹{{ membershipCharge }}</strong>
-        </div>
-        <div v-if="otherCharges > 0" class="summary-row">
-          <span>Other Charges</span>
-          <strong>₹{{ otherCharges }}</strong>
-        </div>
-        <div v-if="discountTotal > 0" class="summary-row">
-          <span>Discount</span>
-          <strong class="summary-discount">-₹{{ discountTotal }}</strong>
-        </div>
         <div class="summary-row summary-total-row">
-          <span>Total</span>
+          <span>Total Order Value</span>
           <strong>₹{{ order.total ?? 0 }}</strong>
         </div>
       </div>
@@ -343,17 +327,6 @@ const prepaidAmount = computed(() => {
   if (!props.order.payment) return 0
   return props.order.payment.amount_paid ?? 0
 })
-
-const membershipCharge = computed(() => props.order.membership_charge ?? 0)
-const discountTotal = computed(() => props.order.discount_total ?? 0)
-const otherCharges = computed(
-  () =>
-    (props.order.delivery_fee ?? 0) +
-    (props.order.convenience_fees ?? 0) +
-    (props.order.hygiene_fees ?? 0) +
-    (props.order.booking_info?.surge_amount ?? 0) +
-    (props.order.rounding ?? 0)
-)
 
 const pendingAmount = computed(() => {
   const total = props.order.total ?? 0
