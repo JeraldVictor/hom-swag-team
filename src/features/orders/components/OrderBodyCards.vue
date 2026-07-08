@@ -65,20 +65,21 @@
           </div>
           <p v-html="order.notes"></p>
         </div>
-        <div v-if="order.custom_instruction || order.instruction_presets?.length" class="context-box instruction-box">
+        <div v-if="order.custom_instruction || visibleInstructionPresets.length" class="context-box instruction-box">
           <div class="box-header">
             <Icon icon="lucide:clipboard-list" />
             <span>Special Instructions</span>
           </div>
-          <p v-if="order.custom_instruction" :class="{ 'mb-2': order.instruction_presets?.length }" v-html="order.custom_instruction"></p>
-          <div v-if="order.instruction_presets?.length" class="preset-chips">
-            <template v-for="preset in order.instruction_presets" 
-              :key="preset._id">
-              <AppBadge  v-if="preset.beautician_visible" variant="info" size="sm">
-                {{ preset.text }}
-                {{ preset.description ? `: ${preset.description}` : '' }}
-              </AppBadge>
-            </template>
+          <p
+            v-if="order.custom_instruction"
+            :class="{ 'mb-2': visibleInstructionPresets.length }"
+            v-html="order.custom_instruction"
+          ></p>
+          <div v-if="visibleInstructionPresets.length" class="preset-chips">
+            <AppBadge v-for="preset in visibleInstructionPresets" :key="preset._id" variant="info" size="sm">
+              {{ preset.text }}
+              {{ preset.description ? `: ${preset.description}` : '' }}
+            </AppBadge>
           </div>
         </div>
         <div v-if="order.staff_notes || order.payment?.internal_comment" class="context-box internal-box">
@@ -327,6 +328,12 @@ const prepaidAmount = computed(() => {
   if (!props.order.payment) return 0
   return props.order.payment.amount_paid ?? 0
 })
+
+const visibleInstructionPresets = computed(() =>
+  (props.order.instruction_presets ?? []).filter(
+    preset => preset.beautician_visible || preset.customer_facing
+  )
+)
 
 const pendingAmount = computed(() => {
   const total = props.order.total ?? 0
