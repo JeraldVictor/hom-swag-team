@@ -85,13 +85,20 @@ export function useOrderDetail() {
     isLoading.value = true
     error.value = null
     try {
-      order.value = await getOrderApi(id)
-      try {
-        // Fire-and-forget: mark as viewed but do NOT overwrite order.value,
-        // because the PATCH response omits populated virtual fields like instruction_presets.
-        markOrderViewedApi(id).catch(() => {})
-      } catch {
-        // If marking as viewed fails, still keep the loaded order data.
+      const loadedOrder = await getOrderApi(id)
+      order.value = loadedOrder
+
+      if (loadedOrder.beautician_viewed !== true) {
+        try {
+          await markOrderViewedApi(id)
+          order.value = {
+            ...loadedOrder,
+            beautician_viewed: true,
+          }
+          dispatchOrderUpdated(id)
+        } catch {
+          // If marking as viewed fails, still keep the loaded order data.
+        }
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load order'
