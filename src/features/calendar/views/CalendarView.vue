@@ -73,6 +73,10 @@
           <span>Sick Leave</span>
         </div>
         <div class="cal-legend__item">
+          <span class="cal-cell__dot cal-cell__dot--block_time" />
+          <span>Block Time</span>
+        </div>
+        <div class="cal-legend__item">
           <span class="cal-cell__dot cal-cell__dot--holiday" />
           <span>Holiday</span>
         </div>
@@ -317,6 +321,30 @@ const formattedSelectedDate = computed(() => {
   })
 })
 
+function leaveTitle(type: string): string {
+  if (type === 'paid_leave') return 'Paid Leave'
+  if (type === 'sick_leave') return 'Sick Leave'
+  if (type === 'loss_of_pay') return 'Loss of Pay'
+  if (type === 'block_time') return 'Block Time'
+  return 'Leave'
+}
+
+function leaveDetail(req: Record<string, unknown>): string | undefined {
+  if (req.leave_type === 'block_time') {
+    const start = typeof req.start_time === 'string' ? req.start_time : ''
+    const end = typeof req.end_time === 'string' ? req.end_time : ''
+    if (start && end) return `${start} - ${end}`
+    if (start || end) return start || end
+  }
+
+  const durationMap: Record<string, string> = {
+    full_day: 'Full Day',
+    first_half: 'First Half',
+    second_half: 'Second Half',
+  }
+  return durationMap[req.duration as string] ?? (req.duration as string | undefined)
+}
+
 // ── Data loading ───────────────────────────────────────────────────────────
 
 async function fetchCalendar(): Promise<void> {
@@ -333,25 +361,13 @@ async function fetchCalendar(): Promise<void> {
     for (const req of leaves) {
       const type = req.leave_type as string
       if (!type || !req.date) continue
-      const durationMap: Record<string, string> = {
-        full_day: 'Full Day',
-        first_half: 'First Half',
-        second_half: 'Second Half',
-      }
       events.push({
         date: req.date as string,
         type: type as EventType,
-        title:
-          type === 'paid_leave'
-            ? 'Paid Leave'
-            : type === 'sick_leave'
-              ? 'Sick Leave'
-              : type === 'loss_of_pay'
-                ? 'Loss of Pay'
-                : 'Block Time',
+        title: leaveTitle(type),
         status: req.status as string,
         id: String(req._id ?? req.id ?? ''),
-        detail: durationMap[req.duration as string] ?? (req.duration as string),
+        detail: leaveDetail(req),
       })
     }
 

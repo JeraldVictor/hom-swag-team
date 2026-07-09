@@ -1,8 +1,15 @@
 /**
  * A calendar event entry shown on the calendar.
- * Only leave, OT, and weekly-off events are displayed.
+ * Only leave, OT, weekly-off, and holiday events are displayed.
  */
-export type CalendarEventType = 'paid_leave' | 'sick_leave' | 'ot' | 'weekly_off'
+export type CalendarEventType =
+  | 'paid_leave'
+  | 'sick_leave'
+  | 'loss_of_pay'
+  | 'block_time'
+  | 'ot'
+  | 'weekly_off'
+  | 'holiday'
 
 export interface CalendarEvent {
   /** ISO 8601 date string (YYYY-MM-DD) */
@@ -12,7 +19,7 @@ export interface CalendarEvent {
   /** Approval status of the underlying request */
   status: 'requested' | 'approved' | 'rejected'
   id?: string | number
-  /** Extra detail — e.g. "Full Day", "2 hrs OT", "Monday" */
+  /** Extra detail — e.g. "Full Day", "04:30 PM - 05:30 PM", "2 hrs OT", "Monday" */
   detail?: string
 }
 
