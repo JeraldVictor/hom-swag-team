@@ -114,8 +114,9 @@
               <span v-else class="podium-avatar__initials">{{ initials(top3[1].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[1].name.split(' ')[0] }}</p>
+            <p class="podium-value">{{ podiumValueLabel(top3[1]) }}</p>
             <div class="podium-block podium-block--second">
-              <span class="podium-rank">2</span>
+              <span class="podium-rank">{{ top3[1].rank }}</span>
             </div>
           </div>
 
@@ -133,8 +134,9 @@
               <span v-else class="podium-avatar__initials">{{ initials(top3[0].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[0].name.split(' ')[0] }}</p>
+            <p class="podium-value">{{ podiumValueLabel(top3[0]) }}</p>
             <div class="podium-block podium-block--first">
-              <span class="podium-rank">1</span>
+              <span class="podium-rank">{{ top3[0].rank }}</span>
             </div>
           </div>
 
@@ -151,8 +153,9 @@
               <span v-else class="podium-avatar__initials">{{ initials(top3[2].name) }}</span>
             </div>
             <p class="podium-name">{{ top3[2].name.split(' ')[0] }}</p>
+            <p class="podium-value">{{ podiumValueLabel(top3[2]) }}</p>
             <div class="podium-block podium-block--third">
-              <span class="podium-rank">3</span>
+              <span class="podium-rank">{{ top3[2].rank }}</span>
             </div>
           </div>
         </div>
@@ -349,6 +352,10 @@ function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString('en-IN')}`
 }
 
+function podiumValueLabel(entry: LeaderboardEntry): string {
+  return entry.amount ? formatAmount(entry.amount) : '—'
+}
+
 function isMaskedEntry(entry: LeaderboardEntry): boolean {
   return entry.user_id === 'masked'
 }
@@ -518,6 +525,19 @@ onIonViewWillEnter(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+.podium-value {
+  margin: 0 0 6px;
+  min-height: 16px;
+  max-width: 100%;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .podium-block {
