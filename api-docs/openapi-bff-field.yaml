@@ -4954,8 +4954,6 @@ components:
           type: number
         min_price:
           type: number
-        display.is_active:
-          type: boolean
         display.is_featured:
           type: boolean
         display.is_bestseller:
