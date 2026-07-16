@@ -241,22 +241,22 @@
         </div>
 
         <!-- Self entry when outside top N -->
-        <div v-if="data.self_entry && !data.self_entry.is_self" class="self-entry-card">
+        <div v-if="selfEntryOutsideTop" class="self-entry-card">
           <p class="self-entry-card__label">Your Rank</p>
           <div class="entry-card entry-card--self">
-            <span class="entry-rank">{{ data.self_entry.rank }}</span>
+            <span class="entry-rank">{{ selfEntryOutsideTop.rank }}</span>
             <div class="entry-avatar">
               <img
-                v-if="shouldShowPhoto(data.self_entry)"
-                :src="leaderboardPhotoUrl(data.self_entry)"
-                :alt="data.self_entry.name"
+                v-if="shouldShowPhoto(selfEntryOutsideTop)"
+                :src="leaderboardPhotoUrl(selfEntryOutsideTop)"
+                :alt="selfEntryOutsideTop.name"
                 class="entry-avatar__img"
-                @error="markAvatarFailed(data.self_entry)"
+                @error="markAvatarFailed(selfEntryOutsideTop)"
               />
-              <span v-else class="entry-avatar__initials">{{ initials(data.self_entry.name) }}</span>
+              <span v-else class="entry-avatar__initials">{{ initials(selfEntryOutsideTop.name) }}</span>
             </div>
             <div class="entry-info">
-              <p class="entry-name">{{ data.self_entry.name }} <span class="entry-you">(You)</span></p>
+              <p class="entry-name">{{ selfEntryOutsideTop.name }} <span class="entry-you">(You)</span></p>
             </div>
           </div>
         </div>
@@ -288,6 +288,11 @@ const periods: { value: LeaderboardPeriod; label: string }[] = [
 const top3 = computed(() => data.value?.entries.slice(0, 3) ?? [])
 const rest = computed(() => data.value?.entries.slice(3) ?? [])
 const isRiderLeaderboard = computed(() => data.value?.role === 'rider')
+const selfEntryOutsideTop = computed<LeaderboardEntry | null>(() => {
+  const selfEntry = data.value?.self_entry
+  if (!selfEntry) return null
+  return top3.value.some(entry => entry.user_id === selfEntry.user_id) ? null : selfEntry
+})
 const roleLabel = computed(() => (isRiderLeaderboard.value ? 'Rider' : 'Beautician'))
 const rolePluralLabel = computed(() => (isRiderLeaderboard.value ? 'Riders' : 'Beauticians'))
 const amountLabel = computed(() => (isRiderLeaderboard.value ? 'Distance' : 'Revenue'))
