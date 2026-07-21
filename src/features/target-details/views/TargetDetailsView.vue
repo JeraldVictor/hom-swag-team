@@ -121,9 +121,21 @@
             <strong>{{ formatCurrency(details.summary.total_upgrade_addon_commission) }}</strong>
             </div>
           </template>
+          <div class="summary-row">
+            <span>Adjustments</span>
+            <strong>{{ formatSignedCurrency(details.summary.total_adjustment_amount) }}</strong>
+          </div>
           <div class="summary-row summary-row--total">
-            <span>Total Payable Commission</span>
+            <span>Final Payable</span>
             <strong>{{ formatCurrency(details.summary.final_payable_amount) }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>Already Paid</span>
+            <strong>{{ formatCurrency(details.summary.total_paid_amount) }}</strong>
+          </div>
+          <div class="summary-row summary-row--total">
+            <span>Pending Payout</span>
+            <strong>{{ formatCurrency(details.summary.pending_amount) }}</strong>
           </div>
           <template v-if="!isRider">
             <div class="summary-row summary-row--estimate">
@@ -194,8 +206,7 @@
               <div class="commission-grid">
                 <span>Commission <b>{{ formatCurrency(trip.commission) }}</b></span>
                 <span>Petrol <b>{{ formatCurrency(trip.petrol_commission) }}</b></span>
-                <span>Weekly <b>{{ formatCurrency(trip.weekly_commission) }}</b></span>
-                <span>Total <b>{{ formatCurrency(trip.commission + trip.petrol_commission + trip.weekly_commission) }}</b></span>
+                <span>Total <b>{{ formatCurrency(trip.commission + trip.petrol_commission) }}</b></span>
               </div>
             </article>
           </div>
@@ -229,6 +240,11 @@ const target1Progress = computed(() => {
 
 function formatCurrency(amount: number): string {
   return `₹${Math.max(0, amount).toLocaleString('en-IN')}`
+}
+
+function formatSignedCurrency(amount: number): string {
+  const prefix = amount > 0 ? '+' : amount < 0 ? '-' : ''
+  return `${prefix}₹${Math.abs(amount).toLocaleString('en-IN')}`
 }
 
 function rankSuffix(rank: number): string {

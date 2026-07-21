@@ -62,6 +62,15 @@ export interface TargetDetailsData {
     expected_if_target2_achieved: number
     total_tips: number
     total_complaint_deduction: number
+    total_adjustment_amount: number
+    total_commission_adjustment_amount: number
+    total_petrol_adjustment_amount: number
+    total_paid_amount: number
+    total_paid_commission: number
+    total_paid_petrol: number
+    pending_amount: number
+    pending_commission_amount: number
+    pending_petrol_amount: number
   }
   orders: TargetDetailsOrder[]
   trips: TargetDetailsTrip[]
