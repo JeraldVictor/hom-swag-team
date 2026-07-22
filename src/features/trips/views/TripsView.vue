@@ -131,11 +131,11 @@ import {
   IonToolbar,
   onIonViewWillEnter,
 } from '@ionic/vue'
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDrawer } from '@/shared/composables'
-import { TRIP_STATUS } from '@/shared/models/trip.model'
 import type { TripStatus } from '@/shared/models/trip.model'
+import { TRIP_STATUS } from '@/shared/models/trip.model'
 import TripCard from '../components/TripCard.vue'
 import { type TripStatusFilter, useTrips } from '../composables/useTrips'
 
@@ -153,6 +153,14 @@ const {
   loadMoreTrips,
 } = useTrips()
 const { openDrawer } = useDrawer()
+let refreshTimer: number | undefined
+
+function scheduleTripRefresh(): void {
+  window.clearTimeout(refreshTimer)
+  refreshTimer = window.setTimeout(() => {
+    void fetchTrips(true)
+  }, 100)
+}
 
 const statusOptions: { value: TripStatus; label: string }[] = [
   { value: TRIP_STATUS.ASSIGNED, label: 'Assigned' },
@@ -182,6 +190,7 @@ function normalizeStatusQuery(value: string): TripStatusFilter | null {
 }
 
 onMounted(() => {
+  window.addEventListener('homswag:trip-data-changed', scheduleTripRefresh)
   const dateQuery = route.query.x ?? route.query.date
   if (dateQuery && typeof dateQuery === 'string') {
     const dateValue = dateQuery.toLowerCase()
@@ -208,9 +217,12 @@ onMounted(() => {
 })
 
 onIonViewWillEnter(() => {
-  if (trips.value.length > 0) {
-    fetchTrips(true)
-  }
+  fetchTrips(true)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('homswag:trip-data-changed', scheduleTripRefresh)
+  window.clearTimeout(refreshTimer)
 })
 
 async function handleRefresh(event: CustomEvent): Promise<void> {

@@ -8,8 +8,8 @@ import type { Ref } from 'vue'
 import { readonly, ref, watch } from 'vue'
 import { getOfficeId } from '@/shared/api/location.service'
 import { getTrips } from '@/shared/api/trips.service'
-import { TRIP_STATUS } from '@/shared/models/trip.model'
 import type { Trip, TripStatus } from '@/shared/models/trip.model'
+import { TRIP_STATUS } from '@/shared/models/trip.model'
 
 export type TripStatusFilter = TripStatus | 'all'
 
@@ -36,8 +36,10 @@ export function useTrips(): UseTripsReturn {
   const searchQuery = ref('')
   const currentPage = ref(1)
   const hasMore = ref(true)
+  let latestRequestId = 0
 
   async function fetchTrips(reset = true): Promise<void> {
+    const requestId = ++latestRequestId
     if (reset) {
       isLoading.value = true
       currentPage.value = 1
@@ -65,6 +67,8 @@ export function useTrips(): UseTripsReturn {
 
       const { data, pagination } = await getTrips(params)
 
+      if (requestId !== latestRequestId) return
+
       if (reset) {
         trips.value = data
       } else {
@@ -78,9 +82,12 @@ export function useTrips(): UseTripsReturn {
         hasMore.value = false
       }
     } catch (err) {
+      if (requestId !== latestRequestId) return
       error.value = err instanceof Error ? err.message : 'Failed to fetch trips'
     } finally {
-      isLoading.value = false
+      if (requestId === latestRequestId) {
+        isLoading.value = false
+      }
     }
   }
 

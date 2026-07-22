@@ -135,6 +135,7 @@ const {
   statusCounts,
 } = useOrders()
 const { openDrawer } = useDrawer()
+let refreshTimer: number | undefined
 const placeholderOrder: Order = {
   id: 'skeleton',
   order_number: '123456',
@@ -164,11 +165,11 @@ function openMenu(): void {
   openDrawer()
 }
 
-function handleOrderUpdated(event: Event): void {
-  const customEvent = event as CustomEvent<{ order_id: string }>
-  if (customEvent.detail?.order_id) {
-    refresh()
-  }
+function scheduleOrderRefresh(): void {
+  window.clearTimeout(refreshTimer)
+  refreshTimer = window.setTimeout(() => {
+    void refresh()
+  }, 100)
 }
 
 onMounted(() => {
@@ -180,16 +181,17 @@ onMounted(() => {
     const normalized = normalizeStatus(String(route.query.status))
     if (normalized) statusFilter.value = normalized
   }
-  window.addEventListener('homswag:order-updated', handleOrderUpdated)
+  window.addEventListener('homswag:order-data-changed', scheduleOrderRefresh)
   fetchOrders()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('homswag:order-updated', handleOrderUpdated)
+  window.removeEventListener('homswag:order-data-changed', scheduleOrderRefresh)
+  window.clearTimeout(refreshTimer)
 })
 
 onIonViewWillEnter(() => {
-  if (filteredOrders.value.length > 0) refresh()
+  refresh()
 })
 
 async function handleRefresh(event: CustomEvent): Promise<void> {

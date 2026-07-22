@@ -50,8 +50,10 @@ export function useOrders() {
   const totalItems = ref(0)
   const hasMore = ref(false)
   const limit = 20
+  let latestRequestId = 0
 
   async function fetchOrders(page = 1): Promise<void> {
+    const requestId = ++latestRequestId
     isLoading.value = true
     error.value = null
 
@@ -61,6 +63,7 @@ export function useOrders() {
 
     try {
       const res = await getOrders(page, limit, x, show)
+      if (requestId !== latestRequestId) return
 
       if (page === 1) {
         orders.value = Array.isArray(res) ? res : (res.data ?? [])
@@ -87,6 +90,7 @@ export function useOrders() {
         hasMore.value = false
       }
     } catch (err) {
+      if (requestId !== latestRequestId) return
       error.value = err instanceof Error ? err.message : 'Failed to load orders'
       if (page === 1) {
         orders.value = []
@@ -102,7 +106,9 @@ export function useOrders() {
         }
       }
     } finally {
-      isLoading.value = false
+      if (requestId === latestRequestId) {
+        isLoading.value = false
+      }
     }
   }
 

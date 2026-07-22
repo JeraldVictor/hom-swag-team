@@ -223,9 +223,24 @@ let apiLogoutListener: ((event: Event) => void) | null = null
 let fcmCleanup: (() => void | Promise<void>) | null = null
 let activeSessionToken: string | null = null
 
+function dispatchTripDataChanged(detail?: unknown): void {
+  window.dispatchEvent(new CustomEvent('homswag:trip-data-changed', { detail }))
+}
+
+function dispatchOrderDataChanged(detail?: unknown): void {
+  window.dispatchEvent(new CustomEvent('homswag:order-data-changed', { detail }))
+}
+
+function dispatchOrderUpdated(detail: { order_id?: string; [key: string]: unknown }): void {
+  window.dispatchEvent(new CustomEvent('homswag:order-updated', { detail }))
+  dispatchOrderDataChanged(detail)
+}
+
 async function setupAppStateListener() {
   appStateListener = await App.addListener('appStateChange', async ({ isActive }) => {
     if (isActive) {
+      dispatchTripDataChanged({ reason: 'app-resumed' })
+      dispatchOrderDataChanged({ reason: 'app-resumed' })
       if (getIsOnline()) {
         const hasUpdate = await checkAppUpdate()
         if (hasUpdate) {
@@ -329,6 +344,17 @@ onMounted(async () => {
     const rawType = data.type || data.data?.type || ''
     const type = String(rawType).toLowerCase()
 
+    if (type === 'trip_assigned' || type === 'trip_status_changed') {
+      dispatchTripDataChanged(data)
+    }
+
+    if (type === 'order_assigned' || type === 'order_status_changed' || type === 'invoice_sent') {
+      dispatchOrderUpdated({
+        order_id: String(data.data?.order_id ?? data.data?.orderId ?? ''),
+        notification: data,
+      })
+    }
+
     // 2. Normal notification - show toast
     showToast(data.title || 'New notification', 'primary')
 
@@ -365,8 +391,26 @@ onMounted(async () => {
   })
 
   // Listen for order updates from admin / backend and notify active views
-  webSocketService.on('order:updated', (data: { order_id: string }) => {
-    window.dispatchEvent(new CustomEvent('homswag:order-updated', { detail: data }))
+  webSocketService.on('order:updated', (data: { order_id?: string }) => {
+    dispatchOrderUpdated(data)
+  })
+
+  webSocketService.on('order:assigned', (data: { _id?: string; order_id?: string }) => {
+    dispatchOrderUpdated({
+      order_id: String(data.order_id ?? data._id ?? ''),
+      order: data,
+    })
+  })
+
+  for (const event of ['trip:assigned', 'trip:created', 'trip:updated']) {
+    webSocketService.on(event, data => {
+      dispatchTripDataChanged({ event, trip: data })
+    })
+  }
+
+  webSocketService.on('connect', () => {
+    dispatchTripDataChanged({ reason: 'socket-connected' })
+    dispatchOrderDataChanged({ reason: 'socket-connected' })
   })
 
   // Listen for taps on local notifications scheduled by the Socket.IO handler
