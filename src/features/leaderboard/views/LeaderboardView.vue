@@ -232,8 +232,11 @@
                   <span v-if="entry.is_self" class="entry-you">(You)</span>
                 </p>
               </div>
-              <span v-if="entry.amount && !isMaskedEntry(entry)" class="entry-earnings">
-                {{ formatAmount(entry.amount) }}
+              <span
+                v-if="!isMaskedEntry(entry) && (isRiderLeaderboard || entry.amount)"
+                class="entry-earnings"
+              >
+                {{ leaderboardValueLabel(entry) }}
               </span>
               <span v-else-if="isMaskedEntry(entry)" class="entry-earnings entry-earnings--masked">—</span>
             </div>
@@ -295,7 +298,7 @@ const selfEntryOutsideTop = computed<LeaderboardEntry | null>(() => {
 })
 const roleLabel = computed(() => (isRiderLeaderboard.value ? 'Rider' : 'Beautician'))
 const rolePluralLabel = computed(() => (isRiderLeaderboard.value ? 'Riders' : 'Beauticians'))
-const amountLabel = computed(() => (isRiderLeaderboard.value ? 'Distance' : 'Revenue'))
+const amountLabel = computed(() => (isRiderLeaderboard.value ? 'Trips' : 'Revenue'))
 const prizeAmounts = computed(() => {
   if (!data.value?.prizes) return []
   return isRiderLeaderboard.value
@@ -345,20 +348,20 @@ function markAvatarFailed(entry: LeaderboardEntry): void {
   failedAvatarKeys.value = new Set(failedAvatarKeys.value).add(avatarKey(entry))
 }
 
-function formatAmount(amount: number): string {
-  if (isRiderLeaderboard.value) {
-    return `${amount.toLocaleString('en-IN')} km`
-  }
-
-  return formatCurrency(amount)
-}
-
 function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString('en-IN')}`
 }
 
+function leaderboardValueLabel(entry: LeaderboardEntry): string {
+  if (isRiderLeaderboard.value) {
+    return `${entry.count.toLocaleString('en-IN')} ${entry.count === 1 ? 'trip' : 'trips'}`
+  }
+
+  return entry.amount ? formatCurrency(entry.amount) : '—'
+}
+
 function podiumValueLabel(entry: LeaderboardEntry): string {
-  return entry.amount ? formatAmount(entry.amount) : '—'
+  return leaderboardValueLabel(entry)
 }
 
 function isMaskedEntry(entry: LeaderboardEntry): boolean {
