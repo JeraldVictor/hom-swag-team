@@ -283,9 +283,7 @@ function handleAddClick(product: Product) {
   const requiresSelection =
     product.type === 'package' ||
     (product.options && product.options.length > 0) ||
-    (product.free_products?.length &&
-      product.free_product_limits &&
-      !product.free_product_limits.is_unlimited)
+    Boolean(product.free_products?.length)
 
   if (requiresSelection) {
     selectionModal.productId = pid
@@ -580,6 +578,18 @@ watch([activeMenuId, searchQuery], () => {
                   <Icon icon="lucide:clock" /> {{ product.duration_minutes }}m
                 </span>
               </div>
+              <div v-if="product.free_products?.length" class="free-product-info">
+                <Icon icon="lucide:gift" />
+                <div>
+                  <span class="free-product-label">
+                    Includes {{ product.free_products.length }} free
+                    {{ product.free_products.length === 1 ? 'item' : 'items' }}
+                  </span>
+                  <span class="free-product-names">
+                    {{ product.free_products.map(item => item.title).join(', ') }}
+                  </span>
+                </div>
+              </div>
               <div class="product-actions">
                 <div v-if="getCartQuantity(String(product._id || product.id)) > 0" class="qty-control-modern">
                   <button @click="removeFromCart(String(product._id || product.id))" class="qty-btn" aria-label="Decrease quantity" :disabled="!orderEditAllowed">
@@ -796,6 +806,38 @@ ion-segment-button {
   display: flex;
   align-items: center;
   gap: 2px;
+}
+
+.free-product-info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+  padding: var(--spacing-2);
+  border-radius: var(--radius-md);
+  background: rgba(34, 197, 94, 0.1);
+  color: #15803d;
+  font-size: var(--font-size-xs);
+}
+
+.free-product-info > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.free-product-label,
+.free-product-names {
+  display: block;
+}
+
+.free-product-label {
+  font-weight: 800;
+}
+
+.free-product-names {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  line-height: 1.3;
 }
 
 .product-actions {
