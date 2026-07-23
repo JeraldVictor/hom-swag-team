@@ -210,51 +210,11 @@
       </template>
     </ion-content>
 
-    <ion-modal
-      :is-open="isConcernModalOpen"
-      :initial-breakpoint="0.46"
-      :breakpoints="[0, 0.46, 0.78]"
-      handle-behavior="cycle"
-      class="concern-modal"
-      @didDismiss="isConcernModalOpen = false"
-    >
-      <ion-header class="ion-no-border concern-modal__header">
-        <ion-toolbar>
-          <ion-title>Raise Concern</ion-title>
-          <ion-buttons slot="end">
-            <ion-button :disabled="isUpdating" @click="closeConcernModal">Cancel</ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="concern-modal__content">
-        <div class="concern-form">
-          <p class="concern-form__hint">Share what needs review. This note is optional.</p>
-          <ion-textarea
-            v-model="concernNote"
-            class="concern-textarea"
-            label="Concern note"
-            label-placement="stacked"
-            placeholder="Optional note for staff or admin..."
-            :auto-grow="true"
-            :counter="true"
-            :maxlength="1000"
-            :disabled="isUpdating"
-          />
-          <ion-button
-            expand="block"
-            class="concern-submit"
-            :disabled="isUpdating"
-            @click="submitConcern"
-          >
-            <ion-spinner v-if="isUpdating" name="crescent" class="btn-spinner" />
-            Request Review
-          </ion-button>
-        </div>
-      </ion-content>
-    </ion-modal>
-
     <!-- Action Footer -->
-    <ion-footer v-if="trip" class="modern-footer ion-no-border">
+    <ion-footer
+      v-if="trip && (isInProgress || nextActionLabel)"
+      class="modern-footer ion-no-border"
+    >
       <div class="footer-content">
         <!-- Tracking Toggle -->
         <div v-if="isInProgress" class="tracking-banner">
@@ -276,15 +236,6 @@
         >
           <ion-spinner v-if="isUpdating" name="crescent" class="btn-spinner" />
           {{ nextActionLabel }}
-        </button>
-        <button
-          v-if="canRaiseConcern"
-          class="btn-secondary-action"
-          :disabled="isUpdating"
-          @click="openConcernModal"
-        >
-          <ion-spinner v-if="isUpdating" name="crescent" class="btn-spinner" />
-          Raise Concern
         </button>
       </div>
     </ion-footer>
@@ -330,8 +281,6 @@ const dropQuery = ref('')
 const overridePickup = ref<PlaceResult | null>(null)
 const overrideDrop = ref<PlaceResult | null>(null)
 const mapInstance = ref<google.maps.Map | null>(null)
-const isConcernModalOpen = ref(false)
-const concernNote = ref('')
 
 const effectiveDrop = computed<Coordinates | null>(() => {
   if (overrideDrop.value) return overrideDrop.value.coordinates
@@ -396,8 +345,6 @@ const hasTripNotes = computed(() =>
       trip.value?.attention_note
   )
 )
-
-const canRaiseConcern = computed(() => trip.value?.status === TRIP_STATUS.COMPLETED)
 
 const nextActionLabel = computed(() => {
   if (!trip.value) return null
@@ -511,29 +458,6 @@ async function handleAdvance(): Promise<void> {
   await advanceStatus(overrideStatus)
   if (!error.value) {
     showSuccess(`Status updated to: ${formattedStatus.value}`)
-  } else {
-    showError(error.value)
-  }
-}
-
-function openConcernModal(): void {
-  if (!trip.value || !canRaiseConcern.value) return
-  concernNote.value = trip.value.attention_note ?? ''
-  isConcernModalOpen.value = true
-}
-
-function closeConcernModal(): void {
-  if (isUpdating.value) return
-  isConcernModalOpen.value = false
-}
-
-async function submitConcern(): Promise<void> {
-  if (!trip.value || !canRaiseConcern.value) return
-
-  await advanceStatus(TRIP_STATUS.ATTENTION_NEEDED, undefined, concernNote.value.trim())
-  if (!error.value) {
-    isConcernModalOpen.value = false
-    showSuccess('Concern sent for review')
   } else {
     showError(error.value)
   }
@@ -1097,78 +1021,6 @@ function formatLocationAddress(coords?: (Coordinates & { address?: string }) | n
 }
 .btn-apply-override:disabled { opacity: 0.5; }
 
-/* ── Concern Modal ───────────────────────────────────────────────────────── */
-.concern-modal {
-  --border-radius: 24px 24px 0 0;
-  --height: 100%;
-  --max-height: 100%;
-  --width: 100%;
-}
-
-.concern-modal__header ion-toolbar {
-  --background: var(--color-surface);
-  --color: var(--color-text);
-  --padding-start: 8px;
-  --padding-end: 8px;
-}
-
-.concern-modal__header ion-title {
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.concern-modal__header ion-button {
-  --color: var(--color-text-secondary);
-  font-weight: 700;
-}
-
-.concern-modal__content {
-  --background: var(--color-surface);
-}
-
-.concern-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 4px 20px 28px;
-}
-
-.concern-form__hint {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.concern-textarea {
-  --background: var(--color-background);
-  --border-color: var(--color-border);
-  --border-radius: 14px;
-  --border-style: solid;
-  --border-width: 1px;
-  --color: var(--color-text);
-  --highlight-color-focused: var(--color-brand);
-  --padding-bottom: 12px;
-  --padding-end: 12px;
-  --padding-start: 12px;
-  --padding-top: 12px;
-  color: var(--color-text);
-  font-size: 14px;
-  min-height: 128px;
-}
-
-.concern-submit {
-  --background: var(--color-brand);
-  --background-activated: var(--color-brand);
-  --border-radius: 16px;
-  --box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
-  --color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  min-height: 50px;
-}
-
 /* ── Footer / Actions ────────────────────────────────────────────────────── */
 .modern-footer {
   background: var(--color-surface);
@@ -1255,31 +1107,6 @@ function formatLocationAddress(coords?: (Coordinates & { address?: string }) | n
 .btn-primary-action:disabled {
   background: var(--color-text-muted);
   box-shadow: none;
-  transform: none;
-}
-
-.btn-secondary-action {
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: #fff7ed;
-  color: #c2410c;
-  font-size: 15px;
-  font-weight: 700;
-  border: 1px solid #fed7aa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: all 0.2s;
-}
-
-.btn-secondary-action:active {
-  transform: scale(0.98);
-}
-
-.btn-secondary-action:disabled {
-  opacity: 0.65;
   transform: none;
 }
 

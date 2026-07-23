@@ -22,11 +22,7 @@ export interface UseTripDetailReturn {
   /** True when the trip is fully completed */
   isCompleted: Readonly<Ref<boolean>>
   fetchTrip(id: string | number): Promise<void>
-  advanceStatus(
-    nextStatusOverride?: TripStatus,
-    distanceKm?: number,
-    attentionNote?: string
-  ): Promise<void>
+  advanceStatus(nextStatusOverride?: TripStatus, distanceKm?: number): Promise<void>
 }
 
 /** States where the rider is actively moving */
@@ -70,17 +66,17 @@ export function useTripDetail(): UseTripDetailReturn {
 
   async function advanceStatus(
     nextStatusOverride?: TripStatus,
-    distanceKm?: number,
-    attentionNote?: string
+    distanceKm?: number
   ): Promise<void> {
     if (!trip.value) return
+    if (COMPLETED_STATUSES.includes(trip.value.status)) return
     const next = nextStatusOverride || NEXT_STATUS[trip.value.status]
     if (!next) return
 
     isUpdating.value = true
     error.value = null
     try {
-      trip.value = await updateTripStatus(trip.value.id, next, distanceKm, attentionNote)
+      trip.value = await updateTripStatus(trip.value.id, next, distanceKm)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update trip status'
     } finally {
