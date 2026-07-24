@@ -86,7 +86,18 @@ export async function getOrders(
  */
 export async function getOrder(id: string | number): Promise<Order> {
   const response = await apiClient.get<{ data: Order }>(`/orders/${id}`)
-  return hideTeamRestrictedOrderMessages(response.data.data)
+  const order = hideTeamRestrictedOrderMessages(response.data.data)
+
+  if (order.beautician_viewed !== true) {
+    try {
+      const viewedOrder = await markOrderViewed(id)
+      return hideTeamRestrictedOrderMessages(viewedOrder)
+    } catch {
+      // Viewing the order should still succeed if recording the viewed state fails.
+    }
+  }
+
+  return order
 }
 
 /**

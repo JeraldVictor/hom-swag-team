@@ -3,7 +3,6 @@ import {
   generateServiceOtp as generateServiceOtpApi,
   getOrder as getOrderApi,
   getUpgradableProducts as getUpgradableProductsApi,
-  markOrderViewed as markOrderViewedApi,
   updateOrder as updateOrderApi,
   updateOrderStatus as updateOrderStatusApi,
   upgradeOrderProduct as upgradeOrderProductApi,
@@ -85,21 +84,7 @@ export function useOrderDetail() {
     isLoading.value = true
     error.value = null
     try {
-      const loadedOrder = await getOrderApi(id)
-      order.value = loadedOrder
-
-      if (loadedOrder.beautician_viewed !== true) {
-        try {
-          await markOrderViewedApi(id)
-          order.value = {
-            ...loadedOrder,
-            beautician_viewed: true,
-          }
-          dispatchOrderUpdated(id)
-        } catch {
-          // If marking as viewed fails, still keep the loaded order data.
-        }
-      }
+      order.value = await getOrderApi(id)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load order'
     } finally {
