@@ -3,6 +3,8 @@ export interface PackageServiceDisplayItem {
   title: string
   price?: number
   duration?: number
+  quantity?: number
+  display_order?: number
   banner?: DisplayImage
   image?: DisplayImage
   beautician_added?: boolean
@@ -33,6 +35,8 @@ type RawPackageService =
       base_price?: number
       duration?: number
       duration_minutes?: number
+      quantity?: number
+      display_order?: number
       banner?: DisplayImage
       image?: DisplayImage
       beautician_added?: boolean
@@ -90,9 +94,12 @@ export function getPackageServices(
       duration: isPackageServiceObject(service)
         ? (service.duration ?? service.duration_minutes)
         : undefined,
+      quantity: isPackageServiceObject(service) ? (service.quantity ?? 1) : 1,
+      display_order: isPackageServiceObject(service) ? (service.display_order ?? 0) : 0,
       banner: isPackageServiceObject(service) ? service.banner : undefined,
       image: isPackageServiceObject(service) ? service.image : undefined,
       beautician_added: isPackageServiceObject(service) ? service.beautician_added : undefined,
     }))
     .filter(service => service.title.length > 0)
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
 }

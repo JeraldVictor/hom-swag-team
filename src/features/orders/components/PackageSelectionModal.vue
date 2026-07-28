@@ -20,6 +20,8 @@ const emit = defineEmits<{
         title: string
         price?: number
         duration?: number
+        quantity?: number
+        display_order?: number
       }[]
       selectedFreeItems: { product_id: string; title: string }[]
     }
@@ -114,7 +116,19 @@ async function fetchDetails() {
       const details = await Promise.all(
         packageServiceIds.map(id => getProduct(id).catch(() => null))
       )
-      packageItemDetails.value = details.filter((d): d is Product => d !== null)
+      packageItemDetails.value = details
+        .flatMap((detail, index) => {
+          if (!detail) return []
+          const configured = data.package_config?.services?.[index]
+          return [
+            {
+              ...detail,
+              package_quantity: configured?.quantity ?? 1,
+              package_display_order: configured?.display_order ?? index,
+            },
+          ]
+        })
+        .sort((a, b) => (a.package_display_order ?? 0) - (b.package_display_order ?? 0))
     }
   } catch (err) {
     console.error('Failed to fetch product details', err)
@@ -182,6 +196,8 @@ function handleConfirm() {
       title: p.name || p.title || '',
       price: p.min_price ?? p.price ?? p.base_price ?? 0,
       duration: p.duration_minutes ?? 0,
+      quantity: p.package_quantity ?? 1,
+      display_order: p.package_display_order ?? 0,
     }))
 
   emit('confirm', {
@@ -336,8 +352,10 @@ function isPackageItemSelected(id: string) {
                 :disabled="!product.package_config?.choose_any"
               ></ion-checkbox>
               <ion-label>
-                <h2>{{ item.name || item.title }}</h2>
-                <p v-if="item.duration_minutes">{{ item.duration_minutes }} mins</p>
+                <h2>{{ item.name || item.title }} × {{ item.package_quantity ?? 1 }}</h2>
+                <p v-if="item.duration_minutes">
+                  {{ item.duration_minutes * (item.package_quantity ?? 1) }} mins
+                </p>
               </ion-label>
             </ion-item>
           </ion-list>

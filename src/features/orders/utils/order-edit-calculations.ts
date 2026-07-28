@@ -8,6 +8,7 @@ export interface OrderEditCalculationOption {
 
 export interface OrderEditCalculationPackageService {
   price?: number
+  quantity?: number
   beautician_added?: boolean
 }
 
@@ -49,7 +50,10 @@ export function getOrderEditLineUnitPrice(item: OrderEditCalculationItem): numbe
     item.package_mode !== 'fixed' &&
     item.selected_package_items?.length
   ) {
-    return item.selected_package_items.reduce((sum, service) => sum + nonNegative(service.price), 0)
+    return item.selected_package_items.reduce(
+      (sum, service) => sum + nonNegative(service.price) * getOrderEditOptionQuantity(service),
+      0
+    )
   }
 
   return nonNegative(item.price)
@@ -76,7 +80,9 @@ export function calculateOrderEditDiscountEligibleSubtotal(
     )
     const addedPackageServicesTotal = (item.selected_package_items ?? []).reduce(
       (serviceSum, service) =>
-        service.beautician_added ? serviceSum + nonNegative(service.price) : serviceSum,
+        service.beautician_added
+          ? serviceSum + nonNegative(service.price) * getOrderEditOptionQuantity(service)
+          : serviceSum,
       0
     )
 

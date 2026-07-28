@@ -35,6 +35,8 @@ interface CartItem {
     title: string
     price?: number
     duration?: number
+    quantity?: number
+    display_order?: number
     beautician_added?: boolean
   }>
   selected_free_items?: ReadonlyArray<{
@@ -95,7 +97,10 @@ function getLineUnitPrice(item: CartItem) {
     item.package_mode !== 'fixed' &&
     item.selected_package_items?.length
   ) {
-    return item.selected_package_items.reduce((sum, service) => sum + (service.price ?? 0), 0)
+    return item.selected_package_items.reduce(
+      (sum, service) => sum + (service.price ?? 0) * (service.quantity ?? 1),
+      0
+    )
   }
 
   return item.price
@@ -115,7 +120,10 @@ function getLineDuration(item: CartItem) {
     item.package_mode !== 'fixed' &&
     item.selected_package_items?.length
   ) {
-    return item.selected_package_items.reduce((sum, service) => sum + (service.duration ?? 0), 0)
+    return item.selected_package_items.reduce(
+      (sum, service) => sum + (service.duration ?? 0) * (service.quantity ?? 1),
+      0
+    )
   }
 
   return item.duration ?? 0
@@ -211,6 +219,8 @@ async function fetchOrderData() {
               title: s.title,
               price: s.price ?? 0,
               duration: s.duration ?? 0,
+              quantity: s.quantity ?? 1,
+              display_order: s.display_order ?? 0,
               beautician_added: s.beautician_added ?? false,
             })),
           selected_free_items: p.selected_free_items?.map(f => ({
@@ -296,7 +306,14 @@ function handleAddClick(product: Product) {
 function onSelectionConfirm(data: {
   product: Product
   selectedOptions: ProductOption[]
-  selectedPackageItems: { product_id: string; title: string; price?: number; duration?: number }[]
+  selectedPackageItems: {
+    product_id: string
+    title: string
+    price?: number
+    duration?: number
+    quantity?: number
+    display_order?: number
+  }[]
   selectedFreeItems: { product_id: string; title: string }[]
 }) {
   const pid = String(data.product._id || data.product.id)
@@ -326,7 +343,7 @@ function onSelectionConfirm(data: {
   }))
   const packageMode = getPackageMode(data.product)
   const selectedPackagePrice = data.selectedPackageItems.reduce(
-    (sum, item) => sum + (item.price ?? 0),
+    (sum, item) => sum + (item.price ?? 0) * (item.quantity ?? 1),
     0
   )
   const itemPrice =

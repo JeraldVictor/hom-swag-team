@@ -57,18 +57,18 @@ describe('order edit calculations', () => {
 		expect(calculateOrderEditEffectiveDiscountTotal(999, items)).toBe(0)
 	})
 
-	it('uses selected package service prices for limit and choose-any package totals', () => {
+	it('multiplies configured package service quantities for limit and choose-any totals', () => {
 		const item = {
 			type: 'package' as const,
 			package_mode: 'choose_any' as const,
 			price: 899,
 			quantity: 1,
-			selected_package_items: [{ price: 45 }, { price: 299 }, { price: 399 }],
+			selected_package_items: [{ price: 45 }, { price: 299, quantity: 3 }, { price: 399 }],
 		}
 
-		expect(getOrderEditLineUnitPrice(item)).toBe(743)
-		expect(getOrderEditLineTotal(item)).toBe(743)
-		expect(calculateOrderEditDiscountEligibleSubtotal([item])).toBe(743)
+		expect(getOrderEditLineUnitPrice(item)).toBe(1341)
+		expect(getOrderEditLineTotal(item)).toBe(1341)
+		expect(calculateOrderEditDiscountEligibleSubtotal([item])).toBe(1341)
 	})
 
 	it('clamps malformed discounts and negative money values to zero', () => {

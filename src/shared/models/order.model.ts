@@ -104,6 +104,8 @@ export interface UpdateOrderPayload {
       title: string
       price?: number
       duration?: number
+      quantity?: number
+      display_order?: number
       banner?: OrderDisplayImage
       image?: OrderDisplayImage
       beautician_added?: boolean
@@ -316,6 +318,8 @@ export interface OrderProduct {
     title: string
     price?: number
     duration?: number
+    quantity?: number
+    display_order?: number
     banner?: OrderDisplayImage
     image?: OrderDisplayImage
     beautician_added?: boolean
@@ -325,6 +329,8 @@ export interface OrderProduct {
     title: string
     price?: number
     duration?: number
+    quantity?: number
+    display_order?: number
     banner?: OrderDisplayImage
     image?: OrderDisplayImage
     beautician_added?: boolean

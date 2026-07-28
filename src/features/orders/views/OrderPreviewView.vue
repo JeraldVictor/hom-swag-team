@@ -93,7 +93,7 @@
                     <div class="mic-item-info">
                       <span class="mic-item-title">
                         <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                        {{ service.title }}
+                        {{ service.title }} × {{ service.quantity ?? 1 }}
                       </span>
                       <span v-if="service.duration" class="mic-item-meta">
                         {{ service.duration }} min
@@ -237,7 +237,7 @@
                     <div class="mic-item-info">
                       <span class="mic-item-title">
                         <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                        {{ service.title }}
+                        {{ service.title }} × {{ service.quantity ?? 1 }}
                       </span>
                       <span v-if="service.duration" class="mic-item-meta">
                         {{ service.duration }} min
@@ -405,6 +405,8 @@ interface CartItem {
     title: string
     price?: number
     duration?: number
+    quantity?: number
+    display_order?: number
     beautician_added?: boolean
   }[]
   selected_free_items?: {
@@ -425,9 +427,11 @@ interface DurationLineItem {
   }[]
   selected_package_items?: readonly {
     duration?: number
+    quantity?: number
   }[]
   selected_package_services?: readonly {
     duration?: number
+    quantity?: number
   }[]
 }
 
@@ -768,7 +772,7 @@ function getLineDuration(item: DurationLineItem) {
     (item.selected_package_items?.length || item.selected_package_services?.length)
   ) {
     return (item.selected_package_items ?? item.selected_package_services ?? []).reduce(
-      (sum, service) => sum + (service.duration ?? 0),
+      (sum, service) => sum + (service.duration ?? 0) * (service.quantity ?? 1),
       0
     )
   }
@@ -944,6 +948,8 @@ async function handleVerifyAndSubmit() {
           title: pkg.title,
           price: pkg.price ?? 0,
           duration: pkg.duration ?? 0,
+          quantity: pkg.quantity ?? 1,
+          display_order: pkg.display_order ?? 0,
           beautician_added:
             pkg.beautician_added ?? !(originalItem && originalPackageIds.has(pkg.product_id)),
         })),

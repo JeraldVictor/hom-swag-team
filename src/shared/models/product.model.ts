@@ -17,6 +17,8 @@ export interface Product {
   images?: Array<{ url: string }>
   is_active?: boolean
   duration_minutes?: number
+  package_quantity?: number
+  package_display_order?: number
   display?: {
     is_active: boolean
     is_featured: boolean
@@ -34,7 +36,12 @@ export interface Product {
     choose_any: boolean
     min_selection?: number
     max_selection?: number
-    services?: Array<{ _id: string; title: string }>
+    services?: Array<{
+      _id: string
+      title: string
+      quantity?: number
+      display_order?: number
+    }>
     selection_type?: 'fixed' | 'limit' | 'choose_any'
   }
   /** Product options (addons/variations) */
