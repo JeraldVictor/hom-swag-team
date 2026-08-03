@@ -43,10 +43,23 @@ type RawPackageService =
     }
 
 interface PackageServiceContainer {
+  quantity?: number
   selected_package_items?: readonly RawPackageService[]
   selected_package_services?: readonly RawPackageService[]
   services?: readonly RawPackageService[]
   package_services?: readonly RawPackageService[]
+}
+
+function normalizeDisplayQuantity(value?: number): number {
+  const quantity = Number(value ?? 1)
+  return Number.isFinite(quantity) && quantity > 0 ? quantity : 1
+}
+
+export function getPackageServiceDisplayQuantity(
+  packageItem: Readonly<PackageServiceContainer>,
+  service: Readonly<Pick<PackageServiceDisplayItem, 'quantity'>>
+): number {
+  return normalizeDisplayQuantity(packageItem.quantity) * normalizeDisplayQuantity(service.quantity)
 }
 
 function isPackageServiceObject(

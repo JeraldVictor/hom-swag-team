@@ -93,7 +93,7 @@
                     <div class="mic-item-info">
                       <span class="mic-item-title">
                         <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                        {{ service.title }} × {{ service.quantity ?? 1 }}
+                        {{ service.title }} × {{ getPackageServiceDisplayQuantity(item, service) }}
                       </span>
                       <span v-if="service.duration" class="mic-item-meta">
                         {{ service.duration }} min
@@ -237,7 +237,7 @@
                     <div class="mic-item-info">
                       <span class="mic-item-title">
                         <Icon icon="lucide:check-circle" class="mic-sub-icon text-success" />
-                        {{ service.title }} × {{ service.quantity ?? 1 }}
+                        {{ service.title }} × {{ getPackageServiceDisplayQuantity(item, service) }}
                       </span>
                       <span v-if="service.duration" class="mic-item-meta">
                         {{ service.duration }} min
@@ -374,7 +374,10 @@ import {
   getOrderEditOptionPrice,
   getOrderEditOptionQuantity,
 } from '../utils/order-edit-calculations'
-import { getPackageServices } from '../utils/order-item-normalizers'
+import {
+  getPackageServiceDisplayQuantity,
+  getPackageServices,
+} from '../utils/order-item-normalizers'
 
 interface CartItem {
   order_product_id?: string

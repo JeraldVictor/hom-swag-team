@@ -59,7 +59,10 @@
 import { computed } from 'vue'
 import { mediaUrl } from '@/shared/lib/media'
 import type { OrderProduct } from '@/shared/models'
-import { getPackageServices } from '../utils/order-item-normalizers'
+import {
+  getPackageServiceDisplayQuantity,
+  getPackageServices,
+} from '../utils/order-item-normalizers'
 
 const props = defineProps<{ item: OrderProduct; canUpgrade?: boolean }>()
 const emit = defineEmits<{ upgrade: [item: OrderProduct] }>()
@@ -172,6 +175,7 @@ const serviceLines = computed<ServiceLine[]>(() => {
   }
 
   for (const service of packageServices.value) {
+    const displayQuantity = getPackageServiceDisplayQuantity(props.item, service)
     lines.push({
       id: `package-service-${service.product_id}`,
       title: service.title,
@@ -179,8 +183,8 @@ const serviceLines = computed<ServiceLine[]>(() => {
       icon: 'lucide:check',
       imageUrl: getImageUrl(service),
       amount: service.price ?? 0,
-      priceMeta: service.price != null ? `${service.quantity ?? 1}×₹${service.price}` : undefined,
-      meta: formatItemMeta(service.quantity ?? 1, service.duration),
+      priceMeta: service.price != null ? `${displayQuantity}×₹${service.price}` : undefined,
+      meta: formatItemMeta(displayQuantity, service.duration),
       canUpgrade: false,
       badges: getLineBadges({
         beauticianAdded: service.beautician_added,
