@@ -1,6 +1,6 @@
 <template>
   <ion-page>
-    <!-- Menu drawer — rendered outside ion-tabs so it overlays everything -->
+    <!-- Menu drawer - rendered outside ion-tabs so it overlays everything -->
     <AppDrawer />
 
     <ion-tabs>

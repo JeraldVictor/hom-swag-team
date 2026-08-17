@@ -106,7 +106,7 @@
       <div class="drawer-footer">
         <button class="drawer-sos-btn" @click="navigate('/sos')">
           <Icon icon="lucide:siren" class="drawer-sos-btn__icon" />
-          <span>SOS — Get Help Now</span>
+          <span>SOS - Get Help Now</span>
         </button>
         <button class="drawer-logout-btn" @click="handleLogout">
           <Icon icon="lucide:log-out" class="drawer-logout-btn__icon" />
@@ -164,7 +164,7 @@ interface NavItem {
   route: string
 }
 
-/** Primary navigation — shown at the top of the drawer */
+/** Primary navigation - shown at the top of the drawer */
 const primaryItems = computed<NavItem[]>(() => {
   const items: NavItem[] = [{ label: 'Home', icon: 'lucide:house', route: '/home' }]
 

@@ -19,12 +19,12 @@ export interface CalendarEvent {
   /** Approval status of the underlying request */
   status: 'requested' | 'approved' | 'rejected'
   id?: string | number
-  /** Extra detail — e.g. "Full Day", "04:30 PM - 05:30 PM", "2 hrs OT", "Monday" */
+  /** Extra detail - e.g. "Full Day", "04:30 PM - 05:30 PM", "2 hrs OT", "Monday" */
   detail?: string
 }
 
 /**
- * Calendar data returned by GET /calendar (legacy BFF shape — kept for compatibility).
+ * Calendar data returned by GET /calendar (legacy BFF shape - kept for compatibility).
  */
 export interface CalendarData {
   leaves?: CalendarEvent[]

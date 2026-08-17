@@ -98,7 +98,7 @@ async function handleBook(providerId: string) {
       console.warn('Geo failed', e)
     }
 
-    // 2. Auto-log external booking (silent) — ONLY for actual ride providers
+    // 2. Auto-log external booking (silent) - ONLY for actual ride providers
     const isMapProvider = providerId === 'Google Maps' || providerId === 'Other'
     if (!isMapProvider) {
       try {

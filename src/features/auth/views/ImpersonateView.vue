@@ -80,7 +80,7 @@ onMounted(async () => {
       const fullProfile = await getProfile()
       await authStore.setUserProfile(fullProfile)
     } catch {
-      // Non-fatal — the impersonation payload still contains enough identity to continue.
+      // Non-fatal - the impersonation payload still contains enough identity to continue.
     }
     await router.replace('/home')
   } catch (error) {

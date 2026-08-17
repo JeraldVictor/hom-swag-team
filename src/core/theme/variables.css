@@ -2,7 +2,7 @@
    http://ionicframework.com/docs/theming/ */
 
 /* ==========================================================================
-   Design Tokens — CSS Custom Properties
+   Design Tokens - CSS Custom Properties
    Mirrors src/theme/index.ts for use in CSS/SCSS without JS imports.
    ========================================================================== */
 
@@ -88,7 +88,7 @@
      Maps design tokens onto Ionic's theming system.
      ========================================================================== */
 
-  /* Primary — brand purple */
+  /* Primary - brand purple */
   --ion-color-primary: #7c3aed;
   --ion-color-primary-rgb: 124, 58, 237;
   --ion-color-primary-contrast: #ffffff;
@@ -96,7 +96,7 @@
   --ion-color-primary-shade: #6d33d1;
   --ion-color-primary-tint: #8a4eef;
 
-  /* Secondary — hero deep blue */
+  /* Secondary - hero deep blue */
   --ion-color-secondary: #1e3a8a;
   --ion-color-secondary-rgb: 30, 58, 138;
   --ion-color-secondary-contrast: #ffffff;
@@ -104,7 +104,7 @@
   --ion-color-secondary-shade: #1a337a;
   --ion-color-secondary-tint: #354e96;
 
-  /* Tertiary — brand mid */
+  /* Tertiary - brand mid */
   --ion-color-tertiary: #9d5cf6;
   --ion-color-tertiary-rgb: 157, 92, 246;
   --ion-color-tertiary-contrast: #ffffff;

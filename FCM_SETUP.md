@@ -81,7 +81,7 @@ The following meta-data entries are already present in `android/app/src/main/And
 
 FCM uses the Apple Push Notification service (APNs) under the hood on iOS. You must upload your APNs credentials to Firebase.
 
-**Option A — APNs Auth Key (recommended):**
+**Option A - APNs Auth Key (recommended):**
 1. Go to [Apple Developer → Certificates, IDs & Profiles → Keys](https://developer.apple.com/account/resources/authkeys/list).
 2. Create a new key with the **Apple Push Notifications service (APNs)** capability.
 3. Download the `.p8` key file.
@@ -91,7 +91,7 @@ FCM uses the Apple Push Notification service (APNs) under the hood on iOS. You m
    - The Key ID (shown on the Apple Developer portal)
    - Your Apple Team ID
 
-**Option B — APNs Certificate:**
+**Option B - APNs Certificate:**
 - Generate an APNs certificate via Xcode or the Apple Developer portal, export as `.p12`, and upload to Firebase under **APNs Certificates**.
 
 ### 3c. Capacitor iOS setup
@@ -148,7 +148,7 @@ src/shared/composables/useFcm.ts
 ## 6. Testing
 
 1. Build and run the app on a physical Android or iOS device (push notifications don't work on simulators).
-2. Log in as a beautician or rider — the FCM token is registered automatically.
+2. Log in as a beautician or rider - the FCM token is registered automatically.
 3. From the admin panel go to **Send Notification** and send a notification to the logged-in field user.
 4. You should see the push notification appear in the system tray even if the app is in the background or killed.
 
@@ -165,12 +165,12 @@ If FCM delivery fails the server logs a warning (`[FCM] Failed to send push noti
 
 | File | Change |
 |---|---|
-| `src/shared/composables/useFcm.ts` | New — FCM composable |
+| `src/shared/composables/useFcm.ts` | New - FCM composable |
 | `src/App.vue` | Imports and initialises `useFcm` |
 | `capacitor.config.ts` | Added `@capacitor-firebase/messaging` reference |
 | `android/app/src/main/AndroidManifest.xml` | Added FCM meta-data entries |
-| `server/src/models/FcmToken.ts` | New — MongoDB model for device tokens |
-| `server/src/lib/fcm.ts` | New — Firebase Admin SDK wrapper |
+| `server/src/models/FcmToken.ts` | New - MongoDB model for device tokens |
+| `server/src/lib/fcm.ts` | New - Firebase Admin SDK wrapper |
 | `server/src/services/notification.service.ts` | Sends FCM push after Socket.IO emit |
 | `server/src/controllers/bff/field.controller.ts` | Added `registerFcmToken` / `unregisterFcmToken` |
 | `server/src/routes/bff/field.misc.routes.ts` | Added `POST/DELETE /bff/field/fcm-token` routes |

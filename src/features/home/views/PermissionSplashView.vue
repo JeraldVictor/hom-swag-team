@@ -183,7 +183,7 @@ async function handleRequest() {
 }
 
 function handleContinue() {
-  // Location is required — only proceed if it was granted
+  // Location is required - only proceed if it was granted
   if (statuses.value.location !== 'granted') return
   emit('granted')
 }

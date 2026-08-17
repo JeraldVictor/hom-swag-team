@@ -198,7 +198,7 @@
           </table>
         </div>
 
-        <!-- Full list (rank 4+) — for other periods or if not restricted -->
+        <!-- Full list (rank 4+) - for other periods or if not restricted -->
         <div v-else-if="!data.is_restricted && rest.length > 0" class="table-container">
           <!-- Table Headers -->
           <div class="table-header">
@@ -238,7 +238,7 @@
               >
                 {{ leaderboardValueLabel(entry) }}
               </span>
-              <span v-else-if="isMaskedEntry(entry)" class="entry-earnings entry-earnings--masked">—</span>
+              <span v-else-if="isMaskedEntry(entry)" class="entry-earnings entry-earnings--masked">-</span>
             </div>
           </div>
         </div>
@@ -357,7 +357,7 @@ function leaderboardValueLabel(entry: LeaderboardEntry): string {
     return `${entry.count.toLocaleString('en-IN')} ${entry.count === 1 ? 'trip' : 'trips'}`
   }
 
-  return entry.amount ? formatCurrency(entry.amount) : '—'
+  return entry.amount ? formatCurrency(entry.amount) : '-'
 }
 
 function podiumValueLabel(entry: LeaderboardEntry): string {

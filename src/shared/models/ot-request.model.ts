@@ -12,7 +12,7 @@ export interface OtRequest {
   /** ISO 8601 date string (YYYY-MM-DD) */
   date: string
   reason?: string
-  /** Status — server OvertimeEntry has no approval flow yet; treat all as 'requested' */
+  /** Status - server OvertimeEntry has no approval flow yet; treat all as 'requested' */
   status: OtRequestStatus
   requester_type?: 'beautician' | 'rider'
   /** ISO 8601 date-time string */

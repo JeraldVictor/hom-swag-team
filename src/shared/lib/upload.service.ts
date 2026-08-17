@@ -15,7 +15,7 @@ import apiClient from '@/shared/lib/api'
 // Types
 // ---------------------------------------------------------------------------
 
-/** Progress callback — receives a value from 0 to 100 */
+/** Progress callback - receives a value from 0 to 100 */
 export type UploadProgressCallback = (progress: number) => void
 
 // ---------------------------------------------------------------------------

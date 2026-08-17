@@ -188,7 +188,7 @@ async function logoutAndRedirect(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Custom Axios adapter — CapacitorHttp.request() (native only)
+// Custom Axios adapter - CapacitorHttp.request() (native only)
 // ---------------------------------------------------------------------------
 //
 // Axios v1.7+ passes a `Request` object to `window.fetch` in its built-in
@@ -198,7 +198,7 @@ async function logoutAndRedirect(): Promise<void> {
 // is the officially recommended approach for Capacitor + Axios.
 
 const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
-  // Build the full absolute URL — Axios keeps baseURL and path separate in config
+  // Build the full absolute URL - Axios keeps baseURL and path separate in config
   const base = (config.baseURL ?? '').replace(/\/$/, '')
   const path = (config.url ?? '').replace(/^([^/])/, '/$1')
   let url = base + path
@@ -232,7 +232,7 @@ const capacitorHttpAdapter: AxiosAdapter = async (config: InternalAxiosRequestCo
   }
 
   // Axios serialises the body to a JSON string via transformRequest.
-  // CapacitorHttp expects an object for JSON payloads — parse it back.
+  // CapacitorHttp expects an object for JSON payloads - parse it back.
   let data: unknown = config.data
   if (typeof data === 'string' && headers['Content-Type']?.includes('application/json')) {
     try {
@@ -345,7 +345,7 @@ function applyNoCachePolicy(config: InternalAxiosRequestConfig): InternalAxiosRe
 }
 
 // ---------------------------------------------------------------------------
-// Dev-only API logger — request + response/error
+// Dev-only API logger - request + response/error
 // ---------------------------------------------------------------------------
 
 if (import.meta.env.DEV) {
@@ -369,7 +369,7 @@ if (import.meta.env.DEV) {
         Date.now() -
         (((response.config as unknown as Record<string, unknown>).__t as number) ?? Date.now())
       console.debug(
-        `[API ✅] ${method} ${response.config.baseURL ?? ''}${response.config.url ?? ''} — ${response.status} (${ms}ms)`
+        `[API ✅] ${method} ${response.config.baseURL ?? ''}${response.config.url ?? ''} - ${response.status} (${ms}ms)`
       )
       console.debug('[API ✅] response:', response.data)
       return response
@@ -381,7 +381,7 @@ if (import.meta.env.DEV) {
       const status = error.response?.status ?? 0
       const ms =
         Date.now() - (((config as unknown as Record<string, unknown>).__t as number) ?? Date.now())
-      console.error(`[API ❌] ${method} ${url} — ${status} (${ms}ms)`)
+      console.error(`[API ❌] ${method} ${url} - ${status} (${ms}ms)`)
       if (error.response?.data) console.error('[API ❌] error response:', error.response.data)
       else console.error('[API ❌] error:', error.message)
       return Promise.reject(error)
@@ -390,7 +390,7 @@ if (import.meta.env.DEV) {
 }
 
 // ---------------------------------------------------------------------------
-// Request interceptor — attach Bearer token + proactive refresh
+// Request interceptor - attach Bearer token + proactive refresh
 // ---------------------------------------------------------------------------
 
 apiClient.interceptors.request.use(
@@ -427,7 +427,7 @@ apiClient.interceptors.request.use(
             throw err
           }
         } else {
-          // Another refresh is already in progress — wait for it
+          // Another refresh is already in progress - wait for it
           const newToken = await enqueueRequest()
           config.headers.set('Authorization', `Bearer ${newToken}`)
         }
@@ -442,7 +442,7 @@ apiClient.interceptors.request.use(
 )
 
 // ---------------------------------------------------------------------------
-// Request interceptor — never reuse client-side cached API responses
+// Request interceptor - never reuse client-side cached API responses
 // ---------------------------------------------------------------------------
 
 apiClient.interceptors.request.use(
@@ -451,7 +451,7 @@ apiClient.interceptors.request.use(
 )
 
 // ---------------------------------------------------------------------------
-// Response interceptor — ApiError for non-2xx / success:false
+// Response interceptor - ApiError for non-2xx / success:false
 // ---------------------------------------------------------------------------
 
 apiClient.interceptors.response.use(
@@ -502,12 +502,12 @@ apiClient.interceptors.response.use(
       return Promise.reject(apiErr)
     }
 
-    // Handle 401 — attempt one token refresh then retry
+    // Handle 401 - attempt one token refresh then retry
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
 
       if (isRefreshing) {
-        // A refresh is already in progress — queue this request
+        // A refresh is already in progress - queue this request
         try {
           const newToken = await enqueueRequest()
           if (originalRequest.headers) {
@@ -538,7 +538,7 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // All other errors — wrap in ApiError
+    // All other errors - wrap in ApiError
     if (error.response) {
       const data = error.response.data as Record<string, unknown> | null
       const message =

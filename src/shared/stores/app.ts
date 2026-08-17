@@ -22,7 +22,7 @@ export type BootPhase =
   | 'booting'
   /** Network is available but permissions have not been granted yet. */
   | 'needs-permissions'
-  /** Everything is ready — normal app flow. */
+  /** Everything is ready - normal app flow. */
   | 'ready'
 
 export interface AppConfig {

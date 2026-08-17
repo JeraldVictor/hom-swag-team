@@ -206,7 +206,7 @@ function formatDate(iso: string): string {
 
 function openProofUpload(item: Reimbursement): void {
   // TODO: wire up camera/file picker and uploadReimbursementProof
-  showError(`Proof upload for reimbursement ${item.id} — coming soon`)
+  showError(`Proof upload for reimbursement ${item.id} - coming soon`)
 }
 
 async function fetchReimbursements(): Promise<void> {

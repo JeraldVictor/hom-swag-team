@@ -1,46 +1,46 @@
 # Tech Stack
 
 ## Core Frameworks & Libraries
-- **Vue 3.5** (Composition API with `<script setup>`) — UI framework
-- **@aejkatappaja/phantom-ui** — UI component library
-- **Ionic Vue 8** (`@ionic/vue`) — Mobile UI component library
-- **Ionic Vue Router** (`@ionic/vue-router`) — Routing with Ionic navigation stack
-- **Vue Router 4** — Underlying router
-- **Capacitor 8** — Native mobile runtime (iOS/Android)
-- **Pinia 3** — State management
-- **Axios 1** — HTTP client (wrapped in `src/shared/lib/api.ts`)
-- **Firebase 12 + Capacitor Firebase Messaging** — FCM push notifications
-- **Socket.IO Client 4** — realtime client dependency available for server event streams
-- **TypeScript 5.9** (strict mode) — Language
+- **Vue 3.5** (Composition API with `<script setup>`) - UI framework
+- **@aejkatappaja/phantom-ui** - UI component library
+- **Ionic Vue 8** (`@ionic/vue`) - Mobile UI component library
+- **Ionic Vue Router** (`@ionic/vue-router`) - Routing with Ionic navigation stack
+- **Vue Router 4** - Underlying router
+- **Capacitor 8** - Native mobile runtime (iOS/Android)
+- **Pinia 3** - State management
+- **Axios 1** - HTTP client (wrapped in `src/shared/lib/api.ts`)
+- **Firebase 12 + Capacitor Firebase Messaging** - FCM push notifications
+- **Socket.IO Client 4** - realtime client dependency available for server event streams
+- **TypeScript 5.9** (strict mode) - Language
 
 ## Icons
-- **@iconify/vue 5** — Icon component (`<Icon icon="lucide:*" />`)
-- **@iconify-json/lucide** — Lucide icon collection (bundled, no CDN)
+- **@iconify/vue 5** - Icon component (`<Icon icon="lucide:*" />`)
+- **@iconify-json/lucide** - Lucide icon collection (bundled, no CDN)
 
 ## Capacitor Plugins
-- `@capacitor/preferences` — Persistent key-value storage (wrapped by `Storage_Service`)
-- `@capacitor-community/camera-preview` — Native camera preview support
-- `@capacitor-community/native-audio` — Native alert/audio playback
-- `@capacitor/camera` — Camera access
-- `@capacitor/geolocation` — GPS location (used by `useLocationTracker` and `LocationService`)
-- `@capacitor/local-notifications` — Local push notifications
-- `@capacitor-firebase/messaging` — Firebase Cloud Messaging
-- `@capacitor/app` — App lifecycle events (used by `useLocationTracker` for Android foreground service)
-- `@capacitor/background-runner` — Background task runner support
-- `@capacitor/haptics`, `@capacitor/keyboard`, `@capacitor/status-bar` — Native shell utilities
+- `@capacitor/preferences` - Persistent key-value storage (wrapped by `Storage_Service`)
+- `@capacitor-community/camera-preview` - Native camera preview support
+- `@capacitor-community/native-audio` - Native alert/audio playback
+- `@capacitor/camera` - Camera access
+- `@capacitor/geolocation` - GPS location (used by `useLocationTracker` and `LocationService`)
+- `@capacitor/local-notifications` - Local push notifications
+- `@capacitor-firebase/messaging` - Firebase Cloud Messaging
+- `@capacitor/app` - App lifecycle events (used by `useLocationTracker` for Android foreground service)
+- `@capacitor/background-runner` - Background task runner support
+- `@capacitor/haptics`, `@capacitor/keyboard`, `@capacitor/status-bar` - Native shell utilities
 
 ## Build & Tooling
-- **Vite 5.4+** — Dev server (port 8090) and bundler
-- **vue-tsc** — TypeScript type checking for Vue files
-- **pnpm** — Package manager (use `pnpm` for all installs, not npm/yarn)
+- **Vite 5.4+** - Dev server (port 8090) and bundler
+- **vue-tsc** - TypeScript type checking for Vue files
+- **pnpm** - Package manager (use `pnpm` for all installs, not npm/yarn)
 - **No Node engine is currently pinned in `package.json`; local/runtime Node is pinned to `v25.0.0` in `.nvmrc`.**
-- **@vitejs/plugin-legacy** — Legacy browser support
-- **@types/google.maps** — TypeScript types for Google Maps JS API
+- **@vitejs/plugin-legacy** - Legacy browser support
+- **@types/google.maps** - TypeScript types for Google Maps JS API
 
 ## Testing
-- **Vitest 0.34** — Unit testing (jsdom environment, globals enabled)
-- **@vue/test-utils 2** — Vue component testing utilities
-- **Cypress 13** — End-to-end testing
+- **Vitest 0.34** - Unit testing (jsdom environment, globals enabled)
+- **@vue/test-utils 2** - Vue component testing utilities
+- **Cypress 13** - End-to-end testing
 
 ## Linting & Formatting
 - **Biome 2.3+** for linting and formatting (replaces ESLint + Prettier)
@@ -95,15 +95,15 @@ The Vite dev server proxies `/api/*` → `http://localhost:3000/bff/field/*`, el
 
 The Axios client handles:
 - **JWT Bearer token injection** via request interceptor
-- **Proactive token refresh** — refreshes 60 seconds before expiry
-- **401 retry** — one automatic retry after a successful token refresh
-- **Request queuing** — concurrent requests during a refresh wait for the new token
-- **`ApiError`** — typed error class with `status`, `message`, and optional `data`
-- **`success: false` handling** — BFF responses with `success: false` are thrown as `ApiError`
+- **Proactive token refresh** - refreshes 60 seconds before expiry
+- **401 retry** - one automatic retry after a successful token refresh
+- **Request queuing** - concurrent requests during a refresh wait for the new token
+- **`ApiError`** - typed error class with `status`, `message`, and optional `data`
+- **`success: false` handling** - BFF responses with `success: false` are thrown as `ApiError`
 
 ## Storage (`src/shared/lib/storage.ts`)
 
-Typed wrapper around `@capacitor/preferences`. Use `Storage_Service` singleton — never import `@capacitor/preferences` directly.
+Typed wrapper around `@capacitor/preferences`. Use `Storage_Service` singleton - never import `@capacitor/preferences` directly.
 
 ```ts
 import { Storage_Service, STORAGE_KEYS } from '@/shared/lib/storage'
@@ -118,7 +118,7 @@ Available keys: `accessToken`, `refreshToken`, `userType`, `userProfile`, `devic
 
 ## Date & Time (`src/shared/lib/datetime.ts`)
 
-IST-aware (UTC+5:30) date/time utilities built on **date-fns v4**. All functions accept `string | Date | null | undefined` and return `''` / `false` for null/invalid input — safe to call without guards.
+IST-aware (UTC+5:30) date/time utilities built on **date-fns v4**. All functions accept `string | Date | null | undefined` and return `''` / `false` for null/invalid input - safe to call without guards.
 
 ```ts
 import {
@@ -138,7 +138,7 @@ import {
 } from '@/shared/lib/datetime'
 ```
 
-Use `todayISO()` everywhere instead of `new Date().toISOString().split('T')[0]`. Never import `date-fns` directly in components — go through this module.
+Use `todayISO()` everywhere instead of `new Date().toISOString().split('T')[0]`. Never import `date-fns` directly in components - go through this module.
 
 ## Feature Flags (`src/shared/lib/feature-flags.ts`)
 
@@ -151,8 +151,8 @@ if (FEATURES.maps) { /* render map UI */ }
 if (FEATURES.directions) { /* draw route */ }
 ```
 
-- `FEATURES.maps` — enables Google Maps JavaScript API and all map UI
-- `FEATURES.directions` — enables Directions API route rendering (only meaningful when `maps` is true)
+- `FEATURES.maps` - enables Google Maps JavaScript API and all map UI
+- `FEATURES.directions` - enables Directions API route rendering (only meaningful when `maps` is true)
 
 ## Google Maps (`src/shared/lib/google-maps.ts`)
 
@@ -180,7 +180,7 @@ webSocketService.disconnect()
 
 ## Location Tracking (`src/shared/composables/useLocationTracker.ts`)
 
-GPS polling composable with BFF integration. Use the module-level singleton — never call `useLocationTracker()` directly outside a component:
+GPS polling composable with BFF integration. Use the module-level singleton - never call `useLocationTracker()` directly outside a component:
 
 ```ts
 import { locationTracker } from '@/shared/composables/useLocationTracker'
@@ -197,8 +197,8 @@ On Android, starts a native foreground service when the app moves to background,
 ## Design Tokens
 
 Tokens are defined in two places that must stay in sync:
-- **`src/core/theme/index.ts`** — TypeScript `as const` objects (`colors`, `spacing`, `radius`, `fontSize`, `fontWeight`)
-- **`src/core/theme/variables.css`** — CSS custom properties (`--color-*`, `--spacing-*`, `--radius-*`, `--font-size-*`, `--font-weight-*`) + Ionic variable overrides
+- **`src/core/theme/index.ts`** - TypeScript `as const` objects (`colors`, `spacing`, `radius`, `fontSize`, `fontWeight`)
+- **`src/core/theme/variables.css`** - CSS custom properties (`--color-*`, `--spacing-*`, `--radius-*`, `--font-size-*`, `--font-weight-*`) + Ionic variable overrides
 
 Always use CSS variables in component styles. Use the TypeScript tokens only when you need values in JS/TS logic.
 

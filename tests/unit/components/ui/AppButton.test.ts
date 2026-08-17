@@ -71,7 +71,7 @@ describe('AppButton', () => {
   })
 
   // -------------------------------------------------------------------------
-  // Muted class — loading state
+  // Muted class - loading state
   // -------------------------------------------------------------------------
   it('applies app-btn--loading class when loading=true', () => {
     const wrapper = mount(AppButton, {
@@ -83,7 +83,7 @@ describe('AppButton', () => {
   })
 
   // -------------------------------------------------------------------------
-  // Muted class — disabled state
+  // Muted class - disabled state
   // -------------------------------------------------------------------------
   it('does NOT apply app-btn--loading class when only disabled=true', () => {
     const wrapper = mount(AppButton, {

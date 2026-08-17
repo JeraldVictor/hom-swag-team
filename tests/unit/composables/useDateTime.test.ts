@@ -37,7 +37,7 @@ describe('formatISTTime', () => {
   })
 
   it('pads minutes with leading zero when needed', () => {
-    // UTC 00:00 + 5h30m = IST 05:30 — minutes already 30, but test with :05
+    // UTC 00:00 + 5h30m = IST 05:30 - minutes already 30, but test with :05
     // UTC 00:35 + 5h30m = IST 06:05 AM
     expect(formatISTTime('2026-05-06T00:35:00Z')).toBe('6:05 AM')
   })

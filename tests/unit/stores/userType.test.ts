@@ -162,7 +162,7 @@ describe('useUserTypeStore', () => {
   })
 
   // -------------------------------------------------------------------------
-  // Reactivity — getters update when auth state changes
+  // Reactivity - getters update when auth state changes
   // -------------------------------------------------------------------------
 
   describe('reactivity', () => {

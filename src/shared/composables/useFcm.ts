@@ -79,7 +79,7 @@ export function useFcm() {
 
   /**
    * Register the FCM token with the server so it can push to this device.
-   * Silently ignores errors — FCM is an enhancement, not a hard requirement.
+   * Silently ignores errors - FCM is an enhancement, not a hard requirement.
    */
   async function registerToken(token: string): Promise<void> {
     try {
@@ -110,7 +110,7 @@ export function useFcm() {
    * 3. Listens for notification taps → navigates to /notifications.
    * 4. Listens for token refresh → re-registers the new token.
    *
-   * Returns a cleanup function — call it on logout or app unmount.
+   * Returns a cleanup function - call it on logout or app unmount.
    */
   async function init(): Promise<() => void> {
     if (!isNative()) return () => {}
@@ -122,7 +122,7 @@ export function useFcm() {
       await registerToken(token)
     }
 
-    // 2. Foreground messages — FCM delivers data only, no auto notification.
+    // 2. Foreground messages - FCM delivers data only, no auto notification.
     //    Skip if the socket is alive: App.vue's notification:new handler already
     //    schedules a local notification via Socket.IO, so FCM is only needed as
     //    a fallback when the socket connection is dead.
@@ -130,7 +130,7 @@ export function useFcm() {
       'notificationReceived',
       async event => {
         if (webSocketService.isConnected) {
-          // Socket path will handle it — avoid duplicate notification
+          // Socket path will handle it - avoid duplicate notification
           return
         }
 
@@ -173,7 +173,7 @@ export function useFcm() {
       }
     })
 
-    // 4. Token refresh — re-register updated token
+    // 4. Token refresh - re-register updated token
     const refreshHandle = await FirebaseMessaging.addListener('tokenReceived', async event => {
       await registerToken(event.token)
     })

@@ -4,8 +4,8 @@ Feature-based architecture. Each feature is self-contained with its own views, c
 
 ```
 src/
-├── main.ts                        # App entry — Vue, IonicVue, Pinia, router, CSS imports
-├── App.vue                        # Root — boot sequence (network → permissions → session restore); NoInternetView overlay; PermissionSplashView; ion-router-outlet when ready
+├── main.ts                        # App entry - Vue, IonicVue, Pinia, router, CSS imports
+├── App.vue                        # Root - boot sequence (network → permissions → session restore); NoInternetView overlay; PermissionSplashView; ion-router-outlet when ready
 ├── vite-env.d.ts                  # Vite environment type declarations
 │
 ├── core/
@@ -22,7 +22,7 @@ src/
 │   │   ├── complaints.service.ts  # getComplaints
 │   │   ├── dashboard.service.ts   # getDashboard → DashboardData (today_earnings, month_earnings, leave_balance, etc.)
 │   │   ├── external-bookings.service.ts  # getExternalBookings, createExternalBooking, uploadExternalBookingProof
-│   │   ├── leaderboard.service.ts # getLeaderboard(period?) — riders see top 3 only
+│   │   ├── leaderboard.service.ts # getLeaderboard(period?) - riders see top 3 only
 │   │   ├── leave-requests.service.ts  # getLeaveRequests, createLeaveRequest, cancelLeaveRequest, getLeaveBalance
 │   │   ├── location.service.ts    # getTrackingStatus, pushLocation
 │   │   ├── menu.service.ts        # getMenu (beautician-restricted)
@@ -36,7 +36,7 @@ src/
 │   │   ├── sos.service.ts         # triggerSos, getLatestSos, resolveSos
 │   │   ├── support.service.ts     # createSupportTicket, getSupportTickets
 │   │   ├── target-details.service.ts # getTargetDetails
-│   │   ├── trip-fees.service.ts   # getTripFeesReport(params?) — rider earnings breakdown
+│   │   ├── trip-fees.service.ts   # getTripFeesReport(params?) - rider earnings breakdown
 │   │   ├── trips.service.ts       # getTrips, getTrip, updateTripStatus, confirmCustomerLocation, updateRiderSelfRideStatus; normalizes GeoJSON coordinates
 │   │   ├── weekly-off.service.ts  # getWeeklyOffRequests, createWeeklyOffRequest, cancelWeeklyOffRequest
 │   │   └── index.ts               # Barrel export
@@ -115,9 +115,9 @@ src/
 │   │   └── index.ts               # Barrel export
 │   │
 │   ├── lib/                       # Core utilities
-│   │   ├── api.ts                 # Axios client — JWT injection, proactive refresh, 401 retry, ApiError
+│   │   ├── api.ts                 # Axios client - JWT injection, proactive refresh, 401 retry, ApiError
 │   │   ├── datetime.ts            # IST-aware date/time utils (date-fns v4): formatDate, formatTime, formatRelative, todayISO, etc.
-│   │   ├── feature-flags.ts       # FEATURES object: maps, directions — driven by VITE_FEATURE_MAPS, VITE_FEATURE_DIRECTIONS env vars
+│   │   ├── feature-flags.ts       # FEATURES object: maps, directions - driven by VITE_FEATURE_MAPS, VITE_FEATURE_DIRECTIONS env vars
 │   │   ├── google-maps.ts         # Lazy Google Maps JS API loader with Places library; auth error detection; retry support
 │   │   ├── location.service.ts    # LocationService class wrapping @capacitor/geolocation; clamps watch interval to 30s max; auto-POSTs to BFF on each position update
 │   │   ├── storage.ts             # Typed @capacitor/preferences wrapper (STORAGE_KEYS, Storage_Service)
@@ -141,7 +141,7 @@ src/
     │
     ├── home/
     │   ├── views/
-    │   │   ├── TabsLayout.vue         # Authenticated shell — 5 tabs (Home, Orders/Trips, Calendar, Profile) + AppDrawer
+    │   │   ├── TabsLayout.vue         # Authenticated shell - 5 tabs (Home, Orders/Trips, Calendar, Profile) + AppDrawer
     │   │   ├── HomeView.vue           # Full dashboard: KPI strip, today's orders/trips, next-up card, earnings overview, leave balance, quick actions, complaints alert
     │   │   ├── NoInternetView.vue     # Full-screen offline overlay with retry button; shown by App.vue when !isOnline
     │   │   ├── PermissionSplashView.vue  # Permission request screen (location/camera/notifications); shown by App.vue on first launch
@@ -253,7 +253,7 @@ All routes are defined in `src/core/router/index.ts`. The `TabsLayout` shell wra
 
 | Path | View | Auth required |
 |------|------|:---:|
-| `/` | → redirects to `/login` | — |
+| `/` | → redirects to `/login` | - |
 | `/login` | `LoginView` | No |
 | `/home` | `HomeView` (inside TabsLayout) | Yes |
 | `/orders` | `OrdersView` | Yes |
@@ -280,7 +280,7 @@ All routes are defined in `src/core/router/index.ts`. The `TabsLayout` shell wra
 | `/trip-fees` | `TripFeesView` | Yes |
 | `/error` | `ErrorView` | No |
 | `/page-not-found` | `PageNotFoundView` | No |
-| `/:pathMatch(.*)` | → redirects to `/page-not-found` | — |
+| `/:pathMatch(.*)` | → redirects to `/page-not-found` | - |
 
 The `beforeEach` guard reads the access token directly from `Storage_Service` (not the Pinia store) so it works on hard reloads before `App.vue`'s `restoreSession()` has run. Offline handling is done by the `NoInternetView` overlay in `App.vue`; the router no longer blocks navigation for `navigator.onLine === false` on Android cold starts.
 
@@ -288,7 +288,7 @@ The `beforeEach` guard reads the access token directly from `Storage_Service` (n
 
 ### Feature modules
 - Each feature lives in `src/features/<feature-name>/` and is self-contained.
-- Features expose a public API via `index.ts` — other features import from `@/features/<name>`, never from internal paths.
+- Features expose a public API via `index.ts` - other features import from `@/features/<name>`, never from internal paths.
 - Feature-specific views, components, composables, and stores stay inside the feature folder.
 - If logic is needed by more than one feature, move it to `src/shared/`.
 
@@ -297,19 +297,19 @@ The `beforeEach` guard reads the access token directly from `Storage_Service` (n
 - Use `@ionic/vue-router`'s `createRouter` and `createWebHistory`.
 
 ### Shared code
-- **`src/shared/components/ui/`** — Generic, stateless UI primitives. Import from `@/shared/components/ui`.
-- **`src/shared/composables/`** — Cross-feature composables. Import from `@/shared/composables`.
-- **`src/shared/stores/`** — Global Pinia stores. Import from `@/shared/stores`.
-- **`src/shared/models/`** — All TypeScript types/interfaces. Import from `@/shared/models`.
-- **`src/shared/api/`** — BFF API service functions. Import from `@/shared/api`.
-- **`src/shared/lib/`** — Core utilities. Import from `@/shared/lib`.
+- **`src/shared/components/ui/`** - Generic, stateless UI primitives. Import from `@/shared/components/ui`.
+- **`src/shared/composables/`** - Cross-feature composables. Import from `@/shared/composables`.
+- **`src/shared/stores/`** - Global Pinia stores. Import from `@/shared/stores`.
+- **`src/shared/models/`** - All TypeScript types/interfaces. Import from `@/shared/models`.
+- **`src/shared/api/`** - BFF API service functions. Import from `@/shared/api`.
+- **`src/shared/lib/`** - Core utilities. Import from `@/shared/lib`.
 
 ### Component style
 - Use Vue 3 `<script setup lang="ts">` syntax. Import only the Ionic components you use (tree-shaking).
 - Use `<style scoped>` in components. Global theme overrides go in `src/core/theme/variables.css`.
 - Every view must use `<ion-page>` as the root element, with `<ion-header>` and `<ion-content>` as direct children.
 - Icons use `@iconify/vue` (`<Icon icon="lucide:*" />`). The `@iconify-json/lucide` collection is bundled.
-- Use `onIonViewWillEnter` alongside `onMounted` for data re-fetching — `onMounted` fires on first render, `onIonViewWillEnter` fires on every tab re-entry.
+- Use `onIonViewWillEnter` alongside `onMounted` for data re-fetching - `onMounted` fires on first render, `onIonViewWillEnter` fires on every tab re-entry.
 
 ### Imports
 - Use the `@/` alias for all imports from `src/` (e.g., `import Foo from '@/shared/components/ui/AppButton.vue'`).
@@ -325,6 +325,6 @@ The `beforeEach` guard reads the access token directly from `Storage_Service` (n
 - Errors are typed as `ApiError` (from `@/shared/lib/api`) with `status`, `message`, and optional `data`.
 
 ### Location tracking
-- Use the `locationTracker` singleton exported from `useLocationTracker.ts` — never create a new instance.
+- Use the `locationTracker` singleton exported from `useLocationTracker.ts` - never create a new instance.
 - The auth store starts tracking on login and stops on logout.
 - The tracker checks `GET /tracking-status` before each GPS push; stops automatically if `is_enabled: false`; skips tick if `is_blocked: true`.

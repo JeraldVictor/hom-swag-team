@@ -179,7 +179,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Page-level entrance — applied to ion-content children
+   Page-level entrance - applied to ion-content children
    -------------------------------------------------------------------------- */
 
 /* Hero sections */
@@ -201,7 +201,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Staggered list children — add .anim-list to the container,
+   Staggered list children - add .anim-list to the container,
    children get .anim-list__item (or use nth-child delays directly)
    -------------------------------------------------------------------------- */
 
@@ -237,7 +237,7 @@
   animation-delay: 0.36s;
 }
 
-/* Grid variant — scale-in instead of slide-up */
+/* Grid variant - scale-in instead of slide-up */
 .anim-grid > * {
   animation: scale-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -297,7 +297,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Interactive press feedback — add to any tappable element
+   Interactive press feedback - add to any tappable element
    -------------------------------------------------------------------------- */
 
 .press-feedback {
@@ -323,7 +323,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Card hover / press — for list cards
+   Card hover / press - for list cards
    -------------------------------------------------------------------------- */
 
 .card-interactive {
@@ -339,7 +339,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   FAB pulse ring — decorative ring that expands outward
+   FAB pulse ring - decorative ring that expands outward
    -------------------------------------------------------------------------- */
 
 .fab-pulse::before {
@@ -353,7 +353,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Skeleton shimmer — shared definition (removes per-component duplication)
+   Skeleton shimmer - shared definition (removes per-component duplication)
    -------------------------------------------------------------------------- */
 
 .skeleton-shimmer {
@@ -368,7 +368,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Vue <Transition> named classes — reusable across components
+   Vue <Transition> named classes - reusable across components
    -------------------------------------------------------------------------- */
 
 /* fade */
@@ -437,7 +437,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Tab bar icon animation — active tab icon bounces in
+   Tab bar icon animation - active tab icon bounces in
    -------------------------------------------------------------------------- */
 
 ion-tab-button.tab-selected .tab-icon,
@@ -446,7 +446,7 @@ ion-tab-button[aria-selected="true"] .tab-icon {
 }
 
 /* --------------------------------------------------------------------------
-   Earnings progress bar — animate width on mount
+   Earnings progress bar - animate width on mount
    -------------------------------------------------------------------------- */
 
 .earnings-progress__fill {

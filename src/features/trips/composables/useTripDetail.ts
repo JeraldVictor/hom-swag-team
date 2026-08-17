@@ -2,7 +2,7 @@
  * useTripDetail
  *
  * Composable for fetching a single trip and managing its status.
- * Also handles the tracking lifecycle — starts tracking when the trip is
+ * Also handles the tracking lifecycle - starts tracking when the trip is
  * in progress and stops it when completed.
  */
 

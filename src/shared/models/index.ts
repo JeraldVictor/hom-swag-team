@@ -1,5 +1,5 @@
 /**
- * Shared Models — barrel export
+ * Shared Models - barrel export
  *
  * Re-exports all domain model types from a single entry point.
  * Import models from '@/shared/models' rather than individual model files.

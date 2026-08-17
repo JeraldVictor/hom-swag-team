@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * OtpInput — 6-box OTP entry component.
+ * OtpInput - 6-box OTP entry component.
  *
  * Renders 6 individual single-character inputs.
  * Handles auto-advance, backspace navigation, and paste.

@@ -71,7 +71,7 @@ export function useTracking(): UseTrackingReturn {
         isConnected.value = true
       }
     } catch {
-      // Non-fatal — tracking can continue without WebSocket
+      // Non-fatal - tracking can continue without WebSocket
     }
 
     // 3. Start GPS watch

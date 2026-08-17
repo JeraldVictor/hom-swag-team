@@ -1,5 +1,5 @@
 /**
- * Design Token System — single source of truth for all visual design tokens.
+ * Design Token System - single source of truth for all visual design tokens.
  * All objects are `as const` so TypeScript infers the narrowest literal types.
  */
 
@@ -8,13 +8,13 @@
 // ---------------------------------------------------------------------------
 
 export const colors = {
-  // Brand — purple/violet palette
+  // Brand - purple/violet palette
   brand: '#7C3AED',
   brandMid: '#9D5CF6',
   brandLight: '#C4B5FD',
   brandPale: '#EDE9FE',
 
-  // Hero — deep blue palette
+  // Hero - deep blue palette
   heroDeep: '#1E3A8A',
   heroDark: '#1E40AF',
 

@@ -5,7 +5,7 @@
  * (default 60 s) and sends them to the server when the app is in foreground.
  *
  * Per-tick flow:
- *  1. Check if app is active (in foreground) — skip if backgrounded
+ *  1. Check if app is active (in foreground) - skip if backgrounded
  *  2. GET /tracking-status
  *     - is_enabled = false → stop interval
  *     - is_blocked = true  → skip tick
@@ -81,7 +81,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
     }, intervalMs.value)
   }
 
-  // Current tracking status — updated via WebSocket or initial fetch
+  // Current tracking status - updated via WebSocket or initial fetch
   const currentStatus = ref<TrackingStatus>({
     is_enabled: true,
     is_blocked: false,
@@ -103,13 +103,13 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
   } | null> {
     try {
       // Request permission before the first acquisition attempt.
-      // checkPermissions + requestPermissions is idempotent — safe to call
+      // checkPermissions + requestPermissions is idempotent - safe to call
       // every tick; Capacitor caches the granted state after the first prompt.
       const permStatus = await Geolocation.checkPermissions()
       if (permStatus.location !== 'granted') {
         const requested = await Geolocation.requestPermissions({ permissions: ['location'] })
         if (requested.location !== 'granted') {
-          console.warn('[useLocationTracker] Location permission not granted — skipping tick')
+          console.warn('[useLocationTracker] Location permission not granted - skipping tick')
           return null
         }
       }
@@ -117,7 +117,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 30_000,
-        // backgroundMode: true,  // Capacitor 5+ — keeps GPS active when app is backgrounded on iOS
+        // backgroundMode: true,  // Capacitor 5+ - keeps GPS active when app is backgrounded on iOS
       })
 
       return {
@@ -126,7 +126,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
         accuracy: position.coords.accuracy ?? undefined,
       }
     } catch (err) {
-      console.warn('[useLocationTracker] GPS acquisition failed — skipping tick', err)
+      console.warn('[useLocationTracker] GPS acquisition failed - skipping tick', err)
       return null
     }
   }
@@ -139,16 +139,16 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
     try {
       // Only track when the app is active (in foreground)
       if (!isAppActive) {
-        console.log('[useLocationTracker] App is in background — skipping tick')
+        console.log('[useLocationTracker] App is in background - skipping tick')
         return
       }
 
-      // Step 1 — check tracking status from local reactive state
+      // Step 1 - check tracking status from local reactive state
       const status = currentStatus.value
 
       if (!status.is_enabled) {
         // Feature flag disabled for this office → stop the interval entirely
-        console.warn('[useLocationTracker] Tracking disabled by feature flag — stopping interval')
+        console.warn('[useLocationTracker] Tracking disabled by feature flag - stopping interval')
         stop()
         return
       }
@@ -156,19 +156,19 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       if (status.is_blocked) {
         // Worker is on leave / week-off / block_time → skip this tick
         console.warn(
-          `[useLocationTracker] Worker is blocked (${status.blocked_reason ?? 'unknown'}) — skipping tick`
+          `[useLocationTracker] Worker is blocked (${status.blocked_reason ?? 'unknown'}) - skipping tick`
         )
         return
       }
 
-      // Step 2 — acquire GPS
+      // Step 2 - acquire GPS
       const coords = await acquirePosition()
       if (!coords) {
         // acquirePosition already logged the warning
         return
       }
 
-      // Step 3 — emit location to WebSocket (when app is open)
+      // Step 3 - emit location to WebSocket (when app is open)
       console.log('[useLocationTracker] Emitting location to WebSocket:', coords)
       try {
         webSocketService.emitLocation(coords)
@@ -176,7 +176,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
         console.warn('[useLocationTracker] WebSocket emit failed:', err)
       }
 
-      // Step 4 — also push to REST API as fallback
+      // Step 4 - also push to REST API as fallback
       try {
         await pushLocation({ ...coords, office_id: await getOfficeId() })
       } catch (err) {
@@ -184,7 +184,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
           if (err.status === 503) {
             // Feature flag disabled on the server side → stop interval
             console.warn(
-              '[useLocationTracker] Server returned 503 (tracking disabled) — stopping interval'
+              '[useLocationTracker] Server returned 503 (tracking disabled) - stopping interval'
             )
             stop()
             return
@@ -192,17 +192,17 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
           if (err.status === 422) {
             // Worker is blocked on the server side → skip tick
             console.warn(
-              '[useLocationTracker] Server returned 422 (worker blocked) — skipping tick'
+              '[useLocationTracker] Server returned 422 (worker blocked) - skipping tick'
             )
             return
           }
         }
         // Any other error → log and skip tick (no crash)
-        console.warn('[useLocationTracker] pushLocation failed — skipping tick', err)
+        console.warn('[useLocationTracker] pushLocation failed - skipping tick', err)
       }
     } catch (err) {
       // Catch-all: any unexpected error → skip tick
-      console.warn('[useLocationTracker] Tick error — skipping tick', err)
+      console.warn('[useLocationTracker] Tick error - skipping tick', err)
     }
   }
 
@@ -267,7 +267,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       }
     } catch (err) {
       console.warn(
-        '[useLocationTracker] Initial status fetch/socket setup failed — continuing with defaults',
+        '[useLocationTracker] Initial status fetch/socket setup failed - continuing with defaults',
         err
       )
     }
@@ -278,7 +278,7 @@ export function useLocationTracker(options: LocationTrackerOptions = {}): UseLoc
       console.log('[useLocationTracker] App state changed: isActive =', isActive)
       isAppActive = isActive
       // App will skip ticks when isAppActive is false (in background)
-      // No need to pause the interval — just skip ticks
+      // No need to pause the interval - just skip ticks
     })
 
     // Run the first tick immediately, then on the interval

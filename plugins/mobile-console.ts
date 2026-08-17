@@ -51,7 +51,7 @@ const INJECTED_SCRIPT = /* js */ `(function () {
   }
 
   function send(level, args) {
-    // Wrap everything — if any transport throws it must NEVER propagate to
+    // Wrap everything - if any transport throws it must NEVER propagate to
     // the caller (console.warn/error called by Vue internals), otherwise Vue
     // initialization crashes and the screen stays blank.
     try {
@@ -64,7 +64,7 @@ const INJECTED_SCRIPT = /* js */ `(function () {
       } else {
         fetch(EP, { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json' } }).catch(function(){});
       }
-    } catch (_) { /* silently ignore — never crash the caller */ }
+    } catch (_) { /* silently ignore - never crash the caller */ }
   }
 
   ['log', 'info', 'warn', 'error', 'debug'].forEach(function (lvl) {

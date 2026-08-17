@@ -5,8 +5,8 @@
 ## Users
 
 The app serves two field worker roles:
-- **Beautician** — performs beauty/cleaning services at customer premises. Sees the **Orders** tab.
-- **Rider** — transports beauticians and handles logistics. Sees the **Trips** tab.
+- **Beautician** - performs beauty/cleaning services at customer premises. Sees the **Orders** tab.
+- **Rider** - transports beauticians and handles logistics. Sees the **Trips** tab.
 
 Role is determined at login from the `user_type` field in the auth response (`'beautician'` | `'rider'`). All role-conditional UI branches off `useUserTypeStore` (`isBeautician`, `isRider`).
 
@@ -14,12 +14,12 @@ Role is determined at login from the `user_type` field in the auth response (`'b
 
 The app has a solid working foundation with most core features fully implemented.
 
-- **Auth** — Full two-step OTP login flow (phone → 6-digit OTP → token storage → session restore on boot).
-- **App shell** — Authenticated tab layout (`TabsLayout`) with 5 tabs: Home, Orders (beautician) or Trips (rider), Calendar, Profile. Slide-in navigation drawer (`AppDrawer`). Each view renders its own `<ion-header>`.
-- **Boot lifecycle** — `App.vue` manages a 3-phase boot: network check → permission check → session restore. Shows `NoInternetView` overlay when offline, `PermissionSplashView` when permissions not yet granted.
-- **Routing** — All routes defined with an auth guard. Unauthenticated users redirect to `/login`; offline state is handled by the app-level `NoInternetView` overlay.
-- **Location tracking** — GPS polling every 60s via `useLocationTracker` singleton; checks BFF tracking status flag before each push; Android foreground service support for background tracking.
-- **Push notifications** — Firebase/FCM support with native message handling, notification store, and token registration against the field BFF.
+- **Auth** - Full two-step OTP login flow (phone → 6-digit OTP → token storage → session restore on boot).
+- **App shell** - Authenticated tab layout (`TabsLayout`) with 5 tabs: Home, Orders (beautician) or Trips (rider), Calendar, Profile. Slide-in navigation drawer (`AppDrawer`). Each view renders its own `<ion-header>`.
+- **Boot lifecycle** - `App.vue` manages a 3-phase boot: network check → permission check → session restore. Shows `NoInternetView` overlay when offline, `PermissionSplashView` when permissions not yet granted.
+- **Routing** - All routes defined with an auth guard. Unauthenticated users redirect to `/login`; offline state is handled by the app-level `NoInternetView` overlay.
+- **Location tracking** - GPS polling every 60s via `useLocationTracker` singleton; checks BFF tracking status flag before each push; Android foreground service support for background tracking.
+- **Push notifications** - Firebase/FCM support with native message handling, notification store, and token registration against the field BFF.
 
 ## Features
 
@@ -60,30 +60,30 @@ All HTTP traffic goes through a Backend-for-Frontend (BFF). The Axios client (`s
 Response envelope: `{ success: boolean, message: string, data: T }`. The client throws an `ApiError` for non-2xx responses and `success: false` payloads.
 
 Key BFF endpoints used:
-- `POST /location` — push GPS coordinates (used by `useLocationTracker`)
-- `GET /tracking-status` — check if tracking is enabled and if worker is blocked (leave/week-off)
-- `GET /menu` — beautician-restricted menu for catalog browsing (resolves to /bff/field/menu)
-- `GET /products`, `GET /products/:id` — beautician-restricted product catalog (resolves to /bff/field/products)
-- `GET /orders`, `GET /orders/:id`, `PATCH /orders/:id`, `PATCH /orders/:id/status` — order management
-- `POST /orders/:id/otp/generate`, `POST /orders/:id/otp/verify` — service OTP flow
-- `POST /orders/:id/arrival-selfie`, `POST /orders/:id/completion-proof` — photo uploads
-- `GET /trips`, `GET /trips/:id`, `PATCH /trips/:id/kanban-state` — trip management
-- `GET /dashboard` — home dashboard summary (today_earnings, month_earnings, leave_balance, etc.)
-- `GET /profile`, `PATCH /profile`, `POST /profile/photo` — profile management
-- `GET /calendar` — fetch leaves and holidays for calendar view
-- `GET /leave-requests`, `POST /leave-requests` — leave management
-- `GET /ot-requests`, `POST /ot-requests`, `DELETE /ot-requests/:id` — overtime management
-- `GET /weekly-off-requests`, `POST /weekly-off-requests`, `DELETE /weekly-off-requests/:id` — week-off management
-- `GET /notifications`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` — notifications
-- `GET /complaints` — complaints visible to beautician
-- `POST /support`, `GET /support` — support tickets
-- `GET /external-bookings`, `POST /external-bookings` — external bookings
-- `GET /reimbursements`, `POST /reimbursements` — reimbursements
-- `GET /leaderboard` — leaderboard (beautician only)
-- `GET /payouts` — monthly payout history
-- `GET /target-details` — beautician target details
-- `POST /sos`, `GET /sos/latest`, `PATCH /sos/:id/resolve` — SOS alerts
-- `GET /trip-fees` — trip fees report for riders
+- `POST /location` - push GPS coordinates (used by `useLocationTracker`)
+- `GET /tracking-status` - check if tracking is enabled and if worker is blocked (leave/week-off)
+- `GET /menu` - beautician-restricted menu for catalog browsing (resolves to /bff/field/menu)
+- `GET /products`, `GET /products/:id` - beautician-restricted product catalog (resolves to /bff/field/products)
+- `GET /orders`, `GET /orders/:id`, `PATCH /orders/:id`, `PATCH /orders/:id/status` - order management
+- `POST /orders/:id/otp/generate`, `POST /orders/:id/otp/verify` - service OTP flow
+- `POST /orders/:id/arrival-selfie`, `POST /orders/:id/completion-proof` - photo uploads
+- `GET /trips`, `GET /trips/:id`, `PATCH /trips/:id/kanban-state` - trip management
+- `GET /dashboard` - home dashboard summary (today_earnings, month_earnings, leave_balance, etc.)
+- `GET /profile`, `PATCH /profile`, `POST /profile/photo` - profile management
+- `GET /calendar` - fetch leaves and holidays for calendar view
+- `GET /leave-requests`, `POST /leave-requests` - leave management
+- `GET /ot-requests`, `POST /ot-requests`, `DELETE /ot-requests/:id` - overtime management
+- `GET /weekly-off-requests`, `POST /weekly-off-requests`, `DELETE /weekly-off-requests/:id` - week-off management
+- `GET /notifications`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` - notifications
+- `GET /complaints` - complaints visible to beautician
+- `POST /support`, `GET /support` - support tickets
+- `GET /external-bookings`, `POST /external-bookings` - external bookings
+- `GET /reimbursements`, `POST /reimbursements` - reimbursements
+- `GET /leaderboard` - leaderboard (beautician only)
+- `GET /payouts` - monthly payout history
+- `GET /target-details` - beautician target details
+- `POST /sos`, `GET /sos/latest`, `PATCH /sos/:id/resolve` - SOS alerts
+- `GET /trip-fees` - trip fees report for riders
 - FCM token registration is handled through the field FCM route module.
 - Field routes are split on the server into catalog, leave, order, profile, support/misc, trip, FCM, and auth route modules, but exposed to this app under the same `/bff/field/*` surface.
 

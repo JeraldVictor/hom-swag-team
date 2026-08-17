@@ -19,7 +19,7 @@ The Vite dev server proxies `/api/*` requests to the local BFF, eliminating CORS
 
 The `/api` prefix is stripped and replaced with `/bff/field` before forwarding. This means `VITE_BFF_API_URL` should be set to `/api` in `.env.local` when running against a local BFF instance.
 
-> In production builds the proxy is not active — the app communicates directly with the BFF URL configured via `VITE_BFF_API_URL`.
+> In production builds the proxy is not active - the app communicates directly with the BFF URL configured via `VITE_BFF_API_URL`.
 
 ## Commands
 
@@ -117,19 +117,19 @@ The app store (`src/shared/stores/app.ts`) manages the app's boot lifecycle stat
 |--------|------|-------------|
 | `isOnline` | `Ref<boolean>` | Whether the device currently has an internet connection. Kept in sync with `useNetwork` via a watcher in `App.vue`. |
 | `permissionsGranted` | `Ref<boolean>` | Whether all required runtime permissions have been granted. |
-| `bootPhase` | `Ref<BootPhase>` | Current boot phase — `'booting'`, `'needs-permissions'`, or `'ready'`. |
+| `bootPhase` | `Ref<BootPhase>` | Current boot phase - `'booting'`, `'needs-permissions'`, or `'ready'`. |
 | `isReady` | `ComputedRef<boolean>` | `true` when `bootPhase === 'ready'`. |
 | `setOnline(online)` | `(boolean) => void` | Updates `isOnline`. |
 | `setPermissionsGranted(granted)` | `(boolean) => void` | Updates `permissionsGranted`. |
 | `setBootPhase(phase)` | `(BootPhase) => void` | Advances the boot phase. |
 
-**`BootPhase`** — `'booting' | 'needs-permissions' | 'ready'`
+**`BootPhase`** - `'booting' | 'needs-permissions' | 'ready'`
 
 `App.vue` drives the boot sequence using this store:
 
-1. **`booting`** (initial) — a full-screen boot splash (HomSwag logo + spinning loader) is shown while network and permissions are checked silently. If the device is offline, `NoInternetView` is rendered instead until the user taps "Try Again" and connectivity is restored.
-2. **`needs-permissions`** — network is confirmed but one or more required permissions are missing; `PermissionSplashView` is rendered.
-3. **`ready`** — all checks passed; `restoreSession()` has run and the normal `<ion-router-outlet>` is rendered.
+1. **`booting`** (initial) - a full-screen boot splash (HomSwag logo + spinning loader) is shown while network and permissions are checked silently. If the device is offline, `NoInternetView` is rendered instead until the user taps "Try Again" and connectivity is restored.
+2. **`needs-permissions`** - network is confirmed but one or more required permissions are missing; `PermissionSplashView` is rendered.
+3. **`ready`** - all checks passed; `restoreSession()` has run and the normal `<ion-router-outlet>` is rendered.
 
 ## Auth Store
 
@@ -144,9 +144,9 @@ The auth store (`src/shared/stores/auth.ts`) manages authentication state, token
 | `user` | `Ref<UserProfile \| null>` | Authenticated user profile (reactive). |
 | `isAuthenticated` | `ComputedRef<boolean>` | `true` when an access token is present. |
 | `restoreSession()` | `() => Promise<boolean>` | Hydrates auth state from persistent storage. Called during the app boot sequence (inside `finishBoot()` in `App.vue`) after network and permissions are confirmed. Returns `true` if a valid session was found. |
-| `login(authResponse)` | `(AuthResponse) => Promise<void>` | Persists tokens and user profile from a verify-OTP response. Validates `user_type` — throws and clears storage if the type is not `'rider'` or `'beautician'`. |
+| `login(authResponse)` | `(AuthResponse) => Promise<void>` | Persists tokens and user profile from a verify-OTP response. Validates `user_type` - throws and clears storage if the type is not `'rider'` or `'beautician'`. |
 | `setUserProfile(profile)` | `(UserProfile) => Promise<void>` | Updates the stored user profile in both state and storage. Use after fetching the full profile from `GET /profile`. |
-| `logout()` | `() => Promise<void>` | Clears all auth state from memory and storage. Attempts best-effort server-side token revocation via `POST /auth/logout` first — local session is always cleared regardless of server response. |
+| `logout()` | `() => Promise<void>` | Clears all auth state from memory and storage. Attempts best-effort server-side token revocation via `POST /auth/logout` first - local session is always cleared regardless of server response. |
 | `refreshTokens()` | `() => Promise<void>` | Exchanges the current refresh token for a new token pair via `POST /auth/refresh`. Updates both state and storage. |
 
 ## WebSocket Service
@@ -168,7 +168,7 @@ Authentication is performed by appending the access token as a `?token=` query p
 | `isConnected` | `boolean` (getter) | `true` when the socket is in the `OPEN` ready state. |
 | `emitLocation(coords)` | `(Coordinates) => void` | Sends a `{ type: 'location', latitude, longitude }` message. No-op if not connected. |
 | `send(payload)` | `(Record<string, unknown>) => void` | Sends any arbitrary JSON payload. No-op if not connected. |
-| `onMessage(listener)` | `(MessageListener) => () => void` | Registers a listener for inbound server messages (parsed as `WsMessage`). Returns an unsubscribe function — call it in `onUnmounted` to avoid leaks. |
+| `onMessage(listener)` | `(MessageListener) => () => void` | Registers a listener for inbound server messages (parsed as `WsMessage`). Returns an unsubscribe function - call it in `onUnmounted` to avoid leaks. |
 
 ### Listening for inbound messages
 
@@ -190,9 +190,9 @@ TypeScript interfaces for location and WebSocket messaging live in `src/shared/m
 
 | Type | Kind | Description |
 |------|------|-------------|
-| `Coordinates` | `interface` | A latitude/longitude pair — `{ latitude: number, longitude: number }`. |
+| `Coordinates` | `interface` | A latitude/longitude pair - `{ latitude: number, longitude: number }`. |
 | `LocationPayload` | `interface` | Extends `Coordinates` with `timestamp` (Unix ms) and optional `accuracy` (metres). Sent to `POST /location` and emitted over WebSocket. |
-| `PlaceResult` | `interface` | A resolved place from Google Places Autocomplete — `{ placeId, address, coordinates }`. |
+| `PlaceResult` | `interface` | A resolved place from Google Places Autocomplete - `{ placeId, address, coordinates }`. |
 | `WsMessageType` | `type` | Union of inbound WebSocket message type strings: `'location' \| 'location_update' \| 'ping' \| 'pong'`. |
 | `WsMessage` | `interface` | Inbound WebSocket message shape. Has a required `type: WsMessageType` and optional fields `userId`, `latitude`, `longitude`, `timestamp`, plus an index signature for additional server-defined keys. |
 
@@ -202,13 +202,13 @@ TypeScript interfaces for the authentication flow live in `src/shared/models/aut
 
 | Interface | Description |
 |-----------|-------------|
-| `OtpRequestBody` | Request body for `POST /auth/otp/request` — `{ phone: string }` |
-| `OtpRequestResponse` | Response from `POST /auth/otp/request` — `{ new_user: boolean, otp?: string \| null }`. `otp` is only present in non-production environments. |
-| `OtpVerifyBody` | Request body for `POST /auth/otp/verify` — `{ phone, otp }` |
-| `AuthResponse` | Response from `POST /auth/otp/verify` — `{ accessToken, refreshToken, get_profile, user: { id, name, phone, user_type } }`. `get_profile: true` signals the client should immediately fetch the full profile. |
-| `RefreshTokenBody` | Request body for `POST /auth/refresh` — `{ refresh_token: string }` |
-| `TokenPair` | Response from `POST /auth/refresh` — `{ accessToken, refreshToken }` |
-| `LogoutBody` | Request body for `POST /auth/logout` — `{ refresh_token: string }` |
+| `OtpRequestBody` | Request body for `POST /auth/otp/request` - `{ phone: string }` |
+| `OtpRequestResponse` | Response from `POST /auth/otp/request` - `{ new_user: boolean, otp?: string \| null }`. `otp` is only present in non-production environments. |
+| `OtpVerifyBody` | Request body for `POST /auth/otp/verify` - `{ phone, otp }` |
+| `AuthResponse` | Response from `POST /auth/otp/verify` - `{ accessToken, refreshToken, get_profile, user: { id, name, phone, user_type } }`. `get_profile: true` signals the client should immediately fetch the full profile. |
+| `RefreshTokenBody` | Request body for `POST /auth/refresh` - `{ refresh_token: string }` |
+| `TokenPair` | Response from `POST /auth/refresh` - `{ accessToken, refreshToken }` |
+| `LogoutBody` | Request body for `POST /auth/logout` - `{ refresh_token: string }` |
 
 > Token fields use camelCase (`accessToken`, `refreshToken`) to match the OpenAPI spec.
 
@@ -216,7 +216,7 @@ TypeScript interfaces for the authentication flow live in `src/shared/models/aut
 
 TypeScript interfaces for field worker identity live in `src/shared/models/user.model.ts`.
 
-**`UserType`** — `'rider' | 'beautician'`
+**`UserType`** - `'rider' | 'beautician'`
 
 Discriminates between the two field worker roles. Derived from the `user_type` field in the auth response.
 
@@ -229,10 +229,10 @@ Full profile for an authenticated field worker. Returned by `GET /profile` and e
 | `id` | `string \| number` | Unique user identifier. |
 | `name` | `string` | Display name. |
 | `phone` | `string` | Phone number used for OTP login. |
-| `user_type` | `UserType` | Role — `'rider'` or `'beautician'`. |
+| `user_type` | `UserType` | Role - `'rider'` or `'beautician'`. |
 | `photo?` | `{ url: string }` | Profile photo URL. |
 | `email?` | `string` | Optional email address. |
-| `date_of_birth?` | `string` | Date of birth — ISO 8601 date string (`YYYY-MM-DD`). |
+| `date_of_birth?` | `string` | Date of birth - ISO 8601 date string (`YYYY-MM-DD`). |
 | `address?` | `string` | Residential address. |
 | `emergency_contact_name?` | `string` | Emergency contact name. |
 | `emergency_contact_phone?` | `string` | Emergency contact phone number. |
@@ -257,7 +257,7 @@ A single uploaded document attached to a user profile (KYC, role-specific creden
 
 | Composable | Location | Description |
 |------------|----------|-------------|
-| `useDrawer` | `src/shared/composables/useDrawer.ts` | Global drawer open/close state. Exposes `isDrawerOpen`, `openDrawer()`, `closeDrawer()`, and `toggleDrawer()`. Shared between `TabsLayout` (opener) and `AppDrawer` (consumer) via a module-level ref — no prop drilling required. |
+| `useDrawer` | `src/shared/composables/useDrawer.ts` | Global drawer open/close state. Exposes `isDrawerOpen`, `openDrawer()`, `closeDrawer()`, and `toggleDrawer()`. Shared between `TabsLayout` (opener) and `AppDrawer` (consumer) via a module-level ref - no prop drilling required. |
 | `useGeolocation` | `src/shared/composables/useGeolocation.ts` | Reactive GPS wrapper around `@capacitor/geolocation`. Handles permission requests, one-shot position fetches, and continuous position watching. Each position update is automatically emitted over the WebSocket connection for real-time admin tracking. |
 | `useGoogleMaps` | `src/shared/composables/useGoogleMaps.ts` | Manages a Google Maps instance bound to a DOM element. Handles API loading, map initialization, named marker management, and route rendering via the Directions API. |
 | `useNetwork` | `src/shared/composables/useNetwork.ts` | Reactive network connectivity state. Tracks whether the device has an active internet connection via `navigator.onLine` and the `online`/`offline` window events. Works on iOS and Android without a native plugin. Also exports `getIsOnline()` for use outside components. |
@@ -298,7 +298,7 @@ const {
 import { useGoogleMaps } from '@/shared/composables'
 
 const {
-  mapRef,      // Ref<HTMLElement | null> — bind to <div ref="mapRef">
+  mapRef,      // Ref<HTMLElement | null> - bind to <div ref="mapRef">
   isLoaded,    // Readonly<Ref<boolean>>
   error,       // Readonly<Ref<string | null>>
   map,         // Ref<google.maps.Map | null>
@@ -319,7 +319,7 @@ Manages a Google Maps instance bound to a DOM element. Handles API script loadin
 | `mapRef` | `Ref<HTMLElement \| null>` | Bind to the map container `<div>` in the template. |
 | `isLoaded` | `Readonly<Ref<boolean>>` | `true` once the Maps API is loaded and the map is initialized. |
 | `error` | `Readonly<Ref<string \| null>>` | Error message if initialization or route drawing failed, otherwise `null`. |
-| `map` | `Ref<google.maps.Map \| null>` | The underlying `google.maps.Map` instance. Mutable — callers can replace or interact with the map directly. |
+| `map` | `Ref<google.maps.Map \| null>` | The underlying `google.maps.Map` instance. Mutable - callers can replace or interact with the map directly. |
 | `initMap(options?)` | `(MapOptions?) => Promise<void>` | Loads the Maps API (if not already loaded) and initializes the map on the bound element. Merges provided options with sensible defaults (zoom 14, no POI/transit labels, greedy gesture handling). |
 | `setMarker(id, options)` | `(string, MapMarkerOptions) => Marker \| null` | Adds a named marker to the map. If a marker with the same `id` already exists, its position and title are updated in place. Supports optional custom color (SVG pin) and BOUNCE animation. Returns `null` if the map is not yet initialized. |
 | `removeMarker(id)` | `(string) => void` | Removes the named marker from the map and cleans up the reference. |
@@ -358,7 +358,7 @@ The composable registers an `onUnmounted` hook that calls `stopTracking()` autom
 
 ### `useNetwork`
 
-Reactive network connectivity state backed by `navigator.onLine` and the browser's `online`/`offline` window events. Uses a module-level singleton so all callers share the same reactive state. Works correctly on iOS and Android — the Capacitor WebView fires the standard browser events without requiring a native plugin.
+Reactive network connectivity state backed by `navigator.onLine` and the browser's `online`/`offline` window events. Uses a module-level singleton so all callers share the same reactive state. Works correctly on iOS and Android - the Capacitor WebView fires the standard browser events without requiring a native plugin.
 
 ```ts
 import { useNetwork, getIsOnline } from '@/shared/composables/useNetwork'
@@ -372,15 +372,15 @@ const online = getIsOnline()
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `isOnline` | `Readonly<Ref<boolean>>` | `true` when the device has an active internet connection. Reactive — updates automatically when connectivity changes. |
+| `isOnline` | `Readonly<Ref<boolean>>` | `true` when the device has an active internet connection. Reactive - updates automatically when connectivity changes. |
 
-**`getIsOnline()`** — standalone function that reads the current online state without registering any lifecycle hooks. Safe to call in stores, router guards, or any non-component context.
+**`getIsOnline()`** - standalone function that reads the current online state without registering any lifecycle hooks. Safe to call in stores, router guards, or any non-component context.
 
 Event listeners are added on the first component mount and removed when the last consumer unmounts, so there is no listener leak regardless of how many components use the composable simultaneously.
 
 ### `usePermissions`
 
-Manages the three required runtime permissions — Location, Camera, and Notifications — using the Capacitor plugin APIs. Uses a fresh instance per call (not a singleton), so it is typically called once in `App.vue` during boot and once in `PermissionSplashView`.
+Manages the three required runtime permissions - Location, Camera, and Notifications - using the Capacitor plugin APIs. Uses a fresh instance per call (not a singleton), so it is typically called once in `App.vue` during boot and once in `PermissionSplashView`.
 
 ```ts
 import { usePermissions } from '@/shared/composables/usePermissions'
@@ -458,7 +458,7 @@ On web/PWA all permissions are treated as granted and the splash is skipped auto
 
 | Component | Location | Description |
 |-----------|----------|-------------|
-| `AppDrawer` | `src/shared/components/ui/AppDrawer.vue` | Slide-in navigation drawer. Reads open/close state from `useDrawer`. Displays a user avatar (photo or initials) and role label in a branded header. Navigation is split into three sections: **Primary** (Home; role-conditional Orders/Complaints/External Bookings for beauticians, Trips/Trip Fees for riders; plus Calendar, Notifications, Leaderboard, Reimbursements for all); **Leave & Time Off** (Leave Requests, OT Requests, Weekly Off); **Account** (Profile, Active Sessions, Support & Feedback). A footer SOS button and logout button are always visible. Active state highlights the current route and any nested child routes. Controlled entirely via `useDrawer` — no props required. |
+| `AppDrawer` | `src/shared/components/ui/AppDrawer.vue` | Slide-in navigation drawer. Reads open/close state from `useDrawer`. Displays a user avatar (photo or initials) and role label in a branded header. Navigation is split into three sections: **Primary** (Home; role-conditional Orders/Complaints/External Bookings for beauticians, Trips/Trip Fees for riders; plus Calendar, Notifications, Leaderboard, Reimbursements for all); **Leave & Time Off** (Leave Requests, OT Requests, Weekly Off); **Account** (Profile, Active Sessions, Support & Feedback). A footer SOS button and logout button are always visible. Active state highlights the current route and any nested child routes. Controlled entirely via `useDrawer` - no props required. |
 | `GoogleMapView` | `src/shared/components/ui/GoogleMapView.vue` | Reusable Google Maps component. Wraps `useGoogleMaps` and handles loading/error states internally. Supports pickup, drop, and live-position markers, optional driving route rendering, and automatic bounds fitting. Emits `map-ready` once the map is initialized and `map-error` on failure. Renders a static "Map unavailable" fallback when `FEATURES.maps` is `false`. |
 | `NoInternetView` | `src/features/home/views/NoInternetView.vue` | Full-screen offline overlay. Displays a `wifi-off` icon, a message prompting the user to check connectivity, and a "Try Again" button. The button emits a `retry` event after an 800 ms debounce so the parent can re-check connectivity. Intended to be conditionally rendered over the app shell when `useNetwork`'s `isOnline` is `false`. |
 | `PlacesSearchInput` | `src/shared/components/ui/PlacesSearchInput.vue` | Address search input backed by Google Places Autocomplete. Supports free-text address search, direct lat/lng coordinate entry, a loading spinner during API calls, and a clear button. Emits the selected `PlaceResult` on selection. Fully keyboard-accessible (Enter selects, Escape clears). |
@@ -484,7 +484,7 @@ On web/PWA all permissions are treated as granted and the splash is skipped auto
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `height` | `string` | `'100%'` | CSS height of the map container (e.g. `'300px'`, `'50vh'`). |
-| `center` | `Coordinates \| undefined` | — | Initial center coordinates. Falls back to the Maps API default if omitted. |
+| `center` | `Coordinates \| undefined` | - | Initial center coordinates. Falls back to the Maps API default if omitted. |
 | `zoom` | `number` | `14` | Initial zoom level. |
 | `pickup` | `Coordinates \| null` | `null` | Coordinates for the pickup marker (green pin). Removed when `null`. |
 | `drop` | `Coordinates \| null` | `null` | Coordinates for the drop marker (red pin). Removed when `null`. |
@@ -520,7 +520,7 @@ Address search field backed by Google Places Autocomplete. Also accepts raw `lat
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `label` | `string` | — | Accessible label for the input (used as `aria-label` and listbox label). Required. |
+| `label` | `string` | - | Accessible label for the input (used as `aria-label` and listbox label). Required. |
 | `placeholder` | `string` | `'Search address or enter lat, lng'` | Input placeholder text. |
 | `icon` | `string` | `'lucide:map-pin'` | Lucide icon name rendered on the left side of the input. |
 | `modelValue` | `string` | `''` | Pre-filled address string. Supports `v-model`. |
@@ -529,7 +529,7 @@ Address search field backed by Google Places Autocomplete. Also accepts raw `lat
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `update:modelValue` | `string` | Emitted on every keystroke — use with `v-model`. |
+| `update:modelValue` | `string` | Emitted on every keystroke - use with `v-model`. |
 | `place-selected` | `PlaceResult` | Emitted when the user selects a suggestion or confirms a lat/lng entry. Payload is a `PlaceResult` with `placeId`, `address`, and `coordinates`. |
 
 **Behaviour**
@@ -550,10 +550,10 @@ The Trips feature (`src/features/trips/`) provides riders with a list of their a
 
 The main trips list view (`/trips`). On mount it fetches the first page of trips and renders one of four states:
 
-- **Loading skeleton** — shown while the initial fetch is in progress (4 animated shimmer cards).
-- **Error state** — shown when the fetch fails with no cached data; includes a Retry button.
-- **Empty state** — shown when the rider has no trips.
-- **Trip list** — a scrollable list of `TripCard` components, each navigating to `/trips/:id` on tap.
+- **Loading skeleton** - shown while the initial fetch is in progress (4 animated shimmer cards).
+- **Error state** - shown when the fetch fails with no cached data; includes a Retry button.
+- **Empty state** - shown when the rider has no trips.
+- **Trip list** - a scrollable list of `TripCard` components, each navigating to `/trips/:id` on tap.
 
 Pull-to-refresh is supported via `<ion-refresher>`.
 
@@ -592,15 +592,15 @@ const { trips, isLoading, error, pagination, fetchTrips, refresh } = useTrips()
 | `error` | `Readonly<Ref<string \| null>>` | Error message from the last failed fetch, or `null`. |
 | `pagination` | `Readonly<Ref<PaginatedResponse meta \| null>>` | Pagination metadata (total, page, limit) from the last response. |
 | `fetchTrips(page?, limit?)` | `(number?, number?) => Promise<void>` | Fetches a page of trips (defaults: page 1, limit 20). |
-| `refresh()` | `() => Promise<void>` | Re-fetches page 1 — convenience wrapper used by pull-to-refresh. |
+| `refresh()` | `() => Promise<void>` | Re-fetches page 1 - convenience wrapper used by pull-to-refresh. |
 
 ### `TripDetailView`
 
 The trip detail view (`/trips/:id`). Fetches a single trip on mount and renders one of three states:
 
-- **Loading state** — spinner shown while the trip is being fetched.
-- **Error state** — shown when the fetch fails; includes a Retry button.
-- **Trip content** — full detail layout with a map, trip info card, location override panel, and action buttons.
+- **Loading state** - spinner shown while the trip is being fetched.
+- **Error state** - shown when the fetch fails; includes a Retry button.
+- **Trip content** - full detail layout with a map, trip info card, location override panel, and action buttons.
 
 The view integrates `GoogleMapView` (40 vh map with pickup/drop/live-position markers and an optional driving route), a location override panel backed by `PlacesSearchInput`, and a tracking toggle that appears while the trip is in the `Trip Started` state. Tracking starts automatically when the trip enters `Trip Started` and stops when it reaches `Trip Completed` or `Completed`.
 
@@ -645,7 +645,7 @@ interface GeoJsonPoint {
 
 **`RawTrip`**
 
-Raw trip shape as returned by the BFF API. Used only in the service layer for normalization — do not use this type in views or composables.
+Raw trip shape as returned by the BFF API. Used only in the service layer for normalization - do not use this type in views or composables.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -676,7 +676,7 @@ Normalized trip entity used throughout the app. Produced by normalizing a `RawTr
 | `id` | `string` | Trip ID (from `_id`). |
 | `trip_number` | `string` | Human-readable trip reference number. |
 | `kanban_state` | `TripKanbanState` | Current kanban state. |
-| `start_time` | `string` | ISO 8601 — derived from `created_at` (API has no dedicated start_time field). |
+| `start_time` | `string` | ISO 8601 - derived from `created_at` (API has no dedicated start_time field). |
 | `pickup_location` | `Coordinates & { address?: string }` | Pickup coordinates with optional resolved address string. |
 | `drop_location` | `Coordinates & { address?: string }` | Drop coordinates with optional resolved address string. |
 | `customer_name?` | `string` | Customer name from the nested order. |
@@ -693,7 +693,7 @@ Normalized trip entity used throughout the app. Produced by normalizing a `RawTr
 
 TypeScript interfaces for the trip fees report live in `src/shared/models/trip-fees.model.ts`. Riders use this data to view a breakdown of their earnings and deductions for a given period.
 
-**`TripFeeEntry`** — a single trip's fee breakdown:
+**`TripFeeEntry`** - a single trip's fee breakdown:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -706,7 +706,7 @@ TypeScript interfaces for the trip fees report live in `src/shared/models/trip-f
 | `net_amount` | `number` | Net payout after deductions. |
 | `status?` | `'pending' \| 'paid'` | Payment status (optional). |
 
-**`TripFeesReport`** — aggregated report for a period:
+**`TripFeesReport`** - aggregated report for a period:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -855,15 +855,15 @@ Sent to `POST /orders/:id/otp/verify`.
 
 The order detail view (`/orders/:id`). Fetches a single order on mount and renders one of three states:
 
-- **Loading state** — spinner shown while the order is being fetched.
-- **Error state** — shown when the fetch fails; includes a Retry button.
-- **Order content** — full detail layout with a status timeline, info card, OTP section, and action buttons.
+- **Loading state** - spinner shown while the order is being fetched.
+- **Error state** - shown when the fetch fails; includes a Retry button.
+- **Order content** - full detail layout with a status timeline, info card, OTP section, and action buttons.
 
-**Status timeline** — a horizontal step indicator showing the four stages of an order: `Confirmed → Started → Ongoing → Completed`. Completed steps are filled green, the active step is highlighted in brand purple.
+**Status timeline** - a horizontal step indicator showing the four stages of an order: `Confirmed → Started → Ongoing → Completed`. Completed steps are filled green, the active step is highlighted in brand purple.
 
-**Info card** — displays the order number, service date, customer name (tappable phone link if available), service address, booking timing, and any notes.
+**Info card** - displays the order number, service date, customer name (tappable phone link if available), service address, booking timing, and any notes.
 
-**OTP section** — shown when the order is in `Confirmed` state. The beautician can generate a 6-digit service OTP to share with the customer, then enter the customer-confirmed OTP to start the service.
+**OTP section** - shown when the order is in `Confirmed` state. The beautician can generate a 6-digit service OTP to share with the customer, then enter the customer-confirmed OTP to start the service.
 
 **Action button progression**
 
@@ -941,15 +941,15 @@ TypeScript interfaces for the leave requests feature live in `src/shared/models/
 | `duration` | `LeaveDuration` | Full day or half-day selection. |
 | `status` | `LeaveStatus` | Current approval state. |
 | `reason?` | `string` | Optional reason for the leave request. |
-| `start_time?` | `string` | ISO 8601 time — required when `duration` is `first_half` or `second_half`. |
-| `end_time?` | `string` | ISO 8601 time — required when `duration` is `first_half` or `second_half`. |
+| `start_time?` | `string` | ISO 8601 time - required when `duration` is `first_half` or `second_half`. |
+| `end_time?` | `string` | ISO 8601 time - required when `duration` is `first_half` or `second_half`. |
 | `requester_type?` | `'beautician' \| 'rider'` | Role of the requester. |
 | `created_at?` | `string` | ISO 8601 creation timestamp. |
 | `updated_at?` | `string` | ISO 8601 last-updated timestamp. |
 
 **`LeaveRequestBody`**
 
-Sent to `POST /leave-requests`. `requester_id` and `requester_type` are injected server-side from the JWT — do not include them in the request body.
+Sent to `POST /leave-requests`. `requester_id` and `requester_type` are injected server-side from the JWT - do not include them in the request body.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -957,8 +957,8 @@ Sent to `POST /leave-requests`. `requester_id` and `requester_type` are injected
 | `leave_type` | `LeaveType` | Category of leave. |
 | `duration` | `LeaveDuration` | Full day or half-day selection. |
 | `reason?` | `string` | Optional reason. |
-| `start_time?` | `string` | Required when `duration` is `first_half` or `second_half` — format: `HH:MM AM/PM`. |
-| `end_time?` | `string` | Required when `duration` is `first_half` or `second_half` — format: `HH:MM AM/PM`. |
+| `start_time?` | `string` | Required when `duration` is `first_half` or `second_half` - format: `HH:MM AM/PM`. |
+| `end_time?` | `string` | Required when `duration` is `first_half` or `second_half` - format: `HH:MM AM/PM`. |
 
 **`LeaveBalance`**
 
@@ -989,7 +989,7 @@ TypeScript interfaces for overtime requests live in `src/shared/models/ot-reques
 |-------|------|-------------|
 | `id` | `string \| number` | OT request ID. |
 | `_id?` | `string` | MongoDB document ID (optional, API-returned). |
-| `date` | `string` | ISO 8601 date string (YYYY-MM-DD) — the date overtime was worked. |
+| `date` | `string` | ISO 8601 date string (YYYY-MM-DD) - the date overtime was worked. |
 | `reason?` | `string` | Optional reason for the overtime. |
 | `status` | `OtRequestStatus` | Current approval state. |
 | `requester_type?` | `'beautician' \| 'rider'` | Role of the requester. |
@@ -1013,9 +1013,9 @@ Sent when creating a new OT request.
 
 The main leave requests view (`/leave`). On mount it fetches the user's leave requests and renders one of three states:
 
-- **Loading skeleton** — shown while the initial fetch is in progress (4 animated shimmer cards).
-- **Empty state** — shown when the user has no requests of any kind.
-- **Request list** — a unified, scrollable list of all request types (leave, OT, weekly off), each card showing a type icon, title, date, optional detail (e.g. duration or hours), status badge, optional reason, and a Cancel button for requests still in `requested` state.
+- **Loading skeleton** - shown while the initial fetch is in progress (4 animated shimmer cards).
+- **Empty state** - shown when the user has no requests of any kind.
+- **Request list** - a unified, scrollable list of all request types (leave, OT, weekly off), each card showing a type icon, title, date, optional detail (e.g. duration or hours), status badge, optional reason, and a Cancel button for requests still in `requested` state.
 
 A leave balance card is always displayed at the top of the screen, showing remaining days for Paid Leave, Sick Leave, and Loss of Pay in a responsive grid.
 
@@ -1025,9 +1025,9 @@ Pull-to-refresh is supported via `<ion-refresher>`.
 
 A fixed **+** FAB in the bottom-right corner opens a two-step bottom sheet for submitting a new request:
 
-**Step 1 — pick request type.** A grid of type cards lets the user choose from the available request types (Paid Leave, Sick Leave, Loss of Pay, OT, Weekly Off). Selecting a type advances to step 2.
+**Step 1 - pick request type.** A grid of type cards lets the user choose from the available request types (Paid Leave, Sick Leave, Loss of Pay, OT, Weekly Off). Selecting a type advances to step 2.
 
-**Step 2 — fill the form.** A back button returns to step 1. Fields vary by type:
+**Step 2 - fill the form.** A back button returns to step 1. Fields vary by type:
 
 | Field | Shown for | Input | Notes |
 |-------|-----------|-------|-------|
@@ -1114,7 +1114,7 @@ API service functions for the authenticated user's profile live in `src/shared/a
 
 ## Profile View
 
-`src/features/profile/views/ProfileView.vue` — the authenticated user's profile screen, accessible via the `/profile` route.
+`src/features/profile/views/ProfileView.vue` - the authenticated user's profile screen, accessible via the `/profile` route.
 
 ### Layout
 
@@ -1198,14 +1198,14 @@ The Home feature (`src/features/home/views/HomeView.vue`) is the landing tab for
 
 The main home view (`/home`). On mount it fetches the dashboard summary and renders one of two states:
 
-- **Loading skeleton** — shown while the initial fetch is in progress (4 shimmer KPI cards + section shimmers).
-- **Dashboard content** — rendered once data is available.
+- **Loading skeleton** - shown while the initial fetch is in progress (4 shimmer KPI cards + section shimmers).
+- **Dashboard content** - rendered once data is available.
 
 Pull-to-refresh is supported via `<ion-refresher>`.
 
-**Hero section** — displays a time-based greeting ("Good morning / afternoon / evening"), the user's first name, a role badge ("Beautician" or "Rider"), today's date, and the user's avatar (photo or initials fallback).
+**Hero section** - displays a time-based greeting ("Good morning / afternoon / evening"), the user's first name, a role badge ("Beautician" or "Rider"), today's date, and the user's avatar (photo or initials fallback).
 
-**KPI strip** — a horizontal row of four metric cards sourced from `DashboardData`:
+**KPI strip** - a horizontal row of four metric cards sourced from `DashboardData`:
 
 | Card | Colour | Field | Description |
 |------|--------|-------|-------------|
@@ -1214,21 +1214,21 @@ Pull-to-refresh is supported via `<ion-refresher>`.
 | Today | Warning (amber) | `today_earnings` | Earnings for today (formatted as ₹, abbreviated). |
 | Month | Info (blue) | `month_earnings` | Earnings for the current month (formatted as ₹, abbreviated). |
 
-**Today at a Glance** — a 2×2 grid of tappable cards showing role-specific counts. Beauticians see Upcoming Orders, Completed Orders, In Progress, and This Month totals; riders see the equivalent trip counts. Each card navigates to `/orders` or `/trips`.
+**Today at a Glance** - a 2×2 grid of tappable cards showing role-specific counts. Beauticians see Upcoming Orders, Completed Orders, In Progress, and This Month totals; riders see the equivalent trip counts. Each card navigates to `/orders` or `/trips`.
 
-**Next up card** — highlights the single most urgent upcoming order (beautician) or trip (rider). Shows the reference number, status badge, customer name, address, and scheduled time. Tapping navigates to the detail view.
+**Next up card** - highlights the single most urgent upcoming order (beautician) or trip (rider). Shows the reference number, status badge, customer name, address, and scheduled time. Tapping navigates to the detail view.
 
-**Upcoming list** — a scrollable list of upcoming orders/trips (beyond the "next up" item). Each row shows the reference number, status badge, customer name, and scheduled time. Tapping navigates to the detail view. The section is hidden when the list is empty.
+**Upcoming list** - a scrollable list of upcoming orders/trips (beyond the "next up" item). Each row shows the reference number, status badge, customer name, and scheduled time. Tapping navigates to the detail view. The section is hidden when the list is empty.
 
-**Earnings overview** — a three-column card showing Today, This Week, and This Month earnings. When a daily target is set in `DashboardData`, a progress bar shows the percentage of the daily target reached.
+**Earnings overview** - a three-column card showing Today, This Week, and This Month earnings. When a daily target is set in `DashboardData`, a progress bar shows the percentage of the daily target reached.
 
-**Leave balance** — a row of leave-type counters (paid, sick, loss-of-pay, block time) sourced from `DashboardData.leave_balance`. Tapping "Manage" navigates to `/leave`. The section is hidden when no balance data is available.
+**Leave balance** - a row of leave-type counters (paid, sick, loss-of-pay, block time) sourced from `DashboardData.leave_balance`. Tapping "Manage" navigates to `/leave`. The section is hidden when no balance data is available.
 
-**Bike & Documents** (rider only) — two reminder rows linking to `/profile` for Licence & PUC and Insurance document checks.
+**Bike & Documents** (rider only) - two reminder rows linking to `/profile` for Licence & PUC and Insurance document checks.
 
-**Complaints alert** (beautician only) — a warning banner shown when `DashboardData.complaints_count > 0`. Tapping navigates to `/complaints`.
+**Complaints alert** (beautician only) - a warning banner shown when `DashboardData.complaints_count > 0`. Tapping navigates to `/complaints`.
 
-**Quick actions** — a multi-column grid of tappable shortcut buttons. Role-conditional content:
+**Quick actions** - a multi-column grid of tappable shortcut buttons. Role-conditional content:
 
 | Button | Route | Roles |
 |--------|-------|-------|
@@ -1266,14 +1266,14 @@ The `DashboardData` interface lives in `src/shared/models/dashboard.model.ts`.
 
 The main app shell (`TabsLayout`) wraps all authenticated routes and provides:
 
-- **Header** — each individual view is responsible for rendering its own `<ion-header>`. `TabsLayout` itself does not render a shared header.
-- **Bottom tab bar** — tabs are shown conditionally based on user role (`isBeautician` / `isRider` from the `userTypeStore`). All roles see a Calendar tab (`/calendar`) in addition to the role-specific Orders/Trips tab.
+- **Header** - each individual view is responsible for rendering its own `<ion-header>`. `TabsLayout` itself does not render a shared header.
+- **Bottom tab bar** - tabs are shown conditionally based on user role (`isBeautician` / `isRider` from the `userTypeStore`). All roles see a Calendar tab (`/calendar`) in addition to the role-specific Orders/Trips tab.
 
 ## Routing
 
 | Path | View | Notes |
 |------|------|-------|
-| `/` | — | Redirects to `/login` |
+| `/` | - | Redirects to `/login` |
 | `/login` | `LoginView` | Auth entry point |
 | `/home` | `HomeView` | Main home tab |
 | `/orders` | `OrdersView` | Beautician orders list |
@@ -1315,14 +1315,14 @@ The Calendar feature (`src/features/calendar/`) gives field workers a monthly vi
 
 The main calendar view (`/calendar`). Displays a full-month grid with colour-coded event dots, a selected-date event panel, and an upcoming events panel.
 
-**Month navigation** — chevron buttons step backward and forward one month at a time. A "Today" button in the header resets the view to the current month and selects today's date.
+**Month navigation** - chevron buttons step backward and forward one month at a time. A "Today" button in the header resets the view to the current month and selects today's date.
 
-**Calendar grid** — a 7-column grid (Sun–Sat) where each day cell shows:
+**Calendar grid** - a 7-column grid (Sun–Sat) where each day cell shows:
 - The day number, highlighted with a brand-coloured circle when it is today, or a brand-outlined circle when selected.
-- Up to three coloured dots, one per distinct event *type* present on that day (deduplicated — multiple paid-leave requests on the same day still show a single amber dot).
+- Up to three coloured dots, one per distinct event *type* present on that day (deduplicated - multiple paid-leave requests on the same day still show a single amber dot).
 - A pale brand background when the cell is selected but not today.
 
-**Legend** — a row of colour-coded labels below the grid:
+**Legend** - a row of colour-coded labels below the grid:
 
 | Dot colour | Event type |
 |------------|------------|
@@ -1330,13 +1330,13 @@ The main calendar view (`/calendar`). Displays a full-month grid with colour-cod
 | Red | Sick Leave |
 | Emerald | Holiday |
 
-**Event cards** — tapping any day cell shows event cards for that date below the grid. Each card has a left accent bar, a type icon, a title, a detail line (e.g. "Full Day"), and a status badge (Pending / Approved / Rejected) when applicable. Holiday cards have no status badge. A shimmer skeleton is shown while data loads; an empty-state illustration is shown when the selected date has no events.
+**Event cards** - tapping any day cell shows event cards for that date below the grid. Each card has a left accent bar, a type icon, a title, a detail line (e.g. "Full Day"), and a status badge (Pending / Approved / Rejected) when applicable. Holiday cards have no status badge. A shimmer skeleton is shown while data loads; an empty-state illustration is shown when the selected date has no events.
 
-**Upcoming events** — up to 10 events from the next 30 days are shown in a separate "Upcoming" section below the selected-date cards.
+**Upcoming events** - up to 10 events from the next 30 days are shown in a separate "Upcoming" section below the selected-date cards.
 
-**Data fetching** — on mount (and on pull-to-refresh) the view calls `getCalendar(start, end)` with the current month's date range. The response contains `leaves` and `holidays` arrays which are mapped into a unified internal `CalEvent` list. The view re-fetches when the displayed month changes. On error the calendar renders empty (non-critical failure).
+**Data fetching** - on mount (and on pull-to-refresh) the view calls `getCalendar(start, end)` with the current month's date range. The response contains `leaves` and `holidays` arrays which are mapped into a unified internal `CalEvent` list. The view re-fetches when the displayed month changes. On error the calendar renders empty (non-critical failure).
 
-**Event types** — the internal `EventType` union is `'paid_leave' | 'sick_leave' | 'loss_of_pay' | 'block_time' | 'holiday'`. Types are mapped from the BFF response's `leave_type` field for leaves and inferred as `'holiday'` for holiday entries.
+**Event types** - the internal `EventType` union is `'paid_leave' | 'sick_leave' | 'loss_of_pay' | 'block_time' | 'holiday'`. Types are mapped from the BFF response's `leave_type` field for leaves and inferred as `'holiday'` for holiday entries.
 
 ### Calendar Models
 
@@ -1344,8 +1344,8 @@ TypeScript interfaces for the calendar feature live in `src/shared/models/calend
 
 | Type | Kind | Description |
 |------|------|-------------|
-| `CalendarEventType` | `type` | Union of displayable event category strings: `'paid_leave' \| 'sick_leave' \| 'ot' \| 'weekly_off'`. (Legacy — `CalendarView` now uses its own inline `EventType` union that includes `'loss_of_pay'`, `'block_time'`, and `'holiday'`.) |
-| `CalendarEvent` | `interface` | A single calendar event. Required fields: `date` (YYYY-MM-DD), `type` (`CalendarEventType`), `title`, and `status` (`'requested' \| 'approved' \| 'rejected'`). Optional fields: `id` and `detail` (extra display text, e.g. `"Full Day"`). (Legacy — `CalendarView` uses its own inline `CalEvent` interface where `status` is optional to accommodate holidays.) |
+| `CalendarEventType` | `type` | Union of displayable event category strings: `'paid_leave' \| 'sick_leave' \| 'ot' \| 'weekly_off'`. (Legacy - `CalendarView` now uses its own inline `EventType` union that includes `'loss_of_pay'`, `'block_time'`, and `'holiday'`.) |
+| `CalendarEvent` | `interface` | A single calendar event. Required fields: `date` (YYYY-MM-DD), `type` (`CalendarEventType`), `title`, and `status` (`'requested' \| 'approved' \| 'rejected'`). Optional fields: `id` and `detail` (extra display text, e.g. `"Full Day"`). (Legacy - `CalendarView` uses its own inline `CalEvent` interface where `status` is optional to accommodate holidays.) |
 | `CalendarData` | `interface` | BFF response shape from `GET /calendar`. Contains optional `leaves` and `holidays` arrays, plus an index signature for additional server-defined keys. |
 
 ## Sessions Feature
@@ -1356,9 +1356,9 @@ The Sessions feature (`src/features/sessions/`) lets authenticated field workers
 
 The active sessions view (`/sessions`). On mount it fetches all active sessions and renders one of three states:
 
-- **Loading skeleton** — shown while the initial fetch is in progress (3 animated shimmer rows).
-- **Empty state** — shown when no active sessions are found.
-- **Session list** — a scrollable list of session cards, each showing the device name (or `client_type` fallback), IP address, and last-active time. The current session is highlighted and cannot be revoked. All other sessions show a revoke button.
+- **Loading skeleton** - shown while the initial fetch is in progress (3 animated shimmer rows).
+- **Empty state** - shown when no active sessions are found.
+- **Session list** - a scrollable list of session cards, each showing the device name (or `client_type` fallback), IP address, and last-active time. The current session is highlighted and cannot be revoked. All other sessions show a revoke button.
 
 Pull-to-refresh is supported via `<ion-refresher>`.
 
@@ -1410,16 +1410,16 @@ The Reimbursements feature (`src/features/reimbursements/`) lets both riders and
 
 The reimbursements list view (`/reimbursements`). On mount it fetches all reimbursement requests for the authenticated field worker and renders one of four states:
 
-- **Loading skeleton** — shown while the initial fetch is in progress (3 animated shimmer cards).
-- **Error state** — shown when the fetch fails with no cached data; includes a Retry button.
-- **Empty state** — shown when the worker has no reimbursement requests.
-- **Reimbursement list** — a scrollable list of cards, each showing the travel date, travel type, amount, status badge, optional description, and a receipt-upload button for pending requests without proof.
+- **Loading skeleton** - shown while the initial fetch is in progress (3 animated shimmer cards).
+- **Error state** - shown when the fetch fails with no cached data; includes a Retry button.
+- **Empty state** - shown when the worker has no reimbursement requests.
+- **Reimbursement list** - a scrollable list of cards, each showing the travel date, travel type, amount, status badge, optional description, and a receipt-upload button for pending requests without proof.
 
 Pull-to-refresh is supported via `<ion-refresher>`. A `+` button in the header opens the new-reimbursement modal.
 
-**New reimbursement modal** — an inline `<ion-modal>` with a form for travel date, travel type (auto/bus/train/cab/other), amount, and optional description. Submitting prepends the new record to the list and resets the form.
+**New reimbursement modal** - an inline `<ion-modal>` with a form for travel date, travel type (auto/bus/train/cab/other), amount, and optional description. Submitting prepends the new record to the list and resets the form.
 
-**Proof upload** — the "Upload Receipt" button on a `requested` card without a `proof_url` is wired to `openProofUpload()`. Camera/file-picker integration is stubbed and marked TODO.
+**Proof upload** - the "Upload Receipt" button on a `requested` card without a `proof_url` is wired to `openProofUpload()`. Camera/file-picker integration is stubbed and marked TODO.
 
 ### Reimbursement Models
 
@@ -1488,14 +1488,14 @@ The SOS feature (`src/features/sos/`) lets any authenticated field worker (beaut
 
 ### `SosView`
 
-The SOS screen (`/sos`). On mount it checks for an active SOS from a previous session via `getLatestSos()` — only alerts with status `resolved` are treated as inactive. An `acknowledged` alert is still considered active and will be displayed.
+The SOS screen (`/sos`). On mount it checks for an active SOS from a previous session via `getLatestSos()` - only alerts with status `resolved` are treated as inactive. An `acknowledged` alert is still considered active and will be displayed.
 
 The view renders three sections:
 
-- **Active SOS banner** — shown when an alert is currently active. Displays a pulsing red indicator, a message confirming office staff have been alerted, and a "Cancel SOS" button that calls `resolveSos()`.
-- **SOS button** — a large circular red button in the centre of the screen. Disabled while an alert is active or a trigger request is in flight. Tapping calls `triggerSos()`, which first attempts to capture the device's current GPS coordinates (5-second timeout) before sending the alert. Location failure is non-fatal — the alert is sent without coordinates.
-- **Instructions panel** — a four-step card explaining how the SOS flow works.
-- **Optional message field** — a free-text textarea (hidden when an alert is active) that lets the worker briefly describe the situation before triggering.
+- **Active SOS banner** - shown when an alert is currently active. Displays a pulsing red indicator, a message confirming office staff have been alerted, and a "Cancel SOS" button that calls `resolveSos()`.
+- **SOS button** - a large circular red button in the centre of the screen. Disabled while an alert is active or a trigger request is in flight. Tapping calls `triggerSos()`, which first attempts to capture the device's current GPS coordinates (5-second timeout) before sending the alert. Location failure is non-fatal - the alert is sent without coordinates.
+- **Instructions panel** - a four-step card explaining how the SOS flow works.
+- **Optional message field** - a free-text textarea (hidden when an alert is active) that lets the worker briefly describe the situation before triggering.
 
 **Live status polling**
 
@@ -1505,9 +1505,9 @@ While an SOS alert is active, the view polls `getLatestSos()` every 5 seconds to
 
 | Function | Description |
 |----------|-------------|
-| `triggerSos(body)` | `POST /sos` — creates a new SOS alert. Returns a `SosAlert`. |
-| `getLatestSos()` | `GET /sos/latest` — fetches the most recent SOS for the authenticated user. Returns `null` when none exists. |
-| `resolveSos(id)` | `PATCH /sos/:id/resolve` — marks the alert as resolved. |
+| `triggerSos(body)` | `POST /sos` - creates a new SOS alert. Returns a `SosAlert`. |
+| `getLatestSos()` | `GET /sos/latest` - fetches the most recent SOS for the authenticated user. Returns `null` when none exists. |
+| `resolveSos(id)` | `PATCH /sos/:id/resolve` - marks the alert as resolved. |
 
 All three functions are imported from `@/shared/api`.
 
@@ -1531,7 +1531,7 @@ The `SosAlert` interface lives in `@/shared/models`.
 
 ## Animation System
 
-The global animation system lives in `src/core/theme/animations.css` and is imported once in `main.ts`. It provides reusable keyframes, utility classes, Vue `<Transition>` named classes, and interactive feedback helpers — no per-component duplication needed.
+The global animation system lives in `src/core/theme/animations.css` and is imported once in `main.ts`. It provides reusable keyframes, utility classes, Vue `<Transition>` named classes, and interactive feedback helpers - no per-component duplication needed.
 
 ### Keyframes
 
@@ -1560,10 +1560,10 @@ Apply directly to elements for one-shot entrance animations:
 
 | Class | Animation |
 |-------|-----------|
-| `.anim-hero` | `hero-entrance` — for page hero sections |
-| `.anim-fade-up` | `slide-up` — generic fade + slide up |
-| `.anim-fade-in` | `fade-in` — plain opacity fade |
-| `.anim-scale-in` | `scale-in` — scale + fade |
+| `.anim-hero` | `hero-entrance` - for page hero sections |
+| `.anim-fade-up` | `slide-up` - generic fade + slide up |
+| `.anim-fade-in` | `fade-in` - plain opacity fade |
+| `.anim-scale-in` | `scale-in` - scale + fade |
 
 ### Staggered list / grid
 

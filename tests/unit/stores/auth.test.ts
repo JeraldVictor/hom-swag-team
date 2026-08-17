@@ -181,10 +181,10 @@ describe('useAuthStore', () => {
   })
 
   // -------------------------------------------------------------------------
-  // login() — invalid user_type rejection
+  // login() - invalid user_type rejection
   // -------------------------------------------------------------------------
 
-  describe('login() — invalid user_type', () => {
+  describe('login() - invalid user_type', () => {
     it('throws an error when user_type is invalid', async () => {
       const store = useAuthStore()
       await expect(store.login(makeAuthResponse('admin'))).rejects.toThrow()
@@ -298,7 +298,7 @@ describe('useAuthStore', () => {
       expect(store.isAuthenticated).toBe(true)
     })
 
-    it('reacts to logout — becomes false', async () => {
+    it('reacts to logout - becomes false', async () => {
       const store = useAuthStore()
       await store.login(makeAuthResponse('rider'))
       expect(store.isAuthenticated).toBe(true)
@@ -353,7 +353,7 @@ describe('useAuthStore', () => {
 
     it('throws when no refresh token is available', async () => {
       const store = useAuthStore()
-      // Do not login — refreshToken is null
+      // Do not login - refreshToken is null
       await expect(store.refreshTokens()).rejects.toThrow()
     })
   })

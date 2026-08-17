@@ -1,7 +1,7 @@
 /**
  * Discriminates between the two field worker roles in the app.
- * - `rider`      — transports beauticians and handles logistics
- * - `beautician` — performs beauty/cleaning services at customer premises
+ * - `rider`      - transports beauticians and handles logistics
+ * - `beautician` - performs beauty/cleaning services at customer premises
  */
 export type UserType = 'rider' | 'beautician'
 
@@ -38,7 +38,7 @@ export interface UserProfile {
     url: string
   }
   email?: string
-  /** Date of birth — ISO 8601 date string (YYYY-MM-DD) */
+  /** Date of birth - ISO 8601 date string (YYYY-MM-DD) */
   date_of_birth?: string
   /** Residential address */
   address?: string

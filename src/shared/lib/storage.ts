@@ -3,7 +3,7 @@
  *
  * A type-safe wrapper around `@capacitor/preferences` providing structured
  * access to all persistent app data. This is the ONLY module that may import
- * from `@capacitor/preferences` — components and stores must use this service.
+ * from `@capacitor/preferences` - components and stores must use this service.
  */
 
 import { Preferences } from '@capacitor/preferences'
@@ -169,6 +169,6 @@ class StorageServiceClass {
 
 /**
  * The singleton `Storage_Service` instance.
- * Import and use this directly — do not instantiate `StorageServiceClass`.
+ * Import and use this directly - do not instantiate `StorageServiceClass`.
  */
 export const Storage_Service = new StorageServiceClass()

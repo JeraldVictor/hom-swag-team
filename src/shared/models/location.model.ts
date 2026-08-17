@@ -12,7 +12,7 @@ export interface Coordinates {
 export interface LocationPayload extends Coordinates {
   /** Unix timestamp in milliseconds */
   timestamp: number
-  /** GPS accuracy in metres — optional, device-dependent */
+  /** GPS accuracy in metres - optional, device-dependent */
   accuracy?: number
 }
 

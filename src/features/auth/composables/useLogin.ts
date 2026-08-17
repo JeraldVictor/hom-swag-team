@@ -2,8 +2,8 @@
  * useLogin composable
  *
  * Manages the two-step OTP login flow:
- *   Step 1 — phone number entry (10 digits) → POST /auth/otp/request
- *   Step 2 — 6-digit OTP verification → POST /auth/otp/verify
+ *   Step 1 - phone number entry (10 digits) → POST /auth/otp/request
+ *   Step 2 - 6-digit OTP verification → POST /auth/otp/verify
  *
  * On successful verification:
  *   - Persists tokens and user profile via the auth store
@@ -120,7 +120,7 @@ export function useLogin(): UseLoginReturn {
   // ---- Actions --------------------------------------------------------------
 
   /**
-   * Step 1 — submit phone number.
+   * Step 1 - submit phone number.
    * Calls POST /auth/otp/request and advances to the OTP step on success.
    */
   async function submitPhone(): Promise<void> {
@@ -165,7 +165,7 @@ export function useLogin(): UseLoginReturn {
   }
 
   /**
-   * Step 2 — verify OTP and complete login.
+   * Step 2 - verify OTP and complete login.
    * Calls POST /auth/otp/verify, persists auth state, fetches the full profile,
    * then navigates to the home tab.
    */
@@ -188,7 +188,7 @@ export function useLogin(): UseLoginReturn {
         const fullProfile = await getProfile()
         await authStore.setUserProfile(fullProfile)
       } catch {
-        // Non-fatal — basic profile from auth response is already stored
+        // Non-fatal - basic profile from auth response is already stored
       }
 
       const redirectPath =

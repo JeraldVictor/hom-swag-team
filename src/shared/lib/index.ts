@@ -1,5 +1,5 @@
 /**
- * Shared Lib — barrel export
+ * Shared Lib - barrel export
  *
  * Re-exports core library utilities from a single entry point.
  * Import utilities from '@/shared/lib' rather than individual files.

@@ -1,6 +1,6 @@
 <template>
   <ion-app>
-    <!-- No internet overlay — shown on top of everything when offline -->
+    <!-- No internet overlay - shown on top of everything when offline -->
     <NoInternetView v-if="!isOnline" @retry="handleRetry" />
 
     <!-- Force Update Screen -->
@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <!-- Boot splash — checking network + permissions on every cold start / refresh -->
+    <!-- Boot splash - checking network + permissions on every cold start / refresh -->
     <div v-else-if="bootPhase === 'booting'" class="boot-splash" aria-label="Loading" aria-live="polite">
       <div class="boot-splash__inner">
         <img :src="logo" alt="HomSwag" class="boot-splash__logo" />
@@ -34,13 +34,13 @@
       </div>
     </div>
 
-    <!-- Permission splash — network confirmed but required permissions not yet granted -->
+    <!-- Permission splash - network confirmed but required permissions not yet granted -->
     <PermissionSplashView
       v-else-if="bootPhase === 'needs-permissions'"
       @granted="handlePermissionsGranted"
     />
 
-    <!-- Normal app — only rendered when fully ready -->
+    <!-- Normal app - only rendered when fully ready -->
     <ion-router-outlet v-else />
   </ion-app>
 </template>
@@ -82,7 +82,7 @@ const appStore = useAppStore()
 const notificationChannels = useNotificationChannels()
 const fcm = useFcm()
 
-// Network state — reactive, shared singleton
+// Network state - reactive, shared singleton
 const { isOnline } = useNetwork()
 
 // Permissions
@@ -159,7 +159,7 @@ async function boot() {
   appStore.setOnline(getIsOnline())
 
   if (!isOnline.value) {
-    // Stay in 'booting' — the retry handler will re-run boot() when back online
+    // Stay in 'booting' - the retry handler will re-run boot() when back online
     return
   }
 
@@ -169,7 +169,7 @@ async function boot() {
     return
   }
 
-  // 2. Check required permissions (no prompt yet — just read current state)
+  // 2. Check required permissions (no prompt yet - just read current state)
   await checkAll()
 
   if (!allGranted.value) {
@@ -177,7 +177,7 @@ async function boot() {
     return
   }
 
-  // 3. All good — restore session and mark ready
+  // 3. All good - restore session and mark ready
   await finishBoot()
 }
 
@@ -215,7 +215,7 @@ async function handlePermissionsGranted() {
 }
 
 // ---------------------------------------------------------------------------
-// App state change — restart tracker when app comes to foreground
+// App state change - restart tracker when app comes to foreground
 // ---------------------------------------------------------------------------
 
 let appStateListener: PluginListenerHandle | null = null
@@ -249,7 +249,7 @@ async function setupAppStateListener() {
       }
 
       if (authStore.isAuthenticated && !locationTracker.isTracking.value) {
-        // App returned to foreground and user is authenticated — restart tracker
+        // App returned to foreground and user is authenticated - restart tracker
         // if it was stopped (e.g. by the OS killing the background process)
         void locationTracker.start()
       }

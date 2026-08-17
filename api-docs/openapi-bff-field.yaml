@@ -23,7 +23,7 @@ paths:
           required: true
           description: >-
             Identifies the calling client. Must match the client_type claim in the Bearer token when one is provided.
-            Use "api-testing" in Swagger UI and "local" for local development — these values are excluded from marketing
+            Use "api-testing" in Swagger UI and "local" for local development - these values are excluded from marketing
             funnels.
           schema:
             type: string

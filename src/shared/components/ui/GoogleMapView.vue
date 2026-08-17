@@ -1,6 +1,6 @@
 <template>
   <div class="map-wrapper">
-    <!-- Maps feature disabled — static fallback -->
+    <!-- Maps feature disabled - static fallback -->
     <div v-if="!mapsEnabled" class="map-disabled" role="img" aria-label="Map unavailable">
       <Icon icon="lucide:map-pin-off" class="map-disabled__icon" aria-hidden="true" />
       <p class="map-disabled__text">Map unavailable</p>
@@ -20,7 +20,7 @@
         <button class="map-error__retry" @click="retry">Retry</button>
       </div>
 
-      <!-- Map container — always rendered so the ref is available -->
+      <!-- Map container - always rendered so the ref is available -->
       <div
         ref="mapRef"
         class="map-container"
@@ -104,7 +104,7 @@ onMounted(async () => {
   }
 })
 
-// ── Watchers — react to prop changes ──────────────────────────────────────
+// ── Watchers - react to prop changes ──────────────────────────────────────
 
 watch(() => props.pickup, updateMarkers)
 watch(() => props.drop, updateMarkers)

@@ -21,7 +21,7 @@ export interface UseNetworkReturn {
 // Module-level singleton so all callers share the same reactive state
 // ---------------------------------------------------------------------------
 
-// On Android native, navigator.onLine is unreliable during cold start — the
+// On Android native, navigator.onLine is unreliable during cold start - the
 // WebView reports false before the network stack is ready. Default to true
 // so the boot sequence isn't blocked; the real state is synced in onMounted.
 const isOnline = ref<boolean>(true)

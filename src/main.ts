@@ -160,11 +160,11 @@ if (ENV.DEV) {
 
 // Mount regardless of whether the initial navigation succeeded or was aborted.
 // A rejected isReady() (e.g. guard returning false on cold start) must not
-// prevent the app from mounting — App.vue's boot sequence handles all gating.
+// prevent the app from mounting - App.vue's boot sequence handles all gating.
 router
   .isReady()
   .catch(() => {
-    /* initial navigation aborted — App.vue will handle recovery */
+    /* initial navigation aborted - App.vue will handle recovery */
   })
   .finally(() => {
     app.mount('#app')

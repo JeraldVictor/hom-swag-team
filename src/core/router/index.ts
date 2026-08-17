@@ -3,7 +3,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import { ENV } from '@/shared/lib/env'
 
 const routes: Array<RouteRecordRaw> = [
-  // Default — redirect to login
+  // Default - redirect to login
   {
     path: '/',
     redirect: '/login',
@@ -120,7 +120,7 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/notifications/views/NotificationsView.vue'),
       },
 
-      // Complaints (beautician only — guarded in component)
+      // Complaints (beautician only - guarded in component)
       {
         path: 'complaints',
         name: 'Complaints',
@@ -134,14 +134,14 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/features/support/views/SupportView.vue'),
       },
 
-      // OT Requests (both roles) — accessed from Leave section
+      // OT Requests (both roles) - accessed from Leave section
       {
         path: 'ot-requests',
         name: 'OtRequests',
         component: () => import('@/features/leave/views/OtRequestsView.vue'),
       },
 
-      // Weekly Off Requests (both roles) — accessed from Leave section
+      // Weekly Off Requests (both roles) - accessed from Leave section
       {
         path: 'weekly-off',
         name: 'WeeklyOff',
@@ -213,7 +213,7 @@ const router = createRouter({
 })
 
 // ---------------------------------------------------------------------------
-// Navigation guard — protect authenticated routes + block when offline
+// Navigation guard - protect authenticated routes + block when offline
 // ---------------------------------------------------------------------------
 
 router.beforeEach(async to => {
@@ -224,7 +224,7 @@ router.beforeEach(async to => {
   }
 
   // NOTE: Offline gating is handled by the NoInternetView overlay in App.vue.
-  // Do NOT block navigation here — a false navigator.onLine on Android cold
+  // Do NOT block navigation here - a false navigator.onLine on Android cold
   // start would abort the initial navigation and leave a blank screen.
   // Auth guard
   const { Storage_Service, STORAGE_KEYS } = await import('@/shared/lib/storage')

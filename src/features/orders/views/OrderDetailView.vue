@@ -339,7 +339,7 @@
         <div class="address-detail-list">
           <div v-for="row in addressDetailRows" :key="row.label" class="address-detail-row">
             <span class="address-detail-label">{{ row.label }}</span>
-            <span class="address-detail-value">{{ row.value || '—' }}</span>
+            <span class="address-detail-value">{{ row.value || '-' }}</span>
           </div>
         </div>
 
@@ -807,20 +807,20 @@ const paymentStatusVariant = computed(() => {
 })
 
 const amountPaid = computed(() => {
-  if (!order.value) return '—'
+  if (!order.value) return '-'
   if (order.value.payment?.amount_paid != null) return `₹${order.value.payment.amount_paid}`
   if (order.value.cod_collected_amount != null) return `₹${order.value.cod_collected_amount}`
   if (order.value.total != null) return `₹${order.value.total}`
-  return '—'
+  return '-'
 })
 
 const tipAmount = computed(() => {
   const tip = order.value?.payment?.tip ?? order.value?.tip
   if (tip != null) return `₹${tip}`
-  return '—'
+  return '-'
 })
 
-const paymentReference = computed(() => order.value?.payment?.reference || '—')
+const paymentReference = computed(() => order.value?.payment?.reference || '-')
 
 /** Parses old remark-based breakdown for backward compat: "COD ₹500 | UPI ₹0 | Tip ₹50" */
 const parsedPaymentRemark = computed(() => {

@@ -166,16 +166,16 @@ export interface OrderBookingInfo {
   slot_calendar_id?: string // reference to the parent calendar document (optional)
   slot_booking_id?: string // associated slot booking record
 
-  // Stored timing fields (computed on create/update — no runtime re-derivation needed)
-  /** HH:MM 24h — start of the customer's selected slot (from timing split) */
+  // Stored timing fields (computed on create/update - no runtime re-derivation needed)
+  /** HH:MM 24h - start of the customer's selected slot (from timing split) */
   selected_start_time: string
-  /** HH:MM 24h — end of the customer's selected slot (from timing split) */
+  /** HH:MM 24h - end of the customer's selected slot (from timing split) */
   selected_end_time: string
-  /** HH:MM 24h — actual service start (= selected_start_time) */
+  /** HH:MM 24h - actual service start (= selected_start_time) */
   effective_start_time: string
-  /** HH:MM 24h — actual service end = effective_start_time + service_duration */
+  /** HH:MM 24h - actual service end = effective_start_time + service_duration */
   effective_end_time: string
-  /** HH:MM 24h — beautician arrival time (= selected_start_time − 10 min pre-travel) */
+  /** HH:MM 24h - beautician arrival time (= selected_start_time − 10 min pre-travel) */
   beautician_start_time?: string
 }
 

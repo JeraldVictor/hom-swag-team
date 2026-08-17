@@ -191,7 +191,7 @@
 
     <!-- ── STICKY FOOTER: balance + actions ── -->
     <div class="sticky-footer" v-if="order">
-      <!-- Balance bar — shown when something is entered -->
+      <!-- Balance bar - shown when something is entered -->
       <div class="balance-bar" v-if="!isPrepaidOrder">
         <div class="balance-col">
           <span class="balance-label">Paid so far</span>
@@ -528,7 +528,7 @@ const paymentTypeLabel = computed(() => {
 })
 
 const remainingDueLabel = computed(() => {
-  if (!order.value) return '—'
+  if (!order.value) return '-'
   if (remainingDue.value <= 0) return '₹0'
   return `₹${remainingDue.value}`
 })

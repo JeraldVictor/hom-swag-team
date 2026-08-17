@@ -1,5 +1,5 @@
 /**
- * Auth Feature — public API
+ * Auth Feature - public API
  *
  * Exports the feature's views, composables, and components.
  * Other features should import from here, not from internal paths.

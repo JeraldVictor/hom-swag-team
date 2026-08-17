@@ -1,4 +1,4 @@
-# HomSwag Partner — PROD Deployment & Debug APK Guide
+# HomSwag Partner - PROD Deployment & Debug APK Guide
 
 ## Prerequisites
 
@@ -125,7 +125,7 @@ This writes **25 files** directly into `android/app/src/main/res/`:
 - Launcher icons in all density buckets (`mipmap-ldpi` → `mipmap-xxxhdpi`), square and round variants
 - Splash screens in all portrait and landscape density buckets
 
-### Troubleshooting — sharp native module error
+### Troubleshooting - sharp native module error
 
 If you see `Cannot find module '../build/Release/sharp-darwin-arm64v8.node'`, rebuild the native binary for Apple Silicon:
 
@@ -139,9 +139,9 @@ Then re-run the generate command.
 
 ## 6. Generate a Debug APK (for sharing & testing)
 
-A **debug APK** is signed with a debug key — suitable for internal testing and sharing with QA / stakeholders.
+A **debug APK** is signed with a debug key - suitable for internal testing and sharing with QA / stakeholders.
 
-### Option A — via Gradle (command line)
+### Option A - via Gradle (command line)
 
 ```bash
 cd android
@@ -154,7 +154,7 @@ The APK will be generated at:
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Option B — via Android Studio (GUI)
+### Option B - via Android Studio (GUI)
 
 1. Open Android Studio and select **Open** → choose the `android/` folder.
 2. Wait for Gradle sync to complete.

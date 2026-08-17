@@ -621,7 +621,7 @@ async function fetchProfile(): Promise<void> {
   isLoadingProfile.value = true
   try {
     const data = await getProfile()
-    // Preserve user_type from auth store — server profile (Beautician/Rider model) doesn't include it
+    // Preserve user_type from auth store - server profile (Beautician/Rider model) doesn't include it
     const rawData = data as unknown as Record<string, unknown>
     const merged: UserProfile = {
       ...data,

@@ -123,7 +123,7 @@ function startPolling(): void {
     }
     const latest = await getLatestSos()
     if (!latest || latest.status === 'resolved') {
-      // Staff resolved it — clear the active state
+      // Staff resolved it - clear the active state
       activeAlert.value = null
       stopPolling()
     } else {
@@ -163,7 +163,7 @@ async function handleTrigger(): Promise<void> {
       latitude = pos.coords.latitude
       longitude = pos.coords.longitude
     } catch {
-      // Location unavailable — proceed without it
+      // Location unavailable - proceed without it
     }
 
     activeAlert.value = await triggerSos({
@@ -174,7 +174,7 @@ async function handleTrigger(): Promise<void> {
       message: message.value || undefined,
     })
     message.value = ''
-    showSuccess('SOS triggered — office staff have been alerted')
+    showSuccess('SOS triggered - office staff have been alerted')
   } catch (err) {
     showError(err instanceof Error ? err.message : 'Failed to trigger SOS')
   } finally {

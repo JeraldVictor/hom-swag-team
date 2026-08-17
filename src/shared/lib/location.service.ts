@@ -76,7 +76,7 @@ class LocationService {
             office_id: await getOfficeId(),
           })
         } catch {
-          // Silently swallow API errors — location tracking must not crash.
+          // Silently swallow API errors - location tracking must not crash.
         }
       }
     )

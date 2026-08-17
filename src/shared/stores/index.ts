@@ -1,5 +1,5 @@
 /**
- * Shared Stores — barrel export
+ * Shared Stores - barrel export
  *
  * Re-exports all Pinia store composables from a single entry point.
  * Import stores from '@/shared/stores' rather than individual store files.

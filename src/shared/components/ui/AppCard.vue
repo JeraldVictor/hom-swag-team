@@ -4,11 +4,11 @@ import { radius, spacing } from '@/core/theme/index'
 
 const props = withDefaults(
   defineProps<{
-    /** Inner padding — CSS value or Design_Token spacing key */
+    /** Inner padding - CSS value or Design_Token spacing key */
     padding?: string
     /** Box-shadow elevation level (0 = none, 1 = subtle, 2 = raised) */
     elevation?: 0 | 1 | 2
-    /** Border radius — CSS value or Design_Token radius key */
+    /** Border radius - CSS value or Design_Token radius key */
     borderRadius?: string
   }>(),
   {

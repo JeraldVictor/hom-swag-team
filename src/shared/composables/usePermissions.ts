@@ -87,7 +87,7 @@ export function usePermissions(): UsePermissionsReturn {
     isLoading.value = true
     try {
       if (!isNative()) {
-        // On web/PWA, permissions behave differently — treat as granted so the
+        // On web/PWA, permissions behave differently - treat as granted so the
         // splash screen doesn't block the web experience.
         statuses.value = { location: 'granted', camera: 'granted' }
         return
@@ -133,7 +133,7 @@ export function usePermissions(): UsePermissionsReturn {
       statuses.value = { ...statuses.value, camera: state }
       return state
     } catch {
-      // Permission might have been permanently denied — recheck from OS to get real state
+      // Permission might have been permanently denied - recheck from OS to get real state
       try {
         const checked = await Camera.checkPermissions()
         const state = checked.camera as PermissionState
@@ -155,7 +155,7 @@ export function usePermissions(): UsePermissionsReturn {
     try {
       await requestLocation()
       await requestCamera()
-      // Re-read from the OS after all dialogs have closed — some Android versions
+      // Re-read from the OS after all dialogs have closed - some Android versions
       // return stale state from requestPermissions() before the system fully registers the grant.
       await checkAll()
     } finally {

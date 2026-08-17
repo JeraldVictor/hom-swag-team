@@ -87,9 +87,9 @@ describe('LocationService', () => {
     })
   })
 
-  // ── startWatching — interval clamping ─────────────────────────────────────
+  // ── startWatching - interval clamping ─────────────────────────────────────
 
-  describe('startWatching() — interval clamping', () => {
+  describe('startWatching() - interval clamping', () => {
     it('passes the provided intervalMs as timeout when it is within the limit', async () => {
       mockWatchPosition.mockResolvedValueOnce('watch-1')
 
@@ -135,9 +135,9 @@ describe('LocationService', () => {
     })
   })
 
-  // ── startWatching — callback and pushLocation ──────────────────────────────
+  // ── startWatching - callback and pushLocation ──────────────────────────────
 
-  describe('startWatching() — callback and pushLocation', () => {
+  describe('startWatching() - callback and pushLocation', () => {
     it('invokes the caller callback with coordinates on each position update', async () => {
       const fakePosition = {
         coords: { latitude: 28.6139, longitude: 77.209, accuracy: 5, altitude: null, altitudeAccuracy: null, heading: null, speed: null },

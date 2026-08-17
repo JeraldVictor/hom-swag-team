@@ -12,7 +12,7 @@ export interface LeaderboardEntry {
   count: number
   /** Total amount generated for the period */
   amount?: number
-  /** Score used for ranking — may be composite */
+  /** Score used for ranking - may be composite */
   score?: number
   /** Whether this entry belongs to the currently logged-in user */
   is_self?: boolean
@@ -33,6 +33,6 @@ export interface LeaderboardData {
   self_entry?: LeaderboardEntry
   /** Office-configured leaderboard bonus/prize amounts */
   prizes?: LeaderboardPrizes
-  /** Whether the full list is visible (permission-gated for riders — top 3 only) */
+  /** Whether the full list is visible (permission-gated for riders - top 3 only) */
   is_restricted: boolean
 }

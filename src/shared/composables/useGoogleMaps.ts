@@ -20,7 +20,7 @@ import type { Coordinates } from '@/shared/models/location.model'
 export interface MapMarkerOptions {
   position: Coordinates
   title?: string
-  /** Lucide/emoji label shown in a custom marker — falls back to default pin */
+  /** Lucide/emoji label shown in a custom marker - falls back to default pin */
   label?: string
   /** Hex color for the marker pin */
   color?: string
@@ -53,7 +53,7 @@ export interface UseGoogleMapsReturn {
   fitBounds(coordsList: Coordinates[]): void
 }
 
-/** Default map style — clean, minimal */
+/** Default map style - clean, minimal */
 const DEFAULT_MAP_OPTIONS: google.maps.MapOptions = {
   zoom: 14,
   mapTypeControl: false,

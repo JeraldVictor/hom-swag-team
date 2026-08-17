@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ---------------------------------------------------------------------------
-// Helpers — build a JWT with a given exp (Unix seconds)
+// Helpers - build a JWT with a given exp (Unix seconds)
 // ---------------------------------------------------------------------------
 
 function buildJwt(exp: number): string {
@@ -69,7 +69,7 @@ vi.mock('@/shared/stores/auth', () => ({
 }))
 
 // ---------------------------------------------------------------------------
-// Mock axios — use vi.hoisted so all shared state is available in vi.mock factory
+// Mock axios - use vi.hoisted so all shared state is available in vi.mock factory
 // ---------------------------------------------------------------------------
 
 type RequestInterceptorFn = (config: Record<string, unknown>) => Promise<Record<string, unknown>>
@@ -201,7 +201,7 @@ describe('ApiError', () => {
   })
 })
 
-describe('Request interceptor — header injection', () => {
+describe('Request interceptor - header injection', () => {
   beforeEach(() => {
     clearPrefsStore()
     vi.clearAllMocks()
@@ -246,7 +246,7 @@ describe('Request interceptor — header injection', () => {
   })
 })
 
-describe('Request interceptor — proactive token refresh', () => {
+describe('Request interceptor - proactive token refresh', () => {
   beforeEach(() => {
     clearPrefsStore()
     vi.clearAllMocks()
@@ -304,7 +304,7 @@ describe('Request interceptor — proactive token refresh', () => {
   })
 })
 
-describe('Response interceptor — ApiError for non-2xx', () => {
+describe('Response interceptor - ApiError for non-2xx', () => {
   beforeEach(() => {
     clearPrefsStore()
     vi.clearAllMocks()
@@ -383,7 +383,7 @@ describe('Response interceptor — ApiError for non-2xx', () => {
   })
 })
 
-describe('Response interceptor — 401 retry', () => {
+describe('Response interceptor - 401 retry', () => {
   beforeEach(() => {
     clearPrefsStore()
     vi.clearAllMocks()
@@ -392,7 +392,7 @@ describe('Response interceptor — 401 retry', () => {
 
   it('attempts token refresh when a 401 is received', async () => {
     // Refresh succeeds but the retry call (apiClient(config)) will fail since
-    // the mock instance isn't callable — we just verify the refresh was attempted.
+    // the mock instance isn't callable - we just verify the refresh was attempted.
     mockAxiosInstance.post.mockResolvedValueOnce({
       data: { data: { accessToken: NEW_ACCESS_TOKEN, refreshToken: NEW_REFRESH_TOKEN } },
     })
@@ -464,7 +464,7 @@ describe('Request queue draining', () => {
     const config1 = { url: '/endpoint-1', headers: createMockHeaders() }
     const config2 = { url: '/endpoint-2', headers: createMockHeaders() }
 
-    // Start both requests concurrently — the second should queue behind the first
+    // Start both requests concurrently - the second should queue behind the first
     const req1 = runRequestInterceptors(config1 as unknown as Record<string, unknown>)
     const req2 = runRequestInterceptors(config2 as unknown as Record<string, unknown>)
 

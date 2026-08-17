@@ -23,9 +23,9 @@ import type { UserProfile } from '@/shared/models/user.model'
  * Tells the mobile tracker whether to run and whether the worker is blocked.
  */
 export interface TrackingStatusResponse {
-  /** Feature flag for the worker's office — if false, stop the interval */
+  /** Feature flag for the worker's office - if false, stop the interval */
   is_enabled: boolean
-  /** Worker is on leave / week-off / block_time right now — if true, skip tick */
+  /** Worker is on leave / week-off / block_time right now - if true, skip tick */
   is_blocked: boolean
   interval_ms?: number
   blocked_reason?: 'leave' | 'week_off' | 'block_time'

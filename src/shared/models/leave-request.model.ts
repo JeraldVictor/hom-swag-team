@@ -25,9 +25,9 @@ export interface LeaveRequest {
   duration: LeaveDuration
   status: LeaveStatus
   reason?: string
-  /** ISO 8601 time string — required when duration is first_half or second_half */
+  /** ISO 8601 time string - required when duration is first_half or second_half */
   start_time?: string
-  /** ISO 8601 time string — required when duration is first_half or second_half */
+  /** ISO 8601 time string - required when duration is first_half or second_half */
   end_time?: string
   requester_type?: 'beautician' | 'rider'
   /** ISO 8601 date-time string */
@@ -47,9 +47,9 @@ export interface LeaveRequestBody {
   leave_type: LeaveType
   duration: LeaveDuration
   reason?: string
-  /** Required when duration is first_half or second_half — format: HH:MM AM/PM */
+  /** Required when duration is first_half or second_half - format: HH:MM AM/PM */
   start_time?: string
-  /** Required when duration is first_half or second_half — format: HH:MM AM/PM */
+  /** Required when duration is first_half or second_half - format: HH:MM AM/PM */
   end_time?: string
 }
 

@@ -17,7 +17,7 @@ let loadPromise: Promise<void> | null = null
 
 /**
  * Load the Google Maps JS API with the Places library.
- * Safe to call multiple times — the script is only injected once.
+ * Safe to call multiple times - the script is only injected once.
  */
 export function loadGoogleMaps(): Promise<void> {
   if (!FEATURES.maps) {

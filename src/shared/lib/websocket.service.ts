@@ -24,7 +24,7 @@ class WebSocketService {
   private listeners: Set<MessageListener> = new Set()
   private eventHandlers: Map<string, Set<EventHandler>> = new Map()
 
-  /** WebSocket server URL — falls back to http://localhost:3000 if not set. */
+  /** WebSocket server URL - falls back to http://localhost:3000 if not set. */
   private get wsUrl(): string {
     const configuredUrl = ENV.VITE_WS_URL || 'http://localhost:3000'
 

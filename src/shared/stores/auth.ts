@@ -7,7 +7,7 @@
  * Responsibilities:
  * - Hold accessToken, refreshToken, and user profile in reactive state
  * - Persist tokens and user data to Storage_Service on login
- * - Validate user_type on login — reject if not 'rider' | 'beautician'
+ * - Validate user_type on login - reject if not 'rider' | 'beautician'
  * - Restore session from storage on app boot (restoreSession)
  * - Clear all auth state and storage on logout (also revokes server-side token)
  */
@@ -59,7 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (storedAccessToken && storedRefreshToken && storedProfile) {
       accessToken.value = storedAccessToken
       refreshToken.value = storedRefreshToken
-      // Always ensure user_type is set — fall back to stored userType key
+      // Always ensure user_type is set - fall back to stored userType key
       user.value = {
         ...storedProfile,
         user_type: storedProfile.user_type ?? (storedUserType as UserType) ?? 'beautician',
@@ -69,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
         const fullProfile = await getProfile()
         await setUserProfile(fullProfile)
       } catch {
-        // Non-fatal — stored auth state is enough to keep the session usable.
+        // Non-fatal - stored auth state is enough to keep the session usable.
       }
       return true
     }
@@ -149,13 +149,13 @@ export const useAuthStore = defineStore('auth', () => {
     // that needs the token can still complete gracefully.
     locationTracker.stop()
 
-    // Best-effort server-side token revocation — don't block logout on failure
+    // Best-effort server-side token revocation - don't block logout on failure
     if (refreshToken.value) {
       try {
         const { logoutApi } = await import('@/shared/api/auth.service')
         await logoutApi({ refresh_token: refreshToken.value })
       } catch {
-        // Silently ignore — local session must always be cleared
+        // Silently ignore - local session must always be cleared
       }
     }
 

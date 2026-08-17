@@ -287,7 +287,7 @@ const effectiveDrop = computed<Coordinates | null>(() => {
   return trip.value?.drop_location ?? null
 })
 
-// ── Map height — 40% of viewport ──────────────────────────────────────────
+// ── Map height - 40% of viewport ──────────────────────────────────────────
 
 const mapHeight = '40vh'
 
@@ -321,7 +321,7 @@ const statusVariant = computed(() => {
 const formattedTime = computed(() => (trip.value ? formatISTTime(trip.value.start_time) : ''))
 
 const formattedRiderFare = computed(() => {
-  if (!trip.value?.fare && trip.value?.fare !== 0) return '—'
+  if (!trip.value?.fare && trip.value?.fare !== 0) return '-'
   return `₹${trip.value.fare.toFixed(2)}`
 })
 
@@ -333,7 +333,7 @@ const totalDistanceKm = computed(() => {
 })
 
 const formattedTotalDistance = computed(() => {
-  if (totalDistanceKm.value == null) return '—'
+  if (totalDistanceKm.value == null) return '-'
   return `${Number(totalDistanceKm.value.toFixed(2))} km`
 })
 
@@ -423,7 +423,7 @@ async function handleAdvance(): Promise<void> {
 
   if (isOneWayCompleting || isTwoWayCompleting) {
     const calculatedKm =
-      totalDistanceKm.value != null ? `${Number(totalDistanceKm.value.toFixed(2))} km` : '—'
+      totalDistanceKm.value != null ? `${Number(totalDistanceKm.value.toFixed(2))} km` : '-'
     const alert = await alertController.create({
       header: 'Complete Trip',
       message: `Are you sure you want to complete this trip? (Distance: ${calculatedKm})`,
@@ -495,7 +495,7 @@ function onDropSelected(place: PlaceResult): void {
 }
 
 function applyOverrides(): void {
-  // Overrides are reactive — GoogleMapView will update automatically
+  // Overrides are reactive - GoogleMapView will update automatically
   showLocationOverride.value = false
   showSuccess('Map updated with new locations')
 }

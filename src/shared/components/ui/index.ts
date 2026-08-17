@@ -1,5 +1,5 @@
 /**
- * Shared UI Components — barrel export
+ * Shared UI Components - barrel export
  *
  * Re-exports all shared UI components from a single entry point.
  * Import components from '@/shared/components/ui' rather than individual files.

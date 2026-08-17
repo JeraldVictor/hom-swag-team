@@ -135,7 +135,7 @@
         <div class="payment-detail-item">
           <span>Collected</span>
           <strong :class="{ 'text-success': order.payment?.status?.toLowerCase() === 'paid' }">
-            {{ order.payment?.amount_paid != null ? `₹${order.payment.amount_paid}` : '—' }}
+            {{ order.payment?.amount_paid != null ? `₹${order.payment.amount_paid}` : '-' }}
           </strong>
         </div>
         <div class="payment-detail-item full-width" v-if="order.payment?.remark && !parsedPaymentRemark">
@@ -342,7 +342,7 @@ const paymentStatusIcon = computed(() => {
 // ── Date/time formatting ───────────────────────────────────────────────────
 
 function formatTime(val: string): string {
-  if (!val) return '—'
+  if (!val) return '-'
   try {
     const d = new Date(val)
     if (Number.isNaN(d.getTime())) return val

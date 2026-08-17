@@ -130,7 +130,7 @@ export interface Trip {
   kanban_state: TripKanbanState
   is_viewed?: boolean
   viewed_at?: string
-  /** ISO 8601 — derived from scheduled order time or created_at fallback */
+  /** ISO 8601 - derived from scheduled order time or created_at fallback */
   start_time: string
   pickup_location: Coordinates & { address?: string }
   drop_location: Coordinates & { address?: string }
