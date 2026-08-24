@@ -4,13 +4,13 @@ import AppButton from '@/shared/components/ui/AppButton.vue'
 
 // Stub Ionic components so jsdom doesn't need the full Ionic runtime
 const globalStubs = {
-  'ion-button': {
-    name: 'ion-button',
+  IonButton: {
+    name: 'IonButton',
     template: `<button v-bind="$attrs" :class="$attrs.class"><slot /></button>`,
     props: ['color', 'fill', 'size', 'disabled', 'expand', 'href', 'target'],
   },
   Icon: true,
-  'ion-spinner': true,
+  IonSpinner: true,
 }
 
 describe('AppButton', () => {
