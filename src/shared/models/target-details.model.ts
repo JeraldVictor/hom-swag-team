@@ -9,6 +9,7 @@ export interface TargetDetailsOrder {
   special_commission: number
   general_commission: number
   upgrade_addon_commission: number
+  complaint_deduction: number
 }
 
 export interface TargetDetailsTrip {
@@ -37,6 +38,7 @@ export interface TargetDetailsData {
     target1_achieved: boolean
     target2_achieved: boolean
     achieved_revenue: number
+    original_revenue: number
     target2_bonus_amount: number
     earned_target2_bonus: number
   }
@@ -60,6 +62,8 @@ export interface TargetDetailsData {
     final_payable_amount: number
     expected_if_target1_achieved: number
     expected_if_target2_achieved: number
+    original_expected_if_target1_achieved: number
+    original_expected_if_target2_achieved: number
     total_tips: number
     total_complaint_deduction: number
     total_adjustment_amount: number

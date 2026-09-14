@@ -49,6 +49,20 @@
             <div>
               <span>Achieved</span>
               <strong>{{ formatCurrency(details.targets.achieved_revenue) }}</strong>
+              <small
+                v-if="details.targets.original_revenue > details.targets.achieved_revenue"
+                class="target-hero__adjustment"
+              >
+                <s>Was {{ formatCurrency(details.targets.original_revenue) }}</s>
+                <b>
+                  Order issues
+                  -{{
+                    formatCurrency(
+                      details.targets.original_revenue - details.targets.achieved_revenue,
+                    )
+                  }}
+                </b>
+              </small>
             </div>
             <div>
               <span>{{ isRider ? 'Trips' : 'Target 1' }}</span>
@@ -140,11 +154,17 @@
           <template v-if="!isRider">
             <div class="summary-row summary-row--estimate">
               <span>Expected if Target 1 achieved</span>
-              <strong>{{ formatCurrency(details.summary.expected_if_target1_achieved) }}</strong>
+              <div class="estimate-comparison">
+                <span>Was {{ formatCurrency(details.summary.original_expected_if_target1_achieved) }}</span>
+                <strong>Now {{ formatCurrency(details.summary.expected_if_target1_achieved) }}</strong>
+              </div>
             </div>
             <div class="summary-row summary-row--estimate">
               <span>Expected if Target 2 achieved</span>
-              <strong>{{ formatCurrency(details.summary.expected_if_target2_achieved) }}</strong>
+              <div class="estimate-comparison">
+                <span>Was {{ formatCurrency(details.summary.original_expected_if_target2_achieved) }}</span>
+                <strong>Now {{ formatCurrency(details.summary.expected_if_target2_achieved) }}</strong>
+              </div>
             </div>
           </template>
         </section>
@@ -184,6 +204,26 @@
                 <span>General <b>{{ formatCurrency(order.general_commission) }}</b></span>
                 <span>Upgrade <b>{{ formatCurrency(order.upgrade_addon_commission) }}</b></span>
                 <span>Total <b>{{ formatCurrency(order.commission) }}</b></span>
+              </div>
+              <div v-if="order.complaint_deduction > 0" class="order-issue">
+                <div class="order-issue__head">
+                  <span>Order issue</span>
+                  <strong>-{{ formatCurrency(order.complaint_deduction) }}</strong>
+                </div>
+                <div class="order-issue__comparison">
+                  <span>Monthly target</span>
+                  <span>
+                    <s>{{ formatCurrency(details.targets.original_revenue) }}</s>
+                    <b>→ {{ formatCurrency(details.targets.achieved_revenue) }}</b>
+                  </span>
+                </div>
+                <div class="order-issue__comparison">
+                  <span>Payout</span>
+                  <span>
+                    <s>{{ formatCurrency(details.summary.total_payable_commission) }}</s>
+                    <b>→ {{ formatCurrency(details.summary.final_payable_amount) }}</b>
+                  </span>
+                </div>
               </div>
             </article>
           </div>
@@ -268,6 +308,7 @@ function openOrder(orderId: string): void {
 }
 
 async function fetchDetails(): Promise<void> {
+  if (isLoading.value) return
   isLoading.value = true
   error.value = null
   try {
@@ -394,7 +435,21 @@ function currentMonthKey(): string {
 }
 
 .target-hero__amounts strong {
+  display: block;
   font-size: 22px;
+}
+
+.target-hero__adjustment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  margin-top: 5px;
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.target-hero__adjustment b {
+  color: #fff;
 }
 
 .progress-bar {
@@ -479,6 +534,20 @@ function currentMonthKey(): string {
   color: var(--color-brand);
 }
 
+.estimate-comparison {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  text-align: right;
+}
+
+.estimate-comparison span {
+  font-size: var(--font-size-sm);
+  text-decoration: line-through;
+}
+
 .orders-section {
   padding: 0 16px 20px;
 }
@@ -540,6 +609,46 @@ function currentMonthKey(): string {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.order-issue {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface));
+}
+
+.order-issue__head,
+.order-issue__comparison {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-issue__head {
+  margin-bottom: 7px;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.order-issue__comparison {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.order-issue__comparison + .order-issue__comparison {
+  margin-top: 4px;
+}
+
+.order-issue__comparison s {
+  margin-right: 6px;
+}
+
+.order-issue__comparison b {
+  color: var(--color-text);
 }
 
 .commission-grid span {
