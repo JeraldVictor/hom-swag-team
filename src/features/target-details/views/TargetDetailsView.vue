@@ -49,20 +49,6 @@
             <div>
               <span>Achieved</span>
               <strong>{{ formatCurrency(details.targets.achieved_revenue) }}</strong>
-              <small
-                v-if="details.targets.original_revenue > details.targets.achieved_revenue"
-                class="target-hero__adjustment"
-              >
-                <s>Was {{ formatCurrency(details.targets.original_revenue) }}</s>
-                <b>
-                  Order issues
-                  -{{
-                    formatCurrency(
-                      details.targets.original_revenue - details.targets.achieved_revenue,
-                    )
-                  }}
-                </b>
-              </small>
             </div>
             <div>
               <span>{{ isRider ? 'Trips' : 'Target 1' }}</span>
@@ -154,17 +140,11 @@
           <template v-if="!isRider">
             <div class="summary-row summary-row--estimate">
               <span>Expected if Target 1 achieved</span>
-              <div class="estimate-comparison">
-                <span>Was {{ formatCurrency(details.summary.original_expected_if_target1_achieved) }}</span>
-                <strong>Now {{ formatCurrency(details.summary.expected_if_target1_achieved) }}</strong>
-              </div>
+              <strong>{{ formatCurrency(details.summary.expected_if_target1_achieved) }}</strong>
             </div>
             <div class="summary-row summary-row--estimate">
               <span>Expected if Target 2 achieved</span>
-              <div class="estimate-comparison">
-                <span>Was {{ formatCurrency(details.summary.original_expected_if_target2_achieved) }}</span>
-                <strong>Now {{ formatCurrency(details.summary.expected_if_target2_achieved) }}</strong>
-              </div>
+              <strong>{{ formatCurrency(details.summary.expected_if_target2_achieved) }}</strong>
             </div>
           </template>
         </section>
@@ -207,23 +187,18 @@
               </div>
               <div v-if="order.complaint_deduction > 0" class="order-issue">
                 <div class="order-issue__head">
-                  <span>Order issue</span>
-                  <strong>-{{ formatCurrency(order.complaint_deduction) }}</strong>
+                  <span class="order-issue__title">
+                    <Icon icon="lucide:triangle-alert" aria-hidden="true" />
+                    Order issue
+                  </span>
+                  <strong>{{ formatCurrency(order.commission + order.complaint_deduction) }} → ₹0</strong>
                 </div>
                 <div class="order-issue__comparison">
-                  <span>Monthly target</span>
-                  <span>
-                    <s>{{ formatCurrency(details.targets.original_revenue) }}</s>
-                    <b>→ {{ formatCurrency(details.targets.achieved_revenue) }}</b>
-                  </span>
-                </div>
-                <div class="order-issue__comparison">
-                  <span>Payout</span>
-                  <span>
-                    <s>{{ formatCurrency(details.summary.total_payable_commission) }}</s>
-                    <b>→ {{ formatCurrency(details.summary.final_payable_amount) }}</b>
-                  </span>
-                </div>
+                  <span>Excluded from target &amp; leaderboard</span>
+				  <span>
+					<b>-{{ formatCurrency(order.order_issue_revenue) }}</b>
+				  </span>
+				</div>
               </div>
             </article>
           </div>
@@ -439,18 +414,6 @@ function currentMonthKey(): string {
   font-size: 22px;
 }
 
-.target-hero__adjustment {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px 8px;
-  margin-top: 5px;
-  font-size: var(--font-size-xs);
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.target-hero__adjustment b {
-  color: #fff;
-}
 
 .progress-bar {
   height: 8px;
@@ -534,19 +497,6 @@ function currentMonthKey(): string {
   color: var(--color-brand);
 }
 
-.estimate-comparison {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  text-align: right;
-}
-
-.estimate-comparison span {
-  font-size: var(--font-size-sm);
-  text-decoration: line-through;
-}
 
 .orders-section {
   padding: 0 16px 20px;
@@ -614,9 +564,11 @@ function currentMonthKey(): string {
 .order-issue {
   margin-top: 10px;
   padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+  border: 2px solid var(--color-error);
+  border-left-width: 6px;
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface));
+  background: var(--color-error-bg);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.12);
 }
 
 .order-issue__head,
@@ -629,13 +581,24 @@ function currentMonthKey(): string {
 
 .order-issue__head {
   margin-bottom: 7px;
-  color: var(--color-danger);
+  color: var(--color-error-text);
   font-size: var(--font-size-sm);
   font-weight: 800;
 }
 
+.order-issue__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-issue__title svg {
+  width: 16px;
+  height: 16px;
+}
+
 .order-issue__comparison {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
 }
 
@@ -648,7 +611,7 @@ function currentMonthKey(): string {
 }
 
 .order-issue__comparison b {
-  color: var(--color-text);
+  color: var(--color-error-text);
 }
 
 .commission-grid span {

@@ -10,6 +10,7 @@ export interface TargetDetailsOrder {
   general_commission: number
   upgrade_addon_commission: number
   complaint_deduction: number
+  order_issue_revenue: number
 }
 
 export interface TargetDetailsTrip {
