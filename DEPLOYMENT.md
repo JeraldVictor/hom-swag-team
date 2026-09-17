@@ -199,6 +199,13 @@ cd android && ./gradlew assembleDebug && cd ..
 
 # 7. Find the APK
 open android/app/build/outputs/apk/debug/
+
+#  Build Prod APK
+cd android && ./gradlew bundleRelease && cd ..
+
+# Find the APK
+open android/app/build/outputs/bundle/release 
+
 ```
 
 ---
