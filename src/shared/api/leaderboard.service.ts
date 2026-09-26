@@ -2,8 +2,7 @@
  * Leaderboard Service
  *
  * Typed wrappers around the BFF leaderboard endpoints.
- * - Beauticians: full leaderboard (permission-gated)
- * - Riders: top 3 only (always restricted)
+ * Both beautician and rider leaderboards return at most the top 5 entries.
  */
 
 import apiClient from '@/shared/lib/api'
@@ -13,9 +12,7 @@ import type { LeaderboardData, LeaderboardPeriod } from '@/shared/models/leaderb
  * Fetch the leaderboard for the authenticated user's role.
  * GET /leaderboard
  *
- * The BFF enforces visibility rules:
- * - Riders always receive only the top 3 entries.
- * - Beauticians receive the full list only if the permission flag is enabled.
+ * The BFF enforces permission checks and limits field users to the top 5 entries.
  */
 export async function getLeaderboard(period?: LeaderboardPeriod): Promise<LeaderboardData> {
   const response = await apiClient.get<{ data: LeaderboardData }>('/leaderboard', {

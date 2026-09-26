@@ -89,7 +89,7 @@
         <!-- Restriction notice for riders -->
         <div v-if="data.is_restricted" class="restriction-banner">
           <Icon icon="lucide:lock" class="restriction-banner__icon" aria-hidden="true" />
-          <p class="restriction-banner__text">Showing top 3 {{ rolePluralLabel }}.</p>
+          <p class="restriction-banner__text">Showing top 5 {{ rolePluralLabel }}.</p>
         </div>
 
         <div v-if="prizeCards.length > 0" class="prize-strip" aria-label="Leaderboard bonus prizes">
@@ -199,7 +199,7 @@
         </div>
 
         <!-- Full list (rank 4+) - for other periods or if not restricted -->
-        <div v-else-if="!data.is_restricted && rest.length > 0" class="table-container">
+        <div v-else-if="rest.length > 0" class="table-container">
           <!-- Table Headers -->
           <div class="table-header">
             <span class="table-header__rank">Rank</span>
@@ -243,26 +243,6 @@
           </div>
         </div>
 
-        <!-- Self entry when outside top N -->
-        <div v-if="selfEntryOutsideTop" class="self-entry-card">
-          <p class="self-entry-card__label">Your Rank</p>
-          <div class="entry-card entry-card--self">
-            <span class="entry-rank">{{ selfEntryOutsideTop.rank }}</span>
-            <div class="entry-avatar">
-              <img
-                v-if="shouldShowPhoto(selfEntryOutsideTop)"
-                :src="leaderboardPhotoUrl(selfEntryOutsideTop)"
-                :alt="selfEntryOutsideTop.name"
-                class="entry-avatar__img"
-                @error="markAvatarFailed(selfEntryOutsideTop)"
-              />
-              <span v-else class="entry-avatar__initials">{{ initials(selfEntryOutsideTop.name) }}</span>
-            </div>
-            <div class="entry-info">
-              <p class="entry-name">{{ selfEntryOutsideTop.name }} <span class="entry-you">(You)</span></p>
-            </div>
-          </div>
-        </div>
       </template>
     </ion-content>
   </ion-page>
@@ -288,14 +268,10 @@ const periods: { value: LeaderboardPeriod; label: string }[] = [
   { value: 'financial_year', label: 'Financial Year' },
 ]
 
-const top3 = computed(() => data.value?.entries.slice(0, 3) ?? [])
-const rest = computed(() => data.value?.entries.slice(3) ?? [])
+const visibleEntries = computed(() => data.value?.entries.slice(0, 5) ?? [])
+const top3 = computed(() => visibleEntries.value.slice(0, 3))
+const rest = computed(() => visibleEntries.value.slice(3))
 const isRiderLeaderboard = computed(() => data.value?.role === 'rider')
-const selfEntryOutsideTop = computed<LeaderboardEntry | null>(() => {
-  const selfEntry = data.value?.self_entry
-  if (!selfEntry) return null
-  return top3.value.some(entry => entry.user_id === selfEntry.user_id) ? null : selfEntry
-})
 const roleLabel = computed(() => (isRiderLeaderboard.value ? 'Rider' : 'Beautician'))
 const rolePluralLabel = computed(() => (isRiderLeaderboard.value ? 'Riders' : 'Beauticians'))
 const amountLabel = computed(() => (isRiderLeaderboard.value ? 'Trips' : 'Revenue'))

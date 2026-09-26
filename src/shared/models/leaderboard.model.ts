@@ -1,6 +1,6 @@
 /**
  * Leaderboard model.
- * Rankings for beauticians (by orders/earnings) and riders (top 3 only).
+ * Top-five rankings for beauticians (by orders/earnings) and riders.
  */
 
 export interface LeaderboardEntry {
@@ -33,6 +33,6 @@ export interface LeaderboardData {
   self_entry?: LeaderboardEntry
   /** Office-configured leaderboard bonus/prize amounts */
   prizes?: LeaderboardPrizes
-  /** Whether the full list is visible (permission-gated for riders - top 3 only) */
+  /** Whether the response is restricted to the field-app top-five view */
   is_restricted: boolean
 }
