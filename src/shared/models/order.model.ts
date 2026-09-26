@@ -265,6 +265,8 @@ export interface Order {
   beautician_viewed?: boolean
   custom_instruction?: string
   instruction_presets?: OrderInstructionPreset[]
+  custom_category_info?: OrderCustomCategoryInfo[]
+  is_custom_category_order?: boolean
   /** Trip assignments for this order */
   trips?: OrderTrip[]
   /** Photo taken on arrival */
@@ -279,6 +281,15 @@ export interface Order {
   }
   /** Office-specific payment QR code image returned with the order */
   office_payment_qr_code?: { url?: string; key?: string }
+}
+
+export interface OrderCustomCategoryInfo {
+  custom_category_id: string
+  product_id?: string
+  custom_category_title: string
+  discount_type: string
+  original_price: number
+  custom_price: number
 }
 
 /**

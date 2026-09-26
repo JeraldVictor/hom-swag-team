@@ -44,10 +44,45 @@ type RawPackageService =
 
 interface PackageServiceContainer {
   quantity?: number
+  selected_options?: readonly unknown[]
   selected_package_items?: readonly RawPackageService[]
   selected_package_services?: readonly RawPackageService[]
   services?: readonly RawPackageService[]
   package_services?: readonly RawPackageService[]
+}
+
+interface PackageAwareOrderProduct extends PackageServiceContainer {
+  product_id?: string | number
+  type?: 'service' | 'package'
+}
+
+interface PackageAwareOrder {
+  custom_category_info?: readonly { product_id?: string | number }[]
+}
+
+/**
+ * Custom-category products are sold as one promotion and package products are
+ * sold as one unit. Neither may be upgraded one child service at a time.
+ */
+export function isOrderProductPartOfPackage(
+  order: Readonly<PackageAwareOrder>,
+  item: Readonly<PackageAwareOrderProduct>
+): boolean {
+  if (
+    item.type === 'package' ||
+    getPackageServices(item).length > 0 ||
+    (item.selected_options?.length ?? 0) > 0
+  ) {
+    return true
+  }
+
+  const productId = item.product_id == null ? '' : String(item.product_id)
+  return Boolean(
+    productId &&
+      order.custom_category_info?.some(info =>
+        info.product_id == null ? false : String(info.product_id) === productId
+      )
+  )
 }
 
 function normalizeDisplayQuantity(value?: number): number {

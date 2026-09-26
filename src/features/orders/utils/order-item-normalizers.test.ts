@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { getPackageServiceDisplayQuantity, getPackageServices } from './order-item-normalizers'
+import {
+  getPackageServiceDisplayQuantity,
+  getPackageServices,
+  isOrderProductPartOfPackage,
+} from './order-item-normalizers'
 
 describe('getPackageServices', () => {
   it('defaults legacy quantities and sorts package services by display order', () => {
@@ -37,5 +41,42 @@ describe('getPackageServiceDisplayQuantity', () => {
   it('keeps legacy missing or invalid quantities backward compatible', () => {
     expect(getPackageServiceDisplayQuantity({}, {})).toBe(1)
     expect(getPackageServiceDisplayQuantity({ quantity: 0 }, { quantity: 0 })).toBe(1)
+  })
+})
+
+describe('isOrderProductPartOfPackage', () => {
+  it('recognizes package products and hydrated package services', () => {
+    expect(isOrderProductPartOfPackage({}, { product_id: 'package', type: 'package' })).toBe(true)
+    expect(
+      isOrderProductPartOfPackage(
+        {},
+        {
+          product_id: 'package',
+          selected_package_services: [{ product_id: 'service', title: 'Service' }],
+        }
+      )
+    ).toBe(true)
+  })
+
+  it('recognizes grouped option lines that cannot be upgraded independently', () => {
+    expect(
+      isOrderProductPartOfPackage(
+        {},
+        { product_id: 'threading', selected_options: [{ product_option_id: 'forehead' }] }
+      )
+    ).toBe(true)
+  })
+
+  it('recognizes products attributed to a custom category', () => {
+    expect(
+      isOrderProductPartOfPackage(
+        { custom_category_info: [{ product_id: 'service' }] },
+        { product_id: 'service' }
+      )
+    ).toBe(true)
+  })
+
+  it('leaves ordinary services upgradeable', () => {
+    expect(isOrderProductPartOfPackage({}, { product_id: 'service', type: 'service' })).toBe(false)
   })
 })

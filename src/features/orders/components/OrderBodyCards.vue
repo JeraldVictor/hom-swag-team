@@ -85,6 +85,7 @@
           :key="item.product_id"
           :item="item"
           :can-upgrade="props.canUpgrade"
+          :is-package-item="isOrderProductPartOfPackage(order, item)"
           @upgrade="(item) => emit('upgrade-order', item)"
         />
       </div>
@@ -243,6 +244,7 @@ import { computed } from 'vue'
 import { mediaUrl } from '@/shared/lib/media'
 import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import { ORDER_STATUS } from '../../../shared/constants'
+import { isOrderProductPartOfPackage } from '../utils/order-item-normalizers'
 import OrderItemRow from './OrderItemRow.vue'
 
 interface ProofImage {

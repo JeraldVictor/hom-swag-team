@@ -64,7 +64,11 @@ import {
   getPackageServices,
 } from '../utils/order-item-normalizers'
 
-const props = defineProps<{ item: OrderProduct; canUpgrade?: boolean }>()
+const props = defineProps<{
+  item: OrderProduct
+  canUpgrade?: boolean
+  isPackageItem?: boolean
+}>()
 const emit = defineEmits<{ upgrade: [item: OrderProduct] }>()
 
 const packageServices = computed(() => getPackageServices(props.item))
@@ -151,9 +155,10 @@ const serviceLines = computed<ServiceLine[]>(() => {
       amount: props.item.total,
       priceMeta: `${props.item.quantity}×₹${props.item.price}`,
       meta: formatDuration(props.item.duration),
-      canUpgrade: Boolean(props.canUpgrade && !props.item.upgrade_info),
+      canUpgrade: Boolean(props.canUpgrade && !props.item.upgrade_info && !props.isPackageItem),
       badges: getLineBadges({
         isFree: props.item.total === 0,
+        isPackage: props.isPackageItem,
         beauticianAdded: props.item.beautician_added,
       }),
     })
@@ -170,7 +175,10 @@ const serviceLines = computed<ServiceLine[]>(() => {
       amount,
       meta: formatItemMeta(option.quantity ?? 1, option.duration ?? option.duration_minutes),
       canUpgrade: false,
-      badges: getLineBadges({ beauticianAdded: option.beautician_added }),
+      badges: getLineBadges({
+        isPackage: props.isPackageItem,
+        beauticianAdded: option.beautician_added,
+      }),
     })
   }
 
@@ -187,6 +195,7 @@ const serviceLines = computed<ServiceLine[]>(() => {
       meta: formatItemMeta(displayQuantity, service.duration),
       canUpgrade: false,
       badges: getLineBadges({
+        isPackage: true,
         beauticianAdded: service.beautician_added,
       }),
     })
@@ -204,6 +213,7 @@ const serviceLines = computed<ServiceLine[]>(() => {
       canUpgrade: false,
       badges: getLineBadges({
         isFree: true,
+        isPackage: props.isPackageItem,
         beauticianAdded: freeItem.beautician_added,
       }),
     })
@@ -233,12 +243,21 @@ function getImageUrl(value: {
 
 function getLineBadges({
   isFree = false,
+  isPackage = false,
   beauticianAdded = false,
 }: {
   isFree?: boolean
+  isPackage?: boolean
   beauticianAdded?: boolean
 }): ServiceLineBadge[] {
   const badges: ServiceLineBadge[] = []
+  if (isPackage) {
+    badges.push({
+      label: 'Package',
+      className: 'ibadge-pkg',
+      icon: 'lucide:package',
+    })
+  }
   if (isFree) badges.push({ label: 'Free', className: 'ibadge-free' })
   if (beauticianAdded) {
     badges.push({
