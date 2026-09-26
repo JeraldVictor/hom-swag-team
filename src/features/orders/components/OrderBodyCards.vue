@@ -150,7 +150,7 @@
     </div>
 
     <!-- ── Verification Photos Card ───────────────────────────────────────── -->
-    <div v-if="!isCustomerHidden || isCompleted" class="content-card">
+    <div v-if="!isCustomerHidden || isCompleted || isServiceStarted" class="content-card">
       <div class="card-header">
         <div class="header-icon-wrap"><Icon icon="lucide:camera" /></div>
         <h3>Verification Photos</h3>
@@ -175,8 +175,9 @@
         <div class="proof-entry">
           <div class="proof-label-row">
             <p class="proof-label">Setup Photos</p>
-            <div class="proof-actions" v-if="order.status.toLowerCase() === ORDER_STATUS.REACHED_CUSTOMER_PLACE && order.arrival_selfie">
+            <div class="proof-actions" v-if="canUploadSetupPhotos">
               <AppButton variant="clear" size="sm" icon="lucide:camera" @click="emit('capture-setup-photo')" class="action-btn-sm">Camera</AppButton>
+              <AppButton variant="clear" size="sm" icon="lucide:upload" @click="emit('trigger-setup-photo-input')" class="action-btn-sm">Upload</AppButton>
             </div>
           </div>
           <div v-if="setupPhotos.length" class="proof-list">
@@ -245,6 +246,7 @@ import { mediaUrl } from '@/shared/lib/media'
 import type { Order, OrderProduct, OrderTrip, PaymentStatus } from '@/shared/models'
 import { ORDER_STATUS } from '../../../shared/constants'
 import { isOrderProductPartOfPackage } from '../utils/order-item-normalizers'
+import { canUploadSetupPhotos as canUploadSetupPhotosForOrder } from '../utils/order-media-permissions'
 import OrderItemRow from './OrderItemRow.vue'
 
 interface ProofImage {
@@ -274,10 +276,21 @@ const emit = defineEmits<{
   'trigger-proof-input': []
   'upload-selfie': []
   'capture-setup-photo': []
+  'trigger-setup-photo-input': []
   'capture-payment-proof': []
   'save-payment-status': []
   'upgrade-order': [item: OrderProduct]
 }>()
+
+const isServiceStarted = computed(() => props.order.status.toLowerCase() === ORDER_STATUS.STARTED)
+
+const canUploadSetupPhotos = computed(() => {
+  return canUploadSetupPhotosForOrder(
+    props.order.status,
+    Boolean(props.order.arrival_selfie),
+    props.isEditable
+  )
+})
 
 // ── Status chip helpers ────────────────────────────────────────────────────
 

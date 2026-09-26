@@ -25,6 +25,15 @@
         style="display: none"
         @change="handleCompletionProofChange"
       />
+      <input
+        ref="setupPhotoInput"
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        style="display: none"
+        @change="handleSetupPhotosChange"
+      />
       <div v-if="isLoading && !order" class="loading-state">
         <ion-spinner name="crescent" />
         <p>Loading order details...</p>
@@ -92,6 +101,7 @@
           @trigger-proof-input="triggerProofInput"
           @upload-selfie="handleUploadSelfie"
           @capture-setup-photo="handleCaptureSetupPhoto"
+          @trigger-setup-photo-input="triggerSetupPhotoInput"
           @capture-payment-proof="handleCapturePaymentProof"
           @save-payment-status="handleSavePaymentStatus"
         />
@@ -474,6 +484,7 @@ const {
   fetchOrder,
   advanceStatus,
   uploadSelfie,
+  uploadSetupPhotos,
   uploadCompletionProof,
   cancelAfterArrival,
   upgradeProduct,
@@ -503,6 +514,7 @@ const isFetchingUpgrades = ref(false)
 const selectedItem = ref<OrderProduct | null>(null)
 const upgradableProducts = ref<any[]>([])
 const proofInput = ref<HTMLInputElement | null>(null)
+const setupPhotoInput = ref<HTMLInputElement | null>(null)
 const paymentStatus = ref<PaymentStatus | ''>('')
 const paymentStatusOptions = [
   { label: 'Paid', value: 'paid' },
@@ -1079,11 +1091,31 @@ function triggerProofInput() {
   proofInput.value?.click()
 }
 
+function triggerSetupPhotoInput() {
+  if (!ensureTodayEditable()) return
+  setupPhotoInput.value?.click()
+}
+
 async function handleCaptureSetupPhoto() {
   if (!ensureTodayEditable()) return
   const uploaded = await captureAndUploadSetupPhoto()
   if (uploaded) {
     showSuccess('Setup photo uploaded successfully')
+  }
+}
+
+async function handleSetupPhotosChange(event: Event) {
+  if (!ensureTodayEditable()) return
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  if (!files || files.length === 0) return
+
+  const uploaded = await uploadSetupPhotos(files)
+  if (uploaded) {
+    showSuccess('Setup photos uploaded successfully')
+  }
+  if (setupPhotoInput.value) {
+    setupPhotoInput.value.value = ''
   }
 }
 

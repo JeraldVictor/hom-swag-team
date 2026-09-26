@@ -215,7 +215,7 @@ export async function uploadPaymentProof(id: string | number, formData: FormData
 }
 
 /**
- * Upload setup photos taken at the customer's home before starting service.
+ * Upload setup photos after arrival and until the order is completed or cancelled.
  * POST /orders/:id/setup-photos
  */
 export async function uploadSetupPhotos(id: string | number, formData: FormData): Promise<Order> {
