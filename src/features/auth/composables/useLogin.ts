@@ -50,6 +50,7 @@ export interface UseLoginReturn {
 }
 const MAX_RESEND_ATTEMPTS = 3
 const RESEND_COOLDOWN_SECONDS = 15
+const INDIAN_MOBILE_NUMBER_REGEX = /^[6-9]\d{9}$/
 
 // ---------------------------------------------------------------------------
 // Composable
@@ -73,10 +74,10 @@ export function useLogin(): UseLoginReturn {
 
   // ---- Computed -------------------------------------------------------------
 
-  /** Accept exactly 10 digit strings (digits only). */
+  /** Accept valid 10-digit Indian mobile numbers only. */
   const isPhoneValid = computed<boolean>(() => {
     const digits = phone.value.replace(/\D/g, '')
-    return digits.length === 10
+    return INDIAN_MOBILE_NUMBER_REGEX.test(digits)
   })
 
   /** OTP must be exactly 6 digits. */
@@ -135,7 +136,7 @@ export function useLogin(): UseLoginReturn {
     phoneError.value = ''
 
     if (!isPhoneValid.value) {
-      phoneError.value = 'Enter a valid 10 digit phone number.'
+      phoneError.value = 'Enter a valid 10-digit Indian mobile number.'
       return
     }
 

@@ -253,7 +253,14 @@
             </div>
             <div class="form-field">
               <label class="form-label">Contact Phone</label>
-              <input v-model="editForm.emergency_contact_phone" type="tel" class="form-input" placeholder="+91 XXXXX XXXXX" />
+              <input
+                v-model="editForm.emergency_contact_phone"
+                type="tel"
+                inputmode="numeric"
+                maxlength="10"
+                class="form-input"
+                placeholder="10-digit Indian mobile number"
+              />
             </div>
           </div>
 
@@ -537,6 +544,13 @@ function viewDoc(doc: DocSlot): void {
 async function handleSave(): Promise<void> {
   if (!editForm.value.name.trim()) {
     saveError.value = 'Name is required'
+    return
+  }
+  if (
+    editForm.value.emergency_contact_phone &&
+    !/^[6-9]\d{9}$/.test(editForm.value.emergency_contact_phone)
+  ) {
+    saveError.value = 'Enter a valid 10-digit Indian mobile number'
     return
   }
   isSaving.value = true
