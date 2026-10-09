@@ -5,7 +5,7 @@
         <ion-buttons slot="start">
           <ion-back-button default-href="/orders" text="" />
         </ion-buttons>
-        <ion-title>#{{ order?.order_number?.split('-').pop() || '...' }}</ion-title>
+        <ion-title>#{{ order?.order_number || '...' }}</ion-title>
         <ion-buttons slot="end">
           <AppButton v-if="order && !isCompleted" variant="clear" icon-only icon="lucide:refresh-cw" @click="handleRefresh" :class="{ 'spin': isLoading }" />
         </ion-buttons>

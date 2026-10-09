@@ -276,7 +276,8 @@ function resolveNotificationRoute(notif: Notification): string | null {
   const tripNumber =
     getDataValue(data, ['trip_number', 'tripNumber']) ?? text.match(/#?(T-\d{8}-\d+)/i)?.[1]
   const orderNumber =
-    getDataValue(data, ['order_number', 'orderNumber']) ?? text.match(/#?(\d{8}-\d{4})\b/)?.[1]
+    getDataValue(data, ['order_number', 'orderNumber']) ??
+    text.match(/#?\b((?:[A-Z][A-Z0-9]{1,11}-)?\d{8}-\d{4,})\b/)?.[1]
 
   if (orderId) return `/orders/${orderId}`
   if (tripId) return `/trips/${tripId}`
