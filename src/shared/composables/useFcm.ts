@@ -19,6 +19,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { FirebaseMessaging } from '@capacitor-firebase/messaging'
 import { useRouter } from 'vue-router'
 import apiClient from '@/shared/lib/api'
+import { getNotificationPath } from '@/shared/lib/notification-navigation'
 import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import webSocketService from '@/shared/lib/websocket.service'
 
@@ -162,15 +163,8 @@ export function useFcm() {
 
     // 3. Notification tap (app open / backgrounded → foreground)
     const tapHandle = await FirebaseMessaging.addListener('notificationActionPerformed', event => {
-      const data = event.notification.data as any
-
-      if (data?.order_id || data?.orderId) {
-        void router.push(`/orders/${data.order_id || data.orderId}`)
-      } else if (data?.trip_id || data?.tripId) {
-        void router.push(`/trips/${data.trip_id || data.tripId}`)
-      } else {
-        void router.push('/notifications')
-      }
+      const data = event.notification.data
+      void router.push(getNotificationPath(typeof data === 'object' && data !== null ? data : null))
     })
 
     // 4. Token refresh - re-register updated token

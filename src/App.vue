@@ -70,6 +70,10 @@ import { usePermissions } from '@/shared/composables/usePermissions'
 import { useToast } from '@/shared/composables/useToast'
 // biome-ignore lint/correctness/noUnusedImports: template usage
 import logo from '@/shared/images/HomSwagLogo.png'
+import {
+  getNotificationPath,
+  getNotificationPathFromUrl,
+} from '@/shared/lib/notification-navigation'
 import { webSocketService } from '@/shared/lib/websocket.service'
 import type { RawNotification } from '@/shared/models/notification.model'
 import { useAppStore } from '@/shared/stores/app'
@@ -219,6 +223,7 @@ async function handlePermissionsGranted() {
 // ---------------------------------------------------------------------------
 
 let appStateListener: PluginListenerHandle | null = null
+let appUrlOpenListener: PluginListenerHandle | null = null
 let apiLogoutListener: ((event: Event) => void) | null = null
 let fcmCleanup: (() => void | Promise<void>) | null = null
 let activeSessionToken: string | null = null
@@ -348,7 +353,12 @@ onMounted(async () => {
       dispatchTripDataChanged(data)
     }
 
-    if (type === 'order_assigned' || type === 'order_status_changed' || type === 'invoice_sent') {
+    if (
+      type === 'order_created' ||
+      type === 'order_assigned' ||
+      type === 'order_status_changed' ||
+      type === 'invoice_sent'
+    ) {
       dispatchOrderUpdated({
         order_id: String(data.data?.order_id ?? data.data?.orderId ?? ''),
         notification: data,
@@ -417,15 +427,14 @@ onMounted(async () => {
   if (Capacitor.isNativePlatform()) {
     void LocalNotifications.addListener('localNotificationActionPerformed', event => {
       const data = event.notification.extra
-      if (data?.order_id || data?.orderId) {
-        const id = data.order_id || data.orderId
-        void router.push(`/orders/${id}`)
-      } else if (data?.trip_id || data?.tripId) {
-        const id = data.trip_id || data.tripId
-        void router.push(`/trips/${id}`)
-      } else {
-        void router.push('/notifications')
-      }
+      void router.push(getNotificationPath(data))
+    })
+
+    void App.addListener('appUrlOpen', event => {
+      const path = getNotificationPathFromUrl(event.url)
+      if (path) void router.push(path)
+    }).then(listener => {
+      appUrlOpenListener = listener
     })
   }
 
@@ -435,6 +444,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   appStateListener?.remove()
+  appUrlOpenListener?.remove()
   if (apiLogoutListener) {
     window.removeEventListener('homswag:logout', apiLogoutListener)
   }
