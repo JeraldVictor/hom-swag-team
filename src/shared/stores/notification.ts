@@ -30,9 +30,18 @@ export const useNotificationStore = defineStore('notifications', () => {
     isLoading.value = true
     try {
       const res = await getNotifications({ is_read: null, page: '1', limit: '50' })
-      notifications.value = sortNotifications(normalizeNotifications(res.data ?? []))
-      // We assume the API might return unread_count, but if not we calculate it
-      unreadCount.value = res.unread_count ?? notifications.value.filter(n => !n.is_read).length
+      const serverNotifications = normalizeNotifications(res.data ?? [])
+      const mergedById = new Map<string, Notification>()
+
+      for (const notification of notifications.value) {
+        mergedById.set(String(notification.id || notification._id), notification)
+      }
+      for (const notification of serverNotifications) {
+        mergedById.set(String(notification.id || notification._id), notification)
+      }
+
+      notifications.value = sortNotifications(Array.from(mergedById.values())).slice(0, 50)
+      unreadCount.value = notifications.value.filter(notification => !notification.is_read).length
     } catch (err) {
       console.error('Failed to fetch notifications', err)
     } finally {
@@ -72,7 +81,9 @@ export const useNotificationStore = defineStore('notifications', () => {
   const markAllRead = async () => {
     try {
       await markAllNotificationsRead()
-      notifications.value.forEach(n => (n.is_read = true))
+      notifications.value.forEach(notification => {
+        notification.is_read = true
+      })
       unreadCount.value = 0
     } catch (err) {
       console.error('Failed to mark all notifications as read', err)
@@ -83,7 +94,8 @@ export const useNotificationStore = defineStore('notifications', () => {
     const id = notification._id || notification.id
     if (!id) return
 
-    if (!notifications.value.some(n => (n._id || n.id) === id)) {
+    const notificationId = String(id)
+    if (!notifications.value.some(n => String(n._id || n.id) === notificationId)) {
       notifications.value.unshift({
         ...notification,
         id: id,
