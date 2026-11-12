@@ -50,6 +50,20 @@
         </button>
       </div>
 
+      <ion-item class="ringtone-setting">
+        <ion-label>Job alert ringtone</ion-label>
+        <ion-select
+          v-model="ringtonePreference"
+          interface="popover"
+          aria-label="Job alert ringtone"
+          @ionChange="saveRingtonePreference"
+        >
+          <ion-select-option value="alert">Alert</ion-select-option>
+          <ion-select-option value="default">Default</ion-select-option>
+          <ion-select-option value="silent">Silent</ion-select-option>
+        </ion-select>
+      </ion-item>
+
       <!-- Loading skeleton -->
       <template v-if="isLoading && notifications.length === 0">
         <div class="notif-list">
@@ -107,6 +121,15 @@
                     class="notif-item__message"
                     v-html="notif.body ?? notif.message"
                   ></p>
+                  <ion-button
+                    v-if="notif.acknowledgement_required && !notif.acknowledged_at"
+                    size="small"
+                    fill="outline"
+                    class="notif-item__ack"
+                    @click.stop="handleAcknowledge(notif)"
+                  >
+                    Acknowledge
+                  </ion-button>
                 </ion-label>
               </ion-item>
 
@@ -179,12 +202,15 @@ import {
   IonPage,
   IonRefresher,
   IonRefresherContent,
+  IonSelect,
+  IonSelectOption,
   IonTitle,
   IonToolbar,
 } from '@ionic/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/shared/composables'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import type { Notification, NotificationData } from '@/shared/models/notification.model'
 import { useNotificationStore } from '@/shared/stores/notification'
 
@@ -194,6 +220,7 @@ const router = useRouter()
 
 const filter = ref<'all' | 'unread'>('all')
 const selectedNotif = ref<Notification | null>(null)
+const ringtonePreference = ref<NonNullable<Notification['ringtone']>>('alert')
 
 const notifications = computed(() => notificationStore.notifications)
 const isLoading = computed(() => notificationStore.isLoading)
@@ -242,6 +269,25 @@ async function handleRead(notif: Notification, showModal = true): Promise<void> 
   if (!showModal) return
 
   selectedNotif.value = notif
+}
+
+async function handleAcknowledge(notif: Notification): Promise<void> {
+  try {
+    await notificationStore.acknowledge(notif.id)
+    window.dispatchEvent(
+      new CustomEvent('homswag:notification-acknowledged', { detail: { id: String(notif.id) } })
+    )
+    showSuccess('Job acknowledged')
+  } catch (err) {
+    showError(err instanceof Error ? err.message : 'Failed to acknowledge job')
+  }
+}
+
+async function saveRingtonePreference(event: CustomEvent<{ value: string }>): Promise<void> {
+  const value = event.detail.value
+  if (value !== 'silent' && value !== 'default' && value !== 'alert') return
+  ringtonePreference.value = value
+  await Storage_Service.setString(STORAGE_KEYS.notificationRingtone, value)
 }
 
 function hasAction(notif: Notification): boolean {
@@ -345,7 +391,6 @@ function getIcon(type?: string): string {
       return 'lucide:file-text'
     case 'system_alert':
       return 'lucide:bell'
-    case 'general':
     default:
       return 'lucide:bell'
   }
@@ -406,7 +451,11 @@ function formatFullDate(iso?: string): string {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  const saved = await Storage_Service.getString(STORAGE_KEYS.notificationRingtone)
+  if (saved === 'silent' || saved === 'default' || saved === 'alert') {
+    ringtonePreference.value = saved
+  }
   notificationStore.fetchNotifications()
 })
 </script>
@@ -477,6 +526,17 @@ onMounted(() => {
 .notif-filter__count--danger {
   background: var(--ion-color-danger, #eb445a);
   color: #fff;
+}
+
+.ringtone-setting {
+  --background: var(--color-background, #fff);
+  --padding-start: 16px;
+  --inner-padding-end: 8px;
+}
+
+.notif-item__ack {
+  margin: 8px 0 0;
+  --border-radius: 8px;
 }
 
 .notif-group-header {

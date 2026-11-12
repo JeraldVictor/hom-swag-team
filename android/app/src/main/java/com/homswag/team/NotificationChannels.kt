@@ -12,6 +12,9 @@ object NotificationChannels {
     const val ORDERS = "homswag_orders_default_v5"
     const val TRIPS = "homswag_trips_default_v5"
     const val GENERAL = "homswag_general_default_v5"
+    const val JOB_ALERT = "homswag_job_alert_v1"
+    const val JOB_DEFAULT = "homswag_job_default_v1"
+    const val JOB_SILENT = "homswag_job_silent_v1"
 
     private val obsoleteChannels = listOf(
         "homswag_ringtone",
@@ -44,6 +47,9 @@ object NotificationChannels {
         createChannel(notificationManager, ORDERS, "Orders", "New order and order update notifications")
         createChannel(notificationManager, TRIPS, "Trips", "New trip and trip update notifications")
         createChannel(notificationManager, GENERAL, "General", "General HomSwag notifications")
+        createChannel(notificationManager, JOB_ALERT, "Job alerts", "Repeating assigned job alerts", NotificationManager.IMPORTANCE_HIGH)
+        createChannel(notificationManager, JOB_DEFAULT, "Job alerts (default)", "Assigned job alerts", NotificationManager.IMPORTANCE_DEFAULT)
+        createChannel(notificationManager, JOB_SILENT, "Job alerts (silent)", "Assigned job alerts without sound", NotificationManager.IMPORTANCE_LOW, false)
     }
 
     fun ensure(context: Context) {
@@ -56,8 +62,14 @@ object NotificationChannels {
         id: String,
         name: String,
         descriptionText: String,
+        importance: Int = NotificationManager.IMPORTANCE_DEFAULT,
+        soundEnabled: Boolean = true,
     ) {
-        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val soundUri = if (soundEnabled) {
+            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        } else {
+            null
+        }
         val audioAttributes = AudioAttributes.Builder()
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .setUsage(AudioAttributes.USAGE_NOTIFICATION)
@@ -66,7 +78,7 @@ object NotificationChannels {
         val channel = NotificationChannel(
             id,
             name,
-            NotificationManager.IMPORTANCE_DEFAULT,
+            importance,
         ).apply {
             description = descriptionText
             setSound(soundUri, audioAttributes)

@@ -74,6 +74,7 @@ import {
   getNotificationPath,
   getNotificationPathFromUrl,
 } from '@/shared/lib/notification-navigation'
+import { STORAGE_KEYS, Storage_Service } from '@/shared/lib/storage'
 import { webSocketService } from '@/shared/lib/websocket.service'
 import type { RawNotification } from '@/shared/models/notification.model'
 import { useAppStore } from '@/shared/stores/app'
@@ -241,6 +242,21 @@ function dispatchOrderUpdated(detail: { order_id?: string; [key: string]: unknow
   dispatchOrderDataChanged(detail)
 }
 
+function localNotificationId(id: string | number): number {
+  let hash = 0
+  for (const character of String(id)) {
+    hash = (hash * 31 + character.charCodeAt(0)) | 0
+  }
+  return Math.abs(hash) || 1
+}
+
+function jobChannelId(ringtone: string | undefined, preference: string | null): string {
+  const selected = ringtone === 'silent' || ringtone === 'alert' ? ringtone : preference
+  if (selected === 'silent') return 'homswag_job_silent_v1'
+  if (selected === 'default') return 'homswag_job_default_v1'
+  return 'homswag_job_alert_v1'
+}
+
 async function setupAppStateListener() {
   appStateListener = await App.addListener('appStateChange', async ({ isActive }) => {
     if (isActive) {
@@ -371,6 +387,12 @@ onMounted(async () => {
     // 3. Local notification fallback for foreground/background transition
     if (Capacitor.isNativePlatform()) {
       let channelId = 'homswag_general_default_v5'
+      if (data.acknowledgement_required) {
+        void Storage_Service.getString(STORAGE_KEYS.notificationRingtone).then(preference => {
+          void scheduleTeamNotification(data, preference)
+        })
+        return
+      }
       if (type.includes('order') || type.includes('invoice'))
         channelId = 'homswag_orders_default_v5'
       else if (type.includes('trip')) channelId = 'homswag_trips_default_v5'
@@ -398,6 +420,43 @@ onMounted(async () => {
         ],
       })
     }
+  })
+
+  async function scheduleTeamNotification(
+    data: RawNotification,
+    preference: string | null
+  ): Promise<void> {
+    const rawBody = data.body || data.message || 'You have a new job'
+    const plainBody = rawBody
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .trim()
+    const id = localNotificationId(data.id)
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id,
+          title: data.title || 'New job assigned',
+          body: plainBody,
+          schedule: {
+            at: new Date(Date.now() + 100),
+            repeats: true,
+            every: 'minute',
+          },
+          channelId: jobChannelId(data.ringtone, preference),
+          extra: data.data || data,
+        },
+      ],
+    })
+  }
+
+  window.addEventListener('homswag:notification-acknowledged', event => {
+    const detail = (event as CustomEvent<{ id?: string }>).detail
+    if (!detail?.id || !Capacitor.isNativePlatform()) return
+    void LocalNotifications.cancel({ notifications: [{ id: localNotificationId(detail.id) }] })
   })
 
   // Listen for order updates from admin / backend and notify active views

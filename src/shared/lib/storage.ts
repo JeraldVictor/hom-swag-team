@@ -26,6 +26,7 @@ export const STORAGE_KEYS = {
   onboardingComplete: 'onboardingComplete',
   lastActiveTab: 'lastActiveTab',
   pushNotificationToken: 'pushNotificationToken',
+  notificationRingtone: 'notificationRingtone',
   pendingOrderEdits: 'pendingOrderEdits',
 } as const
 

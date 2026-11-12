@@ -58,6 +58,11 @@ export async function markNotificationRead(id: string | number): Promise<void> {
   await apiClient.patch(`/notifications/${id}/read`)
 }
 
+export async function acknowledgeNotification(id: string | number): Promise<Notification> {
+  const response = await apiClient.post<{ data: Notification }>(`/notifications/${id}/acknowledge`)
+  return response.data.data
+}
+
 /**
  * Mark all notifications as read.
  * POST /notifications/read-all

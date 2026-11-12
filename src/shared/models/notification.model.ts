@@ -23,6 +23,10 @@ export interface Notification {
   reference_id?: string
   reference_type?: string
   data?: NotificationData
+  acknowledgement_required?: boolean
+  acknowledged_by?: string
+  acknowledged_at?: string
+  ringtone?: 'silent' | 'default' | 'alert'
 }
 
 export interface RawNotification extends Omit<Notification, 'id' | 'is_read'> {

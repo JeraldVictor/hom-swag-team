@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getNotifications, markAllNotificationsRead, markNotificationRead } from '@/shared/api'
+import {
+  acknowledgeNotification,
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '@/shared/api'
 import type { Notification, RawNotification } from '@/shared/models/notification.model'
 
 export const useNotificationStore = defineStore('notifications', () => {
@@ -90,6 +95,23 @@ export const useNotificationStore = defineStore('notifications', () => {
     }
   }
 
+  const acknowledge = async (id: string | number): Promise<Notification> => {
+    const updated = await acknowledgeNotification(id)
+    const notificationId = String(id)
+    const index = notifications.value.findIndex(
+      notification => String(notification.id || notification._id) === notificationId
+    )
+    if (index >= 0) {
+      notifications.value[index] = {
+        ...notifications.value[index],
+        ...updated,
+        is_read: true,
+        acknowledged_at: updated.acknowledged_at ?? new Date().toISOString(),
+      }
+    }
+    return updated
+  }
+
   const addNotification = (notification: RawNotification) => {
     const id = notification._id || notification.id
     if (!id) return
@@ -125,6 +147,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     fetchNotifications,
     markAsRead,
     markAllRead,
+    acknowledge,
     addNotification,
     clearNotifications,
   }

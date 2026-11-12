@@ -51,6 +51,14 @@ function channelIdForType(type?: string): string {
   return 'homswag_general_default_v5'
 }
 
+function channelIdForRingtone(ringtone?: string, preference?: string | null): string | null {
+  const selected = ringtone === 'silent' || ringtone === 'alert' ? ringtone : preference
+  if (selected === 'silent') return 'homswag_job_silent_v1'
+  if (selected === 'default') return 'homswag_job_default_v1'
+  if (selected === 'alert') return 'homswag_job_alert_v1'
+  return null
+}
+
 // ---------------------------------------------------------------------------
 // Composable
 // ---------------------------------------------------------------------------
@@ -137,8 +145,15 @@ export function useFcm() {
 
         const { title, body, data } = event.notification
         const type = String((data as Record<string, string> | undefined)?.type || '').toLowerCase()
+        const notificationData = data as Record<string, string> | undefined
+        const acknowledgementRequired = notificationData?.acknowledgement_required === 'true'
 
-        const channelId = channelIdForType(type)
+        const ringtonePreference = await Storage_Service.getString(
+          STORAGE_KEYS.notificationRingtone
+        )
+        const channelId =
+          channelIdForRingtone(notificationData?.ringtone, ringtonePreference) ??
+          channelIdForType(type)
         const plainBody = body ? stripHtml(body) : 'You have a new notification'
         const notifId = Math.abs(Date.now()) % 2147483647
 
@@ -149,7 +164,9 @@ export function useFcm() {
                 id: notifId,
                 title: title || 'HomSwag',
                 body: plainBody,
-                schedule: { at: new Date(Date.now() + 300) },
+                schedule: acknowledgementRequired
+                  ? { at: new Date(Date.now() + 300), repeats: true, every: 'minute' }
+                  : { at: new Date(Date.now() + 300) },
                 channelId,
                 extra: data,
               },

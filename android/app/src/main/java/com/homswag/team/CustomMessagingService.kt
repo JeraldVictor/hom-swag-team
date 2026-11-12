@@ -18,6 +18,9 @@ class CustomMessagingService : MessagingService() {
         private const val DEFAULT_CHANNEL_ID = NotificationChannels.GENERAL
         private const val ORDERS_CHANNEL_ID = NotificationChannels.ORDERS
         private const val TRIPS_CHANNEL_ID = NotificationChannels.TRIPS
+        private const val JOB_ALERT_CHANNEL_ID = NotificationChannels.JOB_ALERT
+        private const val JOB_DEFAULT_CHANNEL_ID = NotificationChannels.JOB_DEFAULT
+        private const val JOB_SILENT_CHANNEL_ID = NotificationChannels.JOB_SILENT
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -40,7 +43,7 @@ class CustomMessagingService : MessagingService() {
     private fun showNotification(remoteMessage: RemoteMessage) {
         val data = remoteMessage.data
         val type = data["type"]?.lowercase().orEmpty()
-        val channelId = channelIdForType(type)
+        val channelId = channelIdForType(type, data)
         val title = remoteMessage.notification?.title
             ?: data["title"]
             ?: fallbackTitleForType(type)
@@ -87,7 +90,14 @@ class CustomMessagingService : MessagingService() {
         notificationManager.notify(notificationId(data), notification)
     }
 
-    private fun channelIdForType(type: String): String {
+    private fun channelIdForType(type: String, data: Map<String, String>): String {
+        if (data["acknowledgement_required"] == "true") {
+            return when (data["ringtone"]) {
+                "silent" -> JOB_SILENT_CHANNEL_ID
+                "default" -> JOB_DEFAULT_CHANNEL_ID
+                else -> JOB_ALERT_CHANNEL_ID
+            }
+        }
         if (type.contains("order") || type.contains("invoice")) return ORDERS_CHANNEL_ID
         if (type.contains("trip")) return TRIPS_CHANNEL_ID
         return DEFAULT_CHANNEL_ID
